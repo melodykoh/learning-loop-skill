@@ -159,6 +159,54 @@ This prevents duplication and leverages existing tools.
 
 ---
 
+## Session: Jan 24, 2026 (Part 2) — GitHub Publication & Development Conventions
+
+### Context
+Following the git initialization, we needed to:
+1. Publish to GitHub for shareability
+2. Establish conventions so Claude knows to update SESSION_LOG.md on every change
+
+### Decision: Separate CLAUDE.md for Development Conventions
+
+**Problem:** How does Claude know to update SESSION_LOG.md every time SKILL.md changes?
+
+**Options considered:**
+1. Add instructions to SKILL.md itself — clutters the skill with meta-instructions
+2. Add to root CLAUDE.md — but this is a per-repo convention
+3. Create repo-local CLAUDE.md — Claude sees it when working in this directory
+
+**Decision:** Create `CLAUDE.md` in the learning-loop repo with:
+- Mandatory SESSION_LOG.md update requirement
+- Commit and push workflow
+- Quality checklist
+
+This follows Claude Code's convention: CLAUDE.md files at any level are read and followed.
+
+### Decision: SESSION_LOG.md Is a Teaching Artifact
+
+**Question from earlier:** "When publishing to GitHub, should SESSION_LOG be included?"
+
+**Answer:** Yes. SESSION_LOG.md serves dual purposes:
+1. **For maintainers:** Prevents re-litigation of decisions
+2. **For readers:** Shows *how* to think about building skills, not just final state
+
+The reasoning trail is as valuable as the skill itself.
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| README.md | User-facing documentation, installation, usage |
+| CLAUDE.md | Development conventions for Claude when modifying this repo |
+
+### GitHub Repo
+
+- **URL:** https://github.com/melodykoh/learning-loop-skill
+- **Visibility:** Public
+- **Description:** Claude Code skill for capturing learnings before context compaction
+
+---
+
 ## Session: Jan 23, 2026 — V1 Creation (Reconstructed)
 
 > Note: V1 file was deleted. This section is reconstructed from memory and the draft post.
@@ -194,7 +242,7 @@ Learning-loop was conceived to solve: "Sometimes I remember to run `/workflows:c
 
 2. **Multi-session capture consolidation:** When captures span multiple sessions, what's the best consolidation UX?
 
-3. **Publication format:** When publishing to GitHub, should SESSION_LOG be included? (Probably yes — it's a teaching artifact)
+3. ~~**Publication format:** When publishing to GitHub, should SESSION_LOG be included?~~ **RESOLVED:** Yes — it's a teaching artifact. See Jan 24 Part 2 session.
 
 ---
 
