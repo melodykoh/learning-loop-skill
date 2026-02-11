@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Orchestration layer that monitors sessions for learning signals, prompts for /workflows:compound when appropriate, and ensures no valuable learning is lost to compaction
-version: 2.0.0
+version: 2.1.0
 allowed-tools:
   - Task # Spawn sub-agent for scanning
   - Read # Access capture files, transcripts
@@ -20,7 +20,7 @@ triggers:
   - After significant debugging/investigation (code-level check — user can request capture anytime)
 ---
 
-# learning-loop Skill v2
+# learning-loop Skill v2.1
 
 **Purpose:** Orchestrate learning capture across a session — ensuring `/workflows:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
@@ -40,6 +40,18 @@ triggers:
 **When user says "wrap up" / "consolidate":**
 - THEN you can read capture files and route to destinations (Judgment Ledger, CLAUDE.md)
 - This is consolidation, not capture — different phase
+
+### ⚠️ USER VERIFICATION REQUIRED (Critical)
+
+**Before acting on ANY learning capture:**
+
+1. **Present a summary** of the captured signals to the user
+2. **Explicitly ask for verification** — "Does this accurately reflect what happened?"
+3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, or running `/workflows:compound`
+
+> **Why this exists (Jan 29, 2026):** AI-generated captures can contain hallucinations — wrong names, fabricated premises, misremembered details. A capture once referenced "Henry" when the user's husband is "Ted" and claimed constraints that didn't exist. User verification catches these errors before they propagate to persistent documentation.
+
+**DO NOT** update CLAUDE.md or Judgment Ledger based on captures without user sign-off.
 
 ---
 
@@ -71,16 +83,18 @@ Learning-loop sits at a **higher level** and decides:
 │  Monitors session → Detects signals → Routes appropriately  │
 └─────────────────────────────────────────────────────────────┘
                               │
-            ┌─────────────────┼─────────────────┐
-            ▼                 ▼                 ▼
-     ┌──────────┐      ┌──────────┐      ┌──────────┐
-     │Code-level│      │Process-  │      │Content-  │
-     │          │      │level     │      │level     │
-     └────┬─────┘      └────┬─────┘      └────┬─────┘
-          │                 │                 │
-          ▼                 ▼                 ▼
-   /workflows:compound   CLAUDE.md      Judgment Ledger
-   (deep documentation)  (direct edit)  (direct write)
+        ┌─────────────────────┼──────────────────────┐
+        ▼                     ▼                      ▼
+  ┌──────────┐    ┌───────────────────┐       ┌──────────┐
+  │Code-level│    │Process-level      │       │Content-  │
+  │          │    │  ┌──────┬────────┐│       │level     │
+  └────┬─────┘    │  │Global│Project ││       └────┬─────┘
+       │          │  └──┬───┴───┬────┘│            │
+       │          └─────┼───────┼─────┘            │
+       ▼                ▼       ▼                  ▼
+/workflows:compound  Root    Project          Judgment Ledger
+(deep documentation) CLAUDE  CLAUDE.md        (direct write)
+                     .md     (repo-specific)
 ```
 
 **Learning-loop doesn't replace `/workflows:compound` — it ensures it gets run.**
@@ -167,6 +181,13 @@ Capture enough signal in the learning-loop file that:
 | **Trigger-condition descriptions** | Process/content learnings formatted for future retrieval |
 | **Safety net capture** | When `/workflows:compound` can't run, preserve enough signal for later |
 
+## What's New in v2.1
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Real-time micro-logging (Phase 1)** | Phase 1 wrote nothing — "mentally flag" meant details were lost to compaction before capture. Now appends one-line scratch entries via Bash echo, surviving compaction as input for Phase 3. |
+| **Project-level CLAUDE.md routing (Phase 4)** | Process-level routing defaulted to root CLAUDE.md only. Repo-specific observations (conventions, preferences, domain notes) were discarded because they didn't belong in the 550-line-budget global doc. Now routes project-specific learnings to the project's own CLAUDE.md. |
+
 ---
 
 ## Architecture Overview
@@ -181,7 +202,8 @@ Session Start
      │
      ├──► LIGHTWEIGHT EVALUATION ◄─── After significant debugging
      │    "Did this investigation produce non-obvious knowledge?"
-     │    If yes → Queue for capture (don't interrupt flow)
+     │    If yes → Append one-line scratch entry (silent, via Bash echo)
+     │             ~/.claude/learning-captures/[session-id]/scratch.md
      │
      ▼
 User sees context warning OR wants to preserve learnings
@@ -191,7 +213,7 @@ User requests capture ◄──── PRIMARY TRIGGER (user-initiated)
   ("run a capture", "capture learnings", "wrap up", "before I clear")
      │
      ▼
-Sub-agent spawns (sees full context)
+Sub-agent spawns (sees full context + scratch.md)
 Scans for learning signals
 Applies QUALITY GATES
 Writes to: ~/.claude/learning-captures/[session-id]/capture-001.md
@@ -199,7 +221,7 @@ Writes to: ~/.claude/learning-captures/[session-id]/capture-001.md
      ▼
 Compaction happens (if user proceeds)
 Details lost from context
-BUT preserved in capture file
+BUT preserved in capture file + scratch.md
      │
      ▼
 [User can request additional captures as needed]
@@ -211,15 +233,21 @@ Session wrap-up ("let's wrap up")
 Consolidate all capture files
 WEB RESEARCH for code-level learnings
 Route to proper destinations with SEMANTIC DESCRIPTIONS
-Clean up capture directory
+  ├─ Code-level → /workflows:compound → docs/solutions/
+  ├─ Process-level (global) → root CLAUDE.md
+  ├─ Process-level (project) → project CLAUDE.md
+  └─ Content-level → Judgment Ledger
+Clean up capture directory + scratch.md
 ```
 
 ### Why Triggers Are User-Initiated
 
 **Key insight from investigation:**
-- Claude does NOT receive a system signal when context is low
+- Claude does NOT receive a system signal when context is low **in Claude Code**
 - PreCompact hooks cannot spawn sub-agents (ruled out in V1 design)
 - The only reliable triggers are user-initiated phrases
+
+> **UPDATE (Feb 11, 2026):** The Claude API has a "context awareness" feature that injects `<budget:token_budget>` at conversation start and `<system_warning>Token usage: X/Y; Z remaining</system_warning>` after each tool call. This is documented for Sonnet 4.5/Haiku 4.5, and per Lance Martin's overview, Opus 4.6. **However, Claude Code does not enable this feature** — it uses its own compaction mechanism instead. If Claude Code enables context awareness in a future release, this section should be revisited and a context-threshold trigger added to Phase 1. See `content-lab/posts/drafts/compounding-loops-ai-agents-draft.md` Feature Request #1 for the full analysis and ask.
 
 **What this means in practice:**
 - When user sees "Context is getting long" warning, they can say "run a capture"
@@ -292,7 +320,7 @@ Before extracting any learning, verify it passes the appropriate gates for its t
 
 ---
 
-## Phase 1: Lightweight Continuous Evaluation (NEW)
+## Phase 1: Lightweight Continuous Evaluation + Scratch Logging
 
 ### When to Evaluate (Not Every Prompt)
 
@@ -302,7 +330,7 @@ Evaluate ONLY after:
 - Trial-and-error discovery
 - User correction or pushback that changed approach
 
-### The Evaluation (Mental, Not Interrupting)
+### The Evaluation
 
 ```
 Internal check:
@@ -310,11 +338,40 @@ Internal check:
 2. Was the solution non-obvious?
 3. Could future sessions benefit?
 
-If all yes → Flag for capture at next opportunity
-If any no → Continue without flagging
+If all yes → Append one line to scratch file (silent)
+If any no → Continue without logging
 ```
 
-**DO NOT interrupt the user's flow.** Just mentally queue for capture.
+### Scratch File Mechanism
+
+**DO NOT interrupt the user's flow.** Write silently via Bash echo append.
+
+**First write in a session** (creates directory + header):
+```bash
+mkdir -p ~/.claude/learning-captures/[session-id] && echo "## Scratch Log (unverified micro-signals — input for Phase 3, not a source of truth)\n---" > ~/.claude/learning-captures/[session-id]/scratch.md
+```
+
+**Subsequent writes** (append one-liner):
+```bash
+echo "[ISO-timestamp] [source] Signal summary | Key detail or corrective action" >> ~/.claude/learning-captures/[session-id]/scratch.md
+```
+
+### Source Tags
+
+| Tag | Meaning | Example |
+|-----|---------|---------|
+| `[self]` | Claude's own mistake or discovery | `[self] Tried WebFetch on X URL, blocked \| Always use Playwright MCP for social media` |
+| `[user]` | User correction or pushback | `[user] Corrected: husband's name is Ted not Henry \| Verify names before persisting` |
+| `[env]` | Tooling or environment surprise | `[env] Playwright MCP doesn't support PDF export \| Use sips or wkhtmltopdf instead` |
+
+### Scratch File Rules
+
+1. **One line per signal** — no multi-line entries. Format: `[timestamp] [source] summary | detail`
+2. **Silent execution** — no announcement to user, no confirmation message
+3. **Not a source of truth** — scratch lines are *input* for Phase 3, not verified learnings
+4. **Survives compaction** — the entire point; when context is compacted, scratch.md preserves the specifics
+5. **Use Bash echo** as primary mechanism (`Bash(echo *)` is already in global allow list). Fall back to Write tool only if echo fails.
+6. **Session-id** = use a short identifier for the current session (date + brief context, e.g., `2026-02-11-learning-loop-v21`)
 
 ---
 
@@ -371,6 +428,19 @@ Claude does NOT proactively detect context limits. If user sees a context warnin
 ```
 You have access to the full conversation context. Your job is to identify
 learning signals, apply quality gates, and write them to a capture file.
+
+FIRST: Check for scratch file at ~/.claude/learning-captures/[session-id]/scratch.md
+If it exists, read it. Each line is an unverified micro-signal logged in real-time
+during the session. These are ESPECIALLY valuable when conversation context has been
+partially compacted — they preserve specifics that summaries lose.
+
+For each scratch line:
+- Cross-reference against conversation context to verify accuracy
+- If confirmed → incorporate into your signal extraction (it may add detail
+  to a signal you'd find anyway, or surface one you'd otherwise miss)
+- If contradicted by context or unverifiable → discard (possible hallucination
+  or stale observation)
+- Note which scratch lines you incorporated vs. discarded
 
 SCAN FOR THESE SIGNALS (in order of importance):
 1. User pushback - corrections, disagreements
@@ -465,7 +535,7 @@ signals_need_review: [count]
    ls ~/.claude/learning-captures/*/capture-*.md 2>/dev/null
    ```
 
-2. **If captures exist, consolidate and present:**
+2. **If captures exist, consolidate and present FOR USER VERIFICATION:**
 
 ```
 ## Session Learning Signals (Consolidated)
@@ -485,12 +555,20 @@ Across [N] captures, I found these signals:
 |---|------|-------------|--------|
 | 3 | Failed attempt | Verification | Never confirmed fix works |
 
-What should we do?
-1. Document all that passed gates
-2. Review flagged signals first
-3. Select specific ones
-4. Skip documentation this session
+---
+
+⚠️ **VERIFICATION REQUIRED:** Does this summary accurately reflect what happened?
+- Are names, facts, and premises correct?
+- Did I miss anything important?
+- Did I capture something that didn't actually happen?
+
+Please confirm accuracy before I proceed to documentation.
 ```
+
+**WAIT FOR USER CONFIRMATION before proceeding to step 3.**
+
+If user identifies errors → correct the captures before documenting.
+If user confirms → proceed with documentation routing.
 
 3. **For Code-Level Learnings: Invoke /workflows:compound**
 
@@ -513,7 +591,17 @@ If context is too low for `/workflows:compound`, fall back to manual capture wit
 
 These types don't use `/workflows:compound` — learning-loop handles them directly with trigger-condition-rich descriptions:
 
-**Process-level → Root CLAUDE.md**
+### Process-Level Routing: Global vs. Project-Specific
+
+**Decision boundary test:** *"Would this apply if I was working in a completely different project?"*
+
+| YES → root CLAUDE.md | NO → project CLAUDE.md |
+|---|---|
+| "When building APIs, ask about naming convention first" | "This repo's API uses camelCase for all endpoints" |
+| "Before modifying functions, read entire implementation" | "Supabase RPCs in this project use `verb_noun` naming" |
+| "LinkedIn adaptations should lead with universal insight" | "User prefers content-lab LinkedIn drafts to open with a question" |
+
+**Process-level (global) → Root CLAUDE.md**
 
 ⚠️ **CONSOLIDATION REQUIRED:** Before adding to root CLAUDE.md:
 
@@ -524,6 +612,57 @@ These types don't use `/workflows:compound` — learning-loop handles them direc
 5. **Consider pruning** — if the document is getting long, can older rules be consolidated?
 
 The goal is a **streamlined, scannable document** — not a changelog of every learning.
+
+**Process-level (project-specific) → Project CLAUDE.md**
+
+⚠️ **SAME CONSOLIDATION DISCIPLINE:** Before adding to a project CLAUDE.md:
+
+1. **Read the entire project CLAUDE.md first** — if it exists
+2. **Search for similar entries** — merge, don't duplicate
+3. **If no project CLAUDE.md exists** — create one during Phase 4 consolidation. This is a one-time action per project. Use the project's existing CLAUDE.md structure as a template if available, otherwise start with a simple `## Learned Conventions` section.
+4. **Keep project CLAUDE.md focused** — only repo-specific observations, not general principles
+
+> **Session-start review is free:** Claude Code automatically reads all CLAUDE.md files in the working directory tree at session start. No additional loading logic needed — once an observation lands in a project CLAUDE.md, it's automatically active every session.
+
+#### 4b. Scenario QA for New Rules (MANDATORY after writing process-level rules)
+
+> **Why this exists (Content Lab, Feb 6 2026):** The X Playbook documented link penalties, but the Operations Playbook didn't mandate reading it at the execution step. Gap was only discovered when Claude added embedded URLs to an X article. Rules that exist but aren't surfaced at the point of execution are dead code paths in your process.
+
+**After writing any new rule to CLAUDE.md or a playbook, immediately run this QA step:**
+
+1. **Generate 3-5 scenarios** where this rule should trigger
+   - Focus on realistic scenarios the user would actually encounter
+   - Include at least one where the user *asks for something that violates the rule*
+
+2. **For each scenario, trace the workflow:**
+   - At what step in the operational workflow would Claude be?
+   - Is the new rule referenced at that step?
+   - Would Claude encounter the rule *before* taking the wrong action?
+
+3. **Identify gaps:**
+   - Rule exists in CLAUDE.md but isn't referenced at the execution step → **ADD reference at point of use**
+   - Rule is in a playbook but the workflow doesn't mandate reading that playbook section → **ADD mandatory read**
+   - Rule requires knowledge that isn't loaded by default → **ADD to session start or pre-task checklist**
+
+4. **Present gaps to user:**
+   ```
+   "I've scenario-tested the new rule. Found [N] gaps:
+   - Scenario: [description] → Rule wouldn't be surfaced because [reason]
+   - Fix: [what to add where]
+
+   Want me to patch these?"
+   ```
+
+**Example (from the session that created this step):**
+- New rule: "Flag before complying when user requests violate platform constraints"
+- Scenario: User asks to add embedded URLs in an X article draft
+- Trace: Claude would be at Operations Playbook Step 3 (Create Adaptations)
+- Gap found: Step 3 didn't mandate reading X_PLAYBOOK link strategy sections
+- Fix: Added format-specific X_PLAYBOOK reading requirements to Step 3
+
+**This step is lightweight** — 3-5 scenarios, quick trace, patch if needed. It's not a full audit; it's the equivalent of writing a few unit tests after a code change.
+
+**Future enhancement:** A dedicated `/process-qa` audit skill could run comprehensive scenario testing across entire documents. This inline step is the minimum viable version.
 
 **Template for new process-level entries:**
 
@@ -581,7 +720,10 @@ For insights classified as **Pattern** or **Principle**:
 
 Learning-loop's job is capture and flag, not content creation.
 
-5. **Clean up capture files** after documentation confirmed
+5. **Clean up capture files + scratch.md** after documentation confirmed
+   - Delete capture files (`capture-*.md`)
+   - Delete scratch file (`scratch.md`)
+   - Remove session directory if empty
 
 6. **Mention flagged Pattern/Principle insights**
 
@@ -638,7 +780,8 @@ Want me to:
 | Type | Definition | Handler | Destination |
 |------|------------|---------|-------------|
 | **Code-level** | Specific to codebase/framework | `/workflows:compound` (multi-agent) | `docs/solutions/` with schema-validated YAML |
-| **Process-level** | How to work better | Learning-loop direct | Root CLAUDE.md with trigger + warning signs |
+| **Process-level (global)** | How to work better — applies across projects | Learning-loop direct | Root CLAUDE.md with trigger + warning signs |
+| **Process-level (project)** | Repo-specific conventions, preferences, domain notes | Learning-loop direct | Project CLAUDE.md with trigger + context |
 | **Content-level** | Publishable insight | Learning-loop direct | Judgment Ledger with future trigger |
 
 ---
@@ -681,6 +824,10 @@ Session in progress → Learning signal detected →
      ▼
 Apply type-specific quality gates →
      │
+     ├─ Passes gates → Append one-line scratch entry (silent)
+     │                  ~/.claude/learning-captures/[session-id]/scratch.md
+     └─ Fails gates → Continue without logging
+     │
      ▼
 Code-level fix?
      │
@@ -696,7 +843,8 @@ Process/Content-level? → Capture signal for wrap-up
 Session wrap-up →
      │
      ├─ Code-level → Run /workflows:compound (if not already done)
-     ├─ Process-level → Edit CLAUDE.md directly (with consolidation)
+     ├─ Process-level (global) → Edit root CLAUDE.md (with consolidation)
+     ├─ Process-level (project) → Edit project CLAUDE.md (with consolidation)
      └─ Content-level → Write Judgment Ledger entry
           │
           └─ If Pattern/Principle → Flag as "Content Development: Pending"
@@ -709,7 +857,8 @@ Pattern/Principle insights wait for dedicated Content Development Session
 Next session starts →
      │
      ├─ Check docs/solutions/ for known errors (schema-validated, searchable)
-     ├─ CLAUDE.md rules have observable triggers
+     ├─ Root CLAUDE.md rules have observable triggers
+     ├─ Project CLAUDE.md conventions auto-loaded (Claude Code reads all CLAUDE.md)
      └─ Judgment Ledger has flagged insights ready for content development
      │
      ▼
@@ -729,6 +878,8 @@ Content developed when there's dedicated time (not mid-session)
 | **Immediate prompting** | Code-level fixes prompt for documentation while context is fresh |
 | **Consolidation over accumulation** | CLAUDE.md edits require reading and merging, not just appending |
 | **Safety net capture** | Pre-compaction capture ensures nothing is lost even if documentation is deferred |
+| **Persistence over memory** | Phase 1 writes scratch lines instead of mentally flagging — files survive compaction, mental notes don't |
+| **Scope-appropriate routing** | Process learnings route to root CLAUDE.md (global) or project CLAUDE.md (repo-specific) based on applicability test |
 
 ---
 
@@ -744,5 +895,6 @@ This is the foundation. Everything else supports it:
 - **Trigger-condition descriptions** → Future sessions can find learnings without you remembering they exist
 
 v2 adds: **"...and the system should be able to find what it learned."**
+v2.1 adds: **"...and nothing is lost between the moment of learning and the moment of capture."**
 
 The orchestration exists so you can focus on the work. Learning-loop handles the meta-work of ensuring nothing valuable is lost.

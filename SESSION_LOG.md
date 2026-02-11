@@ -236,6 +236,94 @@ Learning-loop was conceived to solve: "Sometimes I remember to run `/workflows:c
 
 ---
 
+## Session: Feb 11, 2026 — V2.1: Real-time Micro-Logging + Project-Level Routing
+
+### Context
+
+Analysis of the Napkin skill (blader/napkin) during content-lab work exposed two gaps in learning-loop v2. Napkin takes a radically simple approach — write mistakes down immediately, read them at session start, compound over sessions. Cross-analyzing this against our more sophisticated system revealed where the sophistication was hiding a blind spot.
+
+### Problem 1: Phase 1 Was Mental-Only
+
+**What v2 assumed:**
+- "Mentally flag for capture" was sufficient
+- User would initiate capture before compaction erased details
+
+**What Napkin exposed:**
+- If compaction happens before "run a capture", the Phase 3 sub-agent inherits a *summary*, not the specifics
+- The sub-agent can't extract what the conversation no longer contains
+- "Mental flagging" means details live only in volatile context — exactly the problem the skill exists to solve
+
+**The irony:** Learning-loop's entire purpose is "files persist, context doesn't" — but Phase 1 was relying on context persistence.
+
+### Solution: Scratch File via Bash Echo
+
+Instead of "mentally flag", Phase 1 now appends one-line entries to `scratch.md` via `Bash(echo *)` — already in the global allow list, so no permission prompt.
+
+**Key design decisions:**
+- **Bash echo, not Write tool** — `echo` was already permitted globally; Write required adding `Write(~/.claude/learning-captures/**)` to global settings (done as a fallback)
+- **One line per signal** — no multi-line entries. Forces concision, keeps the file scannable
+- **Source tags** (`[self]`, `[user]`, `[env]`) — allows Phase 3 to prioritize user corrections over Claude's own observations
+- **Not a source of truth** — scratch lines are *input* for Phase 3 quality gates, not verified learnings. The user verification step in Phase 4 still catches hallucinations.
+
+### What We Took from Napkin
+
+| Napkin Feature | Adopted? | Rationale |
+|----------------|----------|-----------|
+| Write mistakes immediately | ✅ Yes | Core of the scratch file mechanism |
+| Single-file structure | ❌ No | We need type-specific routing; single file can't distinguish code/process/content |
+| No quality gates | ❌ No | Quality gates prevent CLAUDE.md bloat and ensure learnings are actionable |
+| Read at session start | Already had | SessionStart hook + CLAUDE.md auto-loading already covers this |
+
+---
+
+### Problem 2: No Route to Project-Level CLAUDE.md
+
+**What v2 assumed:**
+- "Process-level → CLAUDE.md" was sufficient
+- All process learnings belong in root CLAUDE.md
+
+**What we observed:**
+- Root CLAUDE.md has a 550-line budget and global scope
+- Repo-specific observations ("this API uses camelCase", "user prefers LinkedIn drafts to open with a question") don't belong there
+- Without a route, project-specific learnings were silently dropped — user had to re-teach Claude each session
+
+### Solution: Split Process-Level Routing
+
+Added a decision boundary test: *"Would this apply if I was working in a completely different project?"*
+
+- YES → root CLAUDE.md (global process rule)
+- NO → project CLAUDE.md (repo-specific convention)
+
+**Key design decision: Why project CLAUDE.md, not a separate patterns file?**
+
+We considered creating `~/.claude/project-patterns/[repo-name].md` files. Rejected because:
+1. Claude Code already auto-loads all CLAUDE.md files in the working directory tree at session start
+2. A separate patterns directory would require custom loading logic
+3. CLAUDE.md is the canonical location for "instructions Claude should follow in this directory"
+4. Session-start review comes for free — no new Phase 0 needed
+
+### Also: Settings Cleanup
+
+The SessionStart hook detected two rogue project-level settings files created by "Always allow" clicks:
+- `NextView/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
+- Root `.claude/settings.local.json` — migrated Playwright MCP tools (`browser_navigate`, `browser_wait_for`, `browser_close`), `WebSearch`, and `gh api` to global
+
+Both files deleted after migration. Also added `Write(~/.claude/learning-captures/**)` to global settings for scratch file fallback.
+
+---
+
+### Files Changed This Session
+
+| File | Change |
+|------|--------|
+| SKILL.md | v2.1 upgrade: Phase 1 scratch logging, Phase 3 scratch awareness, Phase 4 routing split, diagrams/tables updated |
+| SESSION_LOG.md | Added this entry |
+| ~/.claude/settings.json | Added learning-captures Write permission + migrated rules from 2 rogue project files |
+| NextView/.claude/settings.local.json | Deleted (rules migrated to global) |
+| .claude/settings.local.json | Deleted (rules migrated to global) |
+
+---
+
 ## Pending Questions / Future Investigation
 
 1. **SessionStart hook reliability:** Does the LEARNING_CAPTURES_EXIST check work consistently across all clear scenarios?
