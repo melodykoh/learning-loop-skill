@@ -62,7 +62,7 @@ After updating both SKILL.md and SESSION_LOG.md:
 
    [Optional: Key decision or finding]
 
-   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+   Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
    ```
 
 3. **Push to origin:**
