@@ -330,45 +330,51 @@ Both files deleted after migration. Also added `Write(~/.claude/learning-capture
 
 Auto-memory collision discovered: Claude Code's built-in auto-memory feature intercepts natural-language phrases like "capture" and "remember this." The skill's YAML `triggers` field used the same phrases, causing unpredictable behavior — sometimes auto-memory handled the request, sometimes the skill did, sometimes neither. Additionally, the YAML frontmatter `triggers` field was causing parsing issues that prevented the skill from loading reliably.
 
-### Problem 1: YAML `triggers` Field Was Never a Real Feature (PRIMARY ROOT CAUSE)
+### Problem 1: Non-Deterministic Invocation (PRIMARY ROOT CAUSE)
 
 **What v2 assumed:**
-- The `triggers` field in YAML frontmatter would cause Claude Code to automatically invoke the skill when users said matching phrases
-- Natural-language triggers ("run a capture", "wrap up") would reliably invoke the skill
+- The `triggers` YAML field would reliably auto-invoke the skill when users said matching phrases
+- Both capture ("run a capture") and wrap-up ("wrap up") would trigger reliably
 
 **What investigation revealed (Feb 25, post-implementation):**
 - The `triggers` field is **NOT a supported YAML frontmatter field** in Claude Code's SKILL.md spec
 - The official spec supports: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`
-- `triggers` was never parsed by the system — it was just text Claude could read if the SKILL.md body was loaded
-- Skills are auto-invoked based on the `description` field only (Claude's LLM matches user request to description)
-- Other skills that document triggers (e.g., compound-engineering plugins) put trigger phrases IN the description field, not in a separate `triggers` key
+- `triggers` was never parsed by the system as a machine feature
+- The only auto-invocation mechanism is **description-based matching** — Claude's LLM reads the `description` field and decides whether to invoke. This is non-deterministic.
 
-**Evidence:** The skill had orphaned capture files from Feb 15, 16, and 24 — the scan/capture phase had been invoked (via explicit `/learning-loop` or Claude matching the description) but the wrap-up phase never ran. This means "wrap up" as a natural-language trigger **never worked** — not because auto-memory intercepted it, but because the trigger mechanism didn't exist.
+**However, the skill DID fire sometimes.** Orphaned capture files from Feb 15, 16, and 24 prove the capture/scan phase was invoked. This likely happened through:
+1. Explicit `/learning-loop` invocation by the user
+2. Claude reading the SKILL.md body (including the triggers list as documentation) and treating those phrases as cues
+3. Description-based matching succeeding intermittently
 
-**Implication:** v2's trigger model was broken from day one. The skill only worked when explicitly invoked with `/learning-loop` or when Claude happened to match the description. Three captures accumulated unprocessed across 10 days because wrap-up never triggered.
+**The asymmetric failure:** Capture worked sometimes but wrap-up never did. Why?
+- "Run a capture" / "capture learnings" are distinctive phrases Claude could match to the skill
+- "Wrap up" is a common conversational phrase — Claude (or auto-memory) likely handled it conversationally instead of routing to the skill
+- Auto-memory may have intercepted "wrap up" as a memory-related cue
 
-### Problem 2: Auto-Memory Collision (SECONDARY)
+**Result:** Capture files accumulated but were never consolidated. The system was half-working — the scan phase fired intermittently, but the consolidation phase never triggered automatically.
 
-Auto-memory intercepting "capture" and similar words is a real issue, but it's **secondary** to Problem 1. Even without auto-memory, the triggers wouldn't have worked because the YAML field was never functional.
+### Problem 2: Auto-Memory Collision (CONTRIBUTING FACTOR)
 
-Auto-memory collision remains relevant for:
-- Preventing future designs from relying on natural-language phrases that auto-memory might intercept
-- Explaining why the `description`-based matching (the only real auto-invocation path) was unreliable — auto-memory could respond first
+Auto-memory intercepting common phrases like "wrap up" and "capture" made the non-deterministic invocation worse:
+- For distinctive phrases ("run a capture"), the skill sometimes won
+- For common phrases ("wrap up"), auto-memory or conversational handling consistently won
+- The user had no way to know which system would respond
 
 ### Decision: Explicit Invocation Only
 
 Given that:
-1. YAML `triggers` was never a supported feature — the trigger model was built on a non-existent capability
-2. Description-based auto-invocation is unreliable (depends on whether Claude matches)
-3. Auto-memory may intercept natural-language phrases (secondary concern)
-4. `/learning-loop` as a slash command is deterministic and can't be intercepted
+1. YAML `triggers` was never a supported feature — invocation depended on non-deterministic description matching
+2. Common phrases like "wrap up" were especially unreliable — too many things compete for them
+3. Auto-memory adds another competitor for natural-language phrases
+4. `/learning-loop` as a slash command is deterministic and unambiguous
 
 **The solution is explicit invocation with smart mode detection:**
 - User invokes `/learning-loop` directly (optionally with `scan` or `wrap up`)
 - Mode detection uses context clues from the user's recent messages
 - If ambiguous, the skill asks which mode
 
-This is both a **correctness fix** (triggers never worked) and a **resilience principle** (explicit invocation can't be intercepted).
+This is a **determinism fix** — replacing non-deterministic natural-language matching with deterministic slash command invocation.
 
 ### Decision: Two-Mode Model (Raw vs. Conclusions)
 

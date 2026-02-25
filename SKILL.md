@@ -74,9 +74,17 @@ Context compaction and `/clear` destroy details. Files persist. This skill ensur
 
 ---
 
-## Auto-Memory Coexistence
+## Why Explicit Invocation
 
-Claude Code has a built-in auto-memory feature that intercepts natural-language phrases like "capture" and "remember this." Learning-loop v3 avoids collision by design:
+v2 relied on a `triggers` YAML field, but `triggers` is not a supported field in Claude Code's SKILL.md spec. The only auto-invocation mechanism is **description-based matching** — Claude's LLM matches user requests to the skill's `description` field. This is non-deterministic: distinctive phrases like "run a capture" matched often enough to produce capture files, while common phrases like "wrap up" were too generic and consistently failed to invoke the skill — handled conversationally or intercepted by auto-memory instead.
+
+**Result:** Scan-like invocations worked intermittently, but wrap-up never triggered reliably. Capture files accumulated across sessions with no consolidation phase to process them.
+
+**v3 fix:** Explicit `/learning-loop` invocation is deterministic. Both modes fire exactly when intended — no reliance on LLM matching heuristics.
+
+### Auto-Memory Coexistence
+
+Claude Code also has a built-in auto-memory feature that intercepts natural-language phrases like "capture" and "remember this." Explicit invocation avoids this secondary concern too:
 
 | Feature | Auto-Memory | Learning-Loop |
 |---------|-------------|---------------|
@@ -87,10 +95,8 @@ Claude Code has a built-in auto-memory feature that intercepts natural-language 
 
 **Complementary, not competing:**
 - Auto-memory handles quick "remember X" requests — let it
-- Learning-loop handles structured session analysis — explicit invocation prevents collision
+- Learning-loop handles structured session analysis — explicit invocation ensures it runs when intended
 - Memory (MEMORY.md) is one of learning-loop's routing destinations, but learning-loop applies quality gates first
-
-**If auto-memory intercepts something that should be learning-loop's domain:** The user can always invoke `/learning-loop` explicitly. The skill's value is in structured analysis, not trigger ownership.
 
 ---
 
@@ -690,12 +696,12 @@ Session 3: Finally done!
 
 | Enhancement | Why It Matters |
 |-------------|----------------|
-| **Explicit `/learning-loop` invocation** | No trigger collision with auto-memory — skill can't be intercepted by platform features |
+| **Explicit `/learning-loop` invocation** | v2's description-based matching was non-deterministic — capture phrases matched intermittently, but "wrap up" never triggered reliably. Explicit invocation is deterministic. |
 | **Two-mode model (Scan / Wrap-up)** | Scans capture raw signals without judgment; wrap-up resolves hypotheses with hindsight |
 | **Smart mode detection** | Minimal friction — context clues route to the right mode, explicit override always available |
 | **Memory as routing destination** | Facts (no behavior change) route to MEMORY.md instead of being lost or forced into CLAUDE.md |
 | **Auto-memory coexistence** | Complementary design — auto-memory handles quick facts, learning-loop handles structured analysis |
-| **Resilience principle** | Adapts when platform behaviors change rather than fighting them |
+| **User stories documented** | Distinct use cases ("mid-task, save signals" vs "done, consolidate everything") now explicit — prevents future designs from collapsing them |
 
 ### Previous Versions
 
@@ -709,7 +715,7 @@ Session 3: Finally done!
 
 | Principle | How It's Implemented |
 |-----------|---------------------|
-| **Explicit invocation, no trigger collision** | `/learning-loop` can't be intercepted by auto-memory |
+| **Explicit invocation, deterministic behavior** | Description-based matching was non-deterministic (asymmetric failure); `/learning-loop` is deterministic and can't be intercepted |
 | **Scans are raw, wrap-up draws conclusions** | Mid-session hypotheses resolved at session end with hindsight |
 | **Smart default, explicit override** | Context clue detection with fallback to asking |
 | **Memory is a routing destination** | Facts route to MEMORY.md; behavioral changes route to CLAUDE.md |

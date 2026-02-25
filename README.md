@@ -91,9 +91,11 @@ Quality gates apply during **wrap-up consolidation**, not during scans. Each con
 
 Before any learning is routed to its destination, the system presents a summary for user review. This catches hallucinations and misattributions before they reach persistent documentation.
 
-## Auto-Memory Coexistence
+## Why Explicit Invocation
 
-v3 is designed to complement Claude Code's built-in auto-memory, not compete with it:
+v2 relied on a `triggers` YAML field, but `triggers` is not a supported field in Claude Code's SKILL.md spec. The only auto-invocation mechanism — description-based matching — is non-deterministic: distinctive phrases like "run a capture" matched often enough to produce capture files, but common phrases like "wrap up" consistently failed. Captures accumulated without consolidation. v3 fixes this with deterministic `/learning-loop` invocation.
+
+This also avoids collision with Claude Code's built-in auto-memory, which intercepts natural-language phrases like "capture":
 
 | Feature | Auto-Memory | Learning-Loop |
 |---------|-------------|---------------|
@@ -106,7 +108,7 @@ v3 is designed to complement Claude Code's built-in auto-memory, not compete wit
 
 See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
-- **Explicit invocation** — Avoids collision with auto-memory. `/learning-loop` can't be intercepted.
+- **Explicit invocation** — Description-based matching was non-deterministic (capture phrases matched intermittently, "wrap up" never triggered reliably). `/learning-loop` is deterministic.
 - **Two-mode model** — Scans capture raw signals; wrap-up resolves hypotheses with hindsight. Matches how learning actually works.
 - **Memory routing** — Facts (no behavior change) route to MEMORY.md instead of being forced into CLAUDE.md or lost.
 - **Orchestration over duplication** — Prompts for `/workflows:compound`, doesn't replace it.
