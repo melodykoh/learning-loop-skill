@@ -330,36 +330,45 @@ Both files deleted after migration. Also added `Write(~/.claude/learning-capture
 
 Auto-memory collision discovered: Claude Code's built-in auto-memory feature intercepts natural-language phrases like "capture" and "remember this." The skill's YAML `triggers` field used the same phrases, causing unpredictable behavior — sometimes auto-memory handled the request, sometimes the skill did, sometimes neither. Additionally, the YAML frontmatter `triggers` field was causing parsing issues that prevented the skill from loading reliably.
 
-### Problem 1: Auto-Memory Collides with Trigger Words
+### Problem 1: YAML `triggers` Field Was Never a Real Feature (PRIMARY ROOT CAUSE)
 
-**What v2.1 assumed:**
-- Natural-language triggers ("run a capture", "capture learnings") would reliably invoke the skill
-- Claude Code wouldn't intercept these phrases for other purposes
+**What v2 assumed:**
+- The `triggers` field in YAML frontmatter would cause Claude Code to automatically invoke the skill when users said matching phrases
+- Natural-language triggers ("run a capture", "wrap up") would reliably invoke the skill
 
-**What happened:**
-- Claude Code added auto-memory, which intercepts "capture" and similar words
-- The skill's `triggers` YAML field competed with auto-memory for the same phrases
-- Users got unpredictable behavior — auto-memory would fire instead of the structured learning-loop
+**What investigation revealed (Feb 25, post-implementation):**
+- The `triggers` field is **NOT a supported YAML frontmatter field** in Claude Code's SKILL.md spec
+- The official spec supports: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`
+- `triggers` was never parsed by the system — it was just text Claude could read if the SKILL.md body was loaded
+- Skills are auto-invoked based on the `description` field only (Claude's LLM matches user request to description)
+- Other skills that document triggers (e.g., compound-engineering plugins) put trigger phrases IN the description field, not in a separate `triggers` key
 
-### Problem 2: YAML Triggers Field Causing Load Failures
+**Evidence:** The skill had orphaned capture files from Feb 15, 16, and 24 — the scan/capture phase had been invoked (via explicit `/learning-loop` or Claude matching the description) but the wrap-up phase never ran. This means "wrap up" as a natural-language trigger **never worked** — not because auto-memory intercepted it, but because the trigger mechanism didn't exist.
 
-**Symptom:** Skill wasn't appearing in available skills list or failing to load
-**Root cause:** The `triggers` field in YAML frontmatter was causing parsing issues
-**Resolution:** Removed `triggers` field entirely — skill uses explicit `/learning-loop` invocation only
+**Implication:** v2's trigger model was broken from day one. The skill only worked when explicitly invoked with `/learning-loop` or when Claude happened to match the description. Three captures accumulated unprocessed across 10 days because wrap-up never triggered.
+
+### Problem 2: Auto-Memory Collision (SECONDARY)
+
+Auto-memory intercepting "capture" and similar words is a real issue, but it's **secondary** to Problem 1. Even without auto-memory, the triggers wouldn't have worked because the YAML field was never functional.
+
+Auto-memory collision remains relevant for:
+- Preventing future designs from relying on natural-language phrases that auto-memory might intercept
+- Explaining why the `description`-based matching (the only real auto-invocation path) was unreliable — auto-memory could respond first
 
 ### Decision: Explicit Invocation Only
 
 Given that:
-1. Auto-memory intercepts natural-language trigger phrases
-2. YAML triggers field was unreliable
-3. `/learning-loop` as a slash command cannot be intercepted by auto-memory
+1. YAML `triggers` was never a supported feature — the trigger model was built on a non-existent capability
+2. Description-based auto-invocation is unreliable (depends on whether Claude matches)
+3. Auto-memory may intercept natural-language phrases (secondary concern)
+4. `/learning-loop` as a slash command is deterministic and can't be intercepted
 
 **The solution is explicit invocation with smart mode detection:**
 - User invokes `/learning-loop` directly (optionally with `scan` or `wrap up`)
 - Mode detection uses context clues from the user's recent messages
 - If ambiguous, the skill asks which mode
 
-This is a **resilience principle** — rather than fighting the platform's built-in behavior, the skill adapts to coexist.
+This is both a **correctness fix** (triggers never worked) and a **resilience principle** (explicit invocation can't be intercepted).
 
 ### Decision: Two-Mode Model (Raw vs. Conclusions)
 
@@ -412,9 +421,11 @@ The multi-session flow is now documented in SKILL.md with a concrete example (3-
 
 1. **SessionStart hook reliability:** Does the LEARNING_CAPTURES_EXIST check work consistently across all clear scenarios?
 
-2. **Multi-session capture consolidation:** When captures span multiple sessions, what's the best consolidation UX?
+2. ~~**Multi-session capture consolidation:** When captures span multiple sessions, what's the best consolidation UX?~~ **RESOLVED (Feb 25, 2026):** Wrap-up mode handles this — scan current session, read all captures, consolidate with hindsight, present for verification, route, clean up. See v3 SKILL.md "Multi-Session Flow."
 
 3. ~~**Publication format:** When publishing to GitHub, should SESSION_LOG be included?~~ **RESOLVED:** Yes — it's a teaching artifact. See Jan 24 Part 2 session.
+
+4. ~~**YAML `triggers` field functionality:** Does the `triggers` field actually work?~~ **RESOLVED (Feb 25, 2026):** No. `triggers` is NOT a supported YAML frontmatter field in Claude Code's SKILL.md spec. The official spec supports: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`. Skills are auto-invoked based on the `description` field only (Claude's LLM matches user request to description). v2's trigger model was built on a non-existent feature. v3 fixes this with explicit `/learning-loop` invocation. See Feb 25 session entry, Problem 1.
 
 ---
 
