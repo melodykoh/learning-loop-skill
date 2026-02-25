@@ -1,55 +1,53 @@
 # Learning-Loop Skill for Claude Code
 
-An orchestration layer that ensures valuable learnings are captured before context compaction or `/clear` destroys them.
+A two-mode learning system that captures raw signals mid-session and consolidates them with quality gates at session end. Ensures nothing valuable is lost to context compaction or `/clear`.
 
 ## The Problem
 
 > "Sometimes I remember to run `/workflows:compound`, and sometimes I forget before context diminishes or I just clear without thinking."
 
-Claude Code sessions accumulate valuable insights:
-- Why a bug occurred and how it was fixed
-- Process decisions and their rationale
-- Failed approaches that shouldn't be repeated
-
-But context compaction and `/clear` destroy these details. **Learning-loop ensures nothing valuable is lost.**
+Claude Code sessions accumulate valuable insights — bug fixes, process decisions, failed approaches. But context compaction and `/clear` destroy these details. **Learning-loop ensures nothing valuable is lost.**
 
 ## How It Works
 
+### Two Modes
+
+**Scan mode** (mid-session): Captures raw signals — observations, hypotheses, failed attempts — without drawing conclusions. Fast, lightweight, back to work.
+
+**Wrap-up mode** (session end): Reads all capture files across sessions, resolves hypotheses with hindsight, applies quality gates, routes conclusions to the right destinations.
+
 ```
-Session in progress
-     │
-     ├─► Significant debugging/investigation happens
-     │
-     ├─► Learning signal detected → one-line scratch entry
-     │   written silently to ~/.claude/learning-captures/
-     │   (survives compaction — details preserved even if context is lost)
-     │
-     ▼
-User sees context warning OR wants to preserve learnings
-     │
-     ▼
-User says "run a capture" or "wrap up"
-     │
-     ▼
-Sub-agent spawns, scans context + scratch file,
-applies quality gates, writes to capture file
-     │
-     ▼
-User verifies captures for accuracy before routing
-     │
-     ▼
-Learnings route to proper destinations
-     │
-     ▼
-Learnings survive compaction/clear
+Session 1: Working on feature...
+  [context getting long]
+  /learning-loop scan         → raw signals saved
+  [compaction happens]
+
+Session 2: Still working...
+  /learning-loop scan         → more raw signals saved
+
+Session 3: Finally done!
+  /learning-loop wrap up      → consolidates everything
+    1. Scan this session
+    2. Read all captures (sessions 1-3)
+    3. Resolve hypotheses → conclusions
+    4. Quality gates → verify → route → clean up
 ```
+
+### Smart Mode Detection
+
+| Invocation | Mode |
+|------------|------|
+| `/learning-loop scan` | Scan (explicit) |
+| `/learning-loop wrap up` | Wrap-up (explicit) |
+| `/learning-loop` + "before I clear" | Scan (context clue) |
+| `/learning-loop` + "done for now" | Wrap-up (context clue) |
+| `/learning-loop` (ambiguous) | Asks which mode |
 
 ## Installation
 
 ### Personal Installation (Recommended)
 
 ```bash
-# Clone to your personal skills directory
 mkdir -p ~/.claude/skills
 cd ~/.claude/skills
 git clone https://github.com/melodykoh/learning-loop-skill.git learning-loop
@@ -60,7 +58,6 @@ The skill is now available as `/learning-loop` in all your Claude Code sessions.
 ### Project Installation
 
 ```bash
-# Clone to project skills directory
 mkdir -p .claude/skills
 cd .claude/skills
 git clone https://github.com/melodykoh/learning-loop-skill.git learning-loop
@@ -68,30 +65,23 @@ git clone https://github.com/melodykoh/learning-loop-skill.git learning-loop
 
 ## Usage
 
-### Trigger Phrases
+Invoke explicitly with `/learning-loop`. No natural-language triggers — this avoids collision with Claude Code's built-in auto-memory feature.
 
-| Phrase | When to Use |
-|--------|-------------|
-| `"wrap up"` / `"let's wrap up"` | End of session |
-| `"run a capture"` / `"capture learnings"` | Mid-session when you see context warning |
-| `"before I clear"` | Before running `/clear` |
+### Routing
 
-### What Gets Captured
+Learning-loop classifies and routes signals by type:
 
-Learning-loop detects and classifies signals and routes them by type:
-
-| Type | Example | Destination |
-|------|---------|-------------|
-| **Code-level** | Bug fixes, error resolutions | `docs/solutions/` via `/workflows:compound` |
-| **Process-level (global)** | "Always read full implementation before modifying" | Root `CLAUDE.md` |
-| **Process-level (project)** | "This repo's API uses camelCase" | Project `CLAUDE.md` |
-| **Content-level** | Insights worth publishing | Judgment Ledger |
-
-Process-level routing uses a simple test: *"Would this apply in a completely different project?"* Yes → global. No → project-specific.
+| Type | Destination | Decision Test |
+|------|-------------|---------------|
+| **Code-level** | `docs/solutions/` via `/workflows:compound` | Specific to codebase/framework |
+| **Process-level (global)** | Root `CLAUDE.md` | "Would this apply in a different project?" → Yes |
+| **Process-level (project)** | Project `CLAUDE.md` | "Would this apply in a different project?" → No |
+| **Fact** | Memory `MEMORY.md` | "Does this change behavior?" → No, it's a fact |
+| **Content-level** | Judgment Ledger | Understanding shifted, potentially publishable |
 
 ### Quality Gates
 
-Not everything is worth capturing. Each signal passes through:
+Quality gates apply during **wrap-up consolidation**, not during scans. Each conclusion passes through:
 
 1. **Reusability** — Would this help in a future similar situation?
 2. **Non-triviality** — Did this require genuine discovery?
@@ -101,14 +91,26 @@ Not everything is worth capturing. Each signal passes through:
 
 Before any learning is routed to its destination, the system presents a summary for user review. This catches hallucinations and misattributions before they reach persistent documentation.
 
+## Auto-Memory Coexistence
+
+v3 is designed to complement Claude Code's built-in auto-memory, not compete with it:
+
+| Feature | Auto-Memory | Learning-Loop |
+|---------|-------------|---------------|
+| Invocation | Natural language | Explicit `/learning-loop` |
+| Scope | Quick facts | Multi-signal session analysis |
+| Quality gates | None | Type-specific + user verification |
+| Output | MEMORY.md | 5 destinations based on type |
+
 ## Key Design Decisions
 
 See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
-- **User-initiated triggers** — Claude cannot sense context % in Claude Code. PreCompact hooks cannot spawn agents. User phrases are the reliable path.
-- **Orchestration over duplication** — Learning-loop prompts for `/workflows:compound`, doesn't replace it.
-- **Real-time micro-logging (v2.1)** — Phase 1 originally relied on "mentally flagging" signals — but compaction erased details before capture. Now writes one-line scratch entries silently, surviving compaction as input for the scanning sub-agent. Inspired by cross-analyzing [blader/napkin](https://github.com/blader/napkin).
-- **Project-level routing (v2.1)** — Process learnings previously defaulted to root `CLAUDE.md` only. Repo-specific observations were silently dropped because they didn't belong in a global doc. Now routes project-specific conventions to the project's own `CLAUDE.md`.
+- **Explicit invocation** — Avoids collision with auto-memory. `/learning-loop` can't be intercepted.
+- **Two-mode model** — Scans capture raw signals; wrap-up resolves hypotheses with hindsight. Matches how learning actually works.
+- **Memory routing** — Facts (no behavior change) route to MEMORY.md instead of being forced into CLAUDE.md or lost.
+- **Orchestration over duplication** — Prompts for `/workflows:compound`, doesn't replace it.
+- **Resilience principle** — Adapts to platform changes rather than fighting them.
 - **Git + SESSION_LOG** — Git shows what changed. SESSION_LOG shows why.
 
 ## Configuration
@@ -124,7 +126,7 @@ Add this to `~/.claude/settings.json` for post-clear recovery:
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -d ~/.claude/learning-captures ] && [ \"$(ls -A ~/.claude/learning-captures 2>/dev/null)\" ]; then echo 'LEARNING_CAPTURES_EXIST: Found learning captures. Ask user if they want to review/consolidate.'; fi"
+            "command": "if [ -d ~/.claude/learning-captures ] && [ \"$(ls -A ~/.claude/learning-captures 2>/dev/null)\" ]; then echo 'LEARNING_CAPTURES_EXIST: Found learning captures from before clear. Ask user if they want to review/consolidate before continuing.'; fi"
           }
         ]
       }
@@ -141,6 +143,7 @@ Files persist. Context doesn't. This skill ensures the right things get written 
 
 v2 added: *"...and the system should be able to find what it learned."*
 v2.1 added: *"...and nothing is lost between the moment of learning and the moment of capture."*
+v3 added: *"...and the system adapts to its environment rather than fighting it."*
 
 ## Contributing
 

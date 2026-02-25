@@ -324,6 +324,90 @@ Both files deleted after migration. Also added `Write(~/.claude/learning-capture
 
 ---
 
+## Session: Feb 24, 2026 — V3: Explicit Invocation, Two-Mode Model, Auto-Memory Coexistence
+
+### Context
+
+Auto-memory collision discovered: Claude Code's built-in auto-memory feature intercepts natural-language phrases like "capture" and "remember this." The skill's YAML `triggers` field used the same phrases, causing unpredictable behavior — sometimes auto-memory handled the request, sometimes the skill did, sometimes neither. Additionally, the YAML frontmatter `triggers` field was causing parsing issues that prevented the skill from loading reliably.
+
+### Problem 1: Auto-Memory Collides with Trigger Words
+
+**What v2.1 assumed:**
+- Natural-language triggers ("run a capture", "capture learnings") would reliably invoke the skill
+- Claude Code wouldn't intercept these phrases for other purposes
+
+**What happened:**
+- Claude Code added auto-memory, which intercepts "capture" and similar words
+- The skill's `triggers` YAML field competed with auto-memory for the same phrases
+- Users got unpredictable behavior — auto-memory would fire instead of the structured learning-loop
+
+### Problem 2: YAML Triggers Field Causing Load Failures
+
+**Symptom:** Skill wasn't appearing in available skills list or failing to load
+**Root cause:** The `triggers` field in YAML frontmatter was causing parsing issues
+**Resolution:** Removed `triggers` field entirely — skill uses explicit `/learning-loop` invocation only
+
+### Decision: Explicit Invocation Only
+
+Given that:
+1. Auto-memory intercepts natural-language trigger phrases
+2. YAML triggers field was unreliable
+3. `/learning-loop` as a slash command cannot be intercepted by auto-memory
+
+**The solution is explicit invocation with smart mode detection:**
+- User invokes `/learning-loop` directly (optionally with `scan` or `wrap up`)
+- Mode detection uses context clues from the user's recent messages
+- If ambiguous, the skill asks which mode
+
+This is a **resilience principle** — rather than fighting the platform's built-in behavior, the skill adapts to coexist.
+
+### Decision: Two-Mode Model (Raw vs. Conclusions)
+
+**Previous model:** Single capture phase applied quality gates immediately
+**Problem:** Mid-session captures were drawing conclusions too early — hypotheses hadn't been validated yet
+
+**New model:**
+- **Scan mode:** Captures raw signals WITHOUT quality gates or conclusions. Hypotheses marked as UNRESOLVED.
+- **Wrap-up mode:** Reads ALL capture files, resolves hypotheses with hindsight, THEN applies quality gates and routes.
+
+This matches how learning actually works: observations accumulate, and conclusions emerge with the benefit of hindsight.
+
+### Decision: Memory as a Routing Destination
+
+**Previous model:** 4 destinations (docs/solutions, root CLAUDE.md, project CLAUDE.md, Judgment Ledger)
+**Gap:** Facts (pure recall, no behavior change) didn't fit any destination. "User's husband is Ted" shouldn't be a CLAUDE.md rule, and it's not an insight worth a Judgment Ledger entry.
+
+**New routing test:** "Does this change how Claude should behave?"
+- Yes → CLAUDE.md (global or project)
+- No, it's a fact → Memory MEMORY.md
+- No, understanding shifted → Judgment Ledger
+- Code fix → docs/solutions/
+
+### Investigation: Multi-Session Capture Consolidation
+
+**Previously a pending question** — "When captures span multiple sessions, what's the best consolidation UX?"
+
+**Resolution:** Wrap-up mode handles this explicitly:
+1. Scan current session first (final signals)
+2. Read ALL capture files across all session directories
+3. Consolidate with hindsight
+4. Present unified summary for user verification
+5. Route and clean up
+
+The multi-session flow is now documented in SKILL.md with a concrete example (3-session scenario).
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | v3 rewrite: removed triggers YAML, added mode detection, scan mode, wrap-up mode, auto-memory coexistence, memory routing, new scanner/consolidation prompts, v3 changelog |
+| SESSION_LOG.md | Added this entry |
+| README.md | Updated for v3: explicit invocation, two-mode flow, routing table with Memory, coexistence |
+| ~/.claude/reference/learning-and-content.md | Replaced trigger table with /learning-loop invocation instructions |
+| Root CLAUDE.md (Section 6) | Updated trigger description for explicit /learning-loop invocation |
+
+---
+
 ## Pending Questions / Future Investigation
 
 1. **SessionStart hook reliability:** Does the LEARNING_CAPTURES_EXIST check work consistently across all clear scenarios?
