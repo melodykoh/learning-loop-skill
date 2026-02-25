@@ -342,15 +342,12 @@ Auto-memory collision discovered: Claude Code's built-in auto-memory feature int
 - `triggers` was never parsed by the system as a machine feature
 - The only auto-invocation mechanism is **description-based matching** — Claude's LLM reads the `description` field and decides whether to invoke. This is non-deterministic.
 
-**However, the skill DID fire sometimes.** Orphaned capture files from Feb 15, 16, and 24 prove the capture/scan phase was invoked. This likely happened through:
-1. Explicit `/learning-loop` invocation by the user
-2. Claude reading the SKILL.md body (including the triggers list as documentation) and treating those phrases as cues
-3. Description-based matching succeeding intermittently
+**However, the skill DID fire sometimes.** Orphaned capture files from Feb 15, 16, and 24 prove the capture/scan phase was invoked. User confirmed (Feb 25): they typically said **"capture before compaction"** and **"wrap up"** — never directly invoked `/learning-loop` via slash command. This means capture files were created entirely through non-deterministic matching, not explicit invocation.
 
 **The asymmetric failure:** Capture worked sometimes but wrap-up never did. Why?
-- "Run a capture" / "capture learnings" are distinctive phrases Claude could match to the skill
-- "Wrap up" is a common conversational phrase — Claude (or auto-memory) likely handled it conversationally instead of routing to the skill
-- Auto-memory may have intercepted "wrap up" as a memory-related cue
+- "Capture before compaction" is a distinctive phrase that description-based matching could reliably associate with the skill
+- "Wrap up" is a common conversational phrase — Claude handled it conversationally or auto-memory intercepted it as a session-end cue
+- The user never knew which system would respond to which phrase
 
 **Result:** Capture files accumulated but were never consolidated. The system was half-working — the scan phase fired intermittently, but the consolidation phase never triggered automatically.
 
