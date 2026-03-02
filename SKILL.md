@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 3.0.0
+version: 3.1.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3
+# learning-loop Skill v3.1
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/workflows:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
@@ -30,6 +30,8 @@ When `/learning-loop` is invoked, determine which mode to run:
 | `/learning-loop scan` | **Scan** | Explicit override |
 | `/learning-loop wrap up` | **Wrap-up** | Explicit override |
 | `/learning-loop` (no context clues) | **Ask** | "Mid-session scan or session-end wrap-up?" |
+
+**Wrap-up scope:** Wrap-up always consolidates the **current session's captures**. If other session directories exist, they are surfaced for triage (see Wrap-up Step 2) — the user decides whether to include, skip, or delete them.
 
 **Detection logic:**
 1. Check if the user passed an explicit argument (`scan` or `wrap up`)
@@ -200,7 +202,7 @@ signals_found: [total]
 
 ### What Wrap-up Does
 1. **Scan current session** — this context hasn't been captured yet
-2. **Read ALL capture files** — raw signals from across sessions
+2. **Triage captures** — show this session's captures + surface any orphaned sessions for user decision
 3. **Resolve with hindsight** — which hypotheses were right? What actually worked?
 4. **Apply quality gates** on conclusions (not raw signals)
 5. **User verification** — present summary, wait for confirmation
@@ -213,17 +215,35 @@ signals_found: [total]
 
 Run a scan of the current session first (same as Scan mode), since this context hasn't been captured yet. This ensures the final session's signals are included.
 
-#### Step 2: Read All Captures
+#### Step 2: Triage Captures
 
 ```bash
-ls ~/.claude/learning-captures/*/scan-*.md ~/.claude/learning-captures/*/scratch.md 2>/dev/null
+ls -la ~/.claude/learning-captures/*/scan-*.md ~/.claude/learning-captures/*/scratch.md 2>/dev/null
 ```
 
-Read all capture files and scratch files across all session directories.
+List all capture files with timestamps, then present a **triage view**:
+
+```
+## This Session: [session-id]
+- scan-001.md (captured [time] ago, [N] signals)
+- scratch.md ([N] micro-signals)
+
+## Other Sessions Found
+| Session ID | Last Capture | Age | Signals |
+|-----------|-------------|-----|---------|
+| [other-session-id] | [date] | [N days ago] | [count] |
+
+→ These may be from sessions that closed without wrap-up.
+   For each: include in this wrap-up, skip for now, or delete?
+```
+
+**Default:** Only this session's captures proceed to consolidation. Other sessions require explicit user opt-in.
+
+**If no other sessions exist**, skip the triage table and proceed directly.
 
 #### Step 3: Consolidate with CONSOLIDATION_PROMPT
 
-Spawn a sub-agent with the consolidation prompt (see below). This is where raw signals become conclusions.
+Spawn a sub-agent with the consolidation prompt (see below). Pass only the **approved captures** (this session + any user-selected others). This is where raw signals become conclusions.
 
 #### Step 4: Present for User Verification
 
@@ -232,7 +252,7 @@ Present the consolidated summary:
 ```
 ## Session Learning Signals (Consolidated)
 
-Across [N] scans from [M] sessions, I found these conclusions:
+From [N] scans ([this session only / this session + M others]), I found these conclusions:
 
 ### Ready for Documentation (Passed All Gates)
 
@@ -286,8 +306,23 @@ After user confirms, route each learning to its proper destination:
 | **Yes — globally** | Root CLAUDE.md | "Always read the full file before editing" |
 | **Yes — in this project** | Project CLAUDE.md | "This repo uses camelCase for API endpoints" |
 | **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Playwright MCP tools are globally allowed" |
-| **No — understanding shifted** | Judgment Ledger | "The Leash Length Problem" insight |
+| **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
 | **Code fix** | `docs/solutions/` | Connection pooling timeout fix |
+
+**⚠️ Content-Level vs. Process-Level Distinction (Critical):**
+
+A learning *about content work* is NOT automatically "content-level." Apply this test:
+
+> "Could this become a published insight — did my worldview or judgment framework shift?"
+> vs.
+> "Did I learn a better way to do content work — an operational/editorial rule?"
+
+| Test Result | Destination | Example |
+|-------------|-------------|---------|
+| **Worldview shifted** — publishable insight | Judgment Ledger | "Consensus vs. non-consensus is the real AI division of labor" |
+| **Operational improvement** — how to do content work better | Project CLAUDE.md (Content Lab) | "Diversify publishers", "Same-day launch for timely content", "Cover images must match framing" |
+
+The Judgment Ledger is for **judgment shifts that could become content**. Editorial rules, scheduling heuristics, and production guidelines are process-level learnings — they go to CLAUDE.md even if the project is Content Lab.
 
 **Process-Level Routing (Global vs. Project):**
 
@@ -300,14 +335,14 @@ Decision boundary test: *"Would this apply if I was working in a completely diff
 
 #### Step 6: Clean Up
 
-After documentation is confirmed:
-- Delete capture files (`scan-*.md`)
-- Delete scratch files (`scratch.md`)
-- Remove session directories if empty
+After documentation is confirmed, clean up only the **sessions that were consolidated** (this session + any user-approved others):
 
 ```bash
-rm -rf ~/.claude/learning-captures/*/
+# Delete consolidated session directories only — NOT sessions the user skipped
+rm -rf ~/.claude/learning-captures/[consolidated-session-id]/
 ```
+
+**Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
 
 #### Step 7: Mention Flagged Insights
 
@@ -324,12 +359,13 @@ when you have time — they won't be processed in this session."
 ### CONSOLIDATION_PROMPT
 
 ```
-You are consolidating raw learning signals from one or more scan sessions into
+You are consolidating raw learning signals from USER-APPROVED capture files into
 verified conclusions. You have access to the current conversation context AND
-capture files from previous sessions.
+capture files the user selected during triage.
 
-READ ALL CAPTURE FILES provided. These contain raw signals — observations,
+READ ALL PROVIDED CAPTURE FILES. These contain raw signals — observations,
 hypotheses, failed attempts — captured mid-session before compaction.
+Only files explicitly approved by the user during triage are included.
 
 YOUR JOB: Resolve raw signals into conclusions with the benefit of hindsight.
 
@@ -579,8 +615,10 @@ Quality gates apply during **Wrap-up consolidation**, not during Scan mode. Scan
 |------|---------------------|-------------------|
 | **Code-level** | Can I define exact trigger conditions (error messages, symptoms)? | Did I confirm the fix works? |
 | **Process-level** | Can I describe the observable situation that triggers this rule? | Did we experience the consequence of *not* following this? |
-| **Content-level** | Can I articulate what changed in my understanding? | Does this contradict or refine something I previously believed? |
+| **Content-level** | Can I articulate what shifted in my worldview or judgment framework? | Could this become published content — does it contradict or refine a prior belief about the world (not just about how to work)? |
 | **Fact** | Can I verify this against conversation evidence? | Is this worth persisting across sessions? |
+
+**⚠️ Common misclassification:** A learning about content *operations* (editorial rules, scheduling, platform strategy) is **process-level (project)**, not content-level. It routes to Content Lab CLAUDE.md, not the Judgment Ledger. Content-level means your understanding of the *world* shifted — not your understanding of *how to do content work*.
 
 **If a signal fails any gate → Don't extract. Note why in consolidation output for review.**
 
@@ -683,16 +721,25 @@ Session 2: Still working...
 Session 3: Finally done!
   User: /learning-loop wrap up   → explicit wrap-up mode
     1. Scan THIS session (captures final signals)
-    2. Read all capture files (sessions 1-3)
-    3. Resolve hypotheses → draw conclusions
-    4. Apply quality gates to conclusions
+    2. Triage: show this session's captures + surface sessions 1-2 as "other sessions found"
+       → User opts in to include session 2 (same project), skips session 1 (different topic)
+    3. Consolidate approved captures (session 2 + 3)
+    4. Resolve hypotheses → draw conclusions → apply quality gates
     5. Present summary → user verifies
-    6. Route to destinations → clean up
+    6. Route to destinations → clean up sessions 2 + 3 (session 1 preserved)
 ```
 
 ---
 
-## What's New in v3
+## What's New in v3.1
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Session-scoped wrap-up** | v3 consolidated ALL accumulated captures regardless of topic. v3.1 defaults to current session only, surfaces other sessions for triage. Prevents cross-polluting unrelated sessions. |
+| **Orphan session surfacing** | Capture directories from sessions that closed without wrap-up are shown during triage — user decides to include, skip, or delete. No more silent accumulation. |
+| **Sharper content-level routing** | v3 routed learnings *about content work* (editorial rules, scheduling) to Judgment Ledger. v3.1 distinguishes "worldview shifted" (→ Judgment Ledger) from "learned a better way to do content work" (→ Project CLAUDE.md). |
+
+### v3.0
 
 | Enhancement | Why It Matters |
 |-------------|----------------|
