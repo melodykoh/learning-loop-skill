@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 3.1.0
+version: 3.2.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.1
+# learning-loop Skill v3.2
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/workflows:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
@@ -324,6 +324,20 @@ A learning *about content work* is NOT automatically "content-level." Apply this
 
 The Judgment Ledger is for **judgment shifts that could become content**. Editorial rules, scheduling heuristics, and production guidelines are process-level learnings — they go to CLAUDE.md even if the project is Content Lab.
 
+**⚠️ Content Wedge Filter (Judgment Ledger entries only):**
+
+Before routing to the Judgment Ledger, apply the content wedge test from `positioning/content_wedges_v2.md`:
+
+> "Does this insight fit the positioning: *where AI capability meets reality — from an investor who builds*?"
+
+| Wedge Fit | Action |
+|-----------|--------|
+| **Yes** — insight about AI capability vs. reality gap | → Judgment Ledger |
+| **No** — operational process, editorial craft, or unrelated domain | → Route to appropriate CLAUDE.md instead |
+| **Borderline** — tag with `⚠️ wedge-check` for user decision during wrap-up verification |
+
+This prevents the Judgment Ledger from accumulating entries that are genuinely useful learnings but would never become published content under the Ground Truth positioning.
+
 **Process-Level Routing (Global vs. Project):**
 
 Decision boundary test: *"Would this apply if I was working in a completely different project?"*
@@ -399,6 +413,8 @@ FOR EACH RAW SIGNAL:
    CONTENT-LEVEL:
    □ Specificity - can articulate what understanding shifted?
    □ Validation - contradicts or refines prior belief?
+   □ Content wedge - fits "where AI capability meets reality" positioning?
+     (If no → reclassify as process-level. Tag ⚠️ if borderline.)
 
    FACT:
    □ Accuracy - verified against conversation evidence?
@@ -731,7 +747,14 @@ Session 3: Finally done!
 
 ---
 
-## What's New in v3.1
+## What's New in v3.2
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Content wedge filter** | Judgment Ledger entries must now pass the content wedge test ("where AI capability meets reality"). Prevents accumulation of operationally useful but non-publishable entries. Borderline cases tagged `⚠️ wedge-check` for user decision. |
+| **Content-level quality gate** | Added wedge fit checkbox to content-level quality gates in consolidation prompt. Entries that fail get reclassified as process-level. |
+
+### v3.1
 
 | Enhancement | Why It Matters |
 |-------------|----------------|
