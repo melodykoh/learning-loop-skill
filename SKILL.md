@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 3.2.0
+version: 3.3.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.2
+# learning-loop Skill v3.3
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/workflows:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
@@ -92,7 +92,7 @@ Claude Code also has a built-in auto-memory feature that intercepts natural-lang
 |---------|-------------|---------------|
 | **Invocation** | Natural language ("remember this", "capture") | Explicit `/learning-loop` command |
 | **Scope** | Quick facts, preferences | Multi-signal session analysis with quality gates |
-| **Output** | `MEMORY.md` entries | Routed to 5 destinations based on type |
+| **Output** | `MEMORY.md` entries | Routed to 6 destinations based on type (or Noted/dropped) |
 | **Quality gates** | None (direct write) | Type-specific gates + user verification |
 
 **Complementary, not competing:**
@@ -259,13 +259,19 @@ From [N] scans ([this session only / this session + M others]), I found these co
 | # | Type | Classification | Summary |
 |---|------|----------------|---------|
 | 1 | Discovery | Code-level | "P2024: Timed out fetching connection" — connection pooling fix |
-| 2 | User pushback | Process-level (global) | Hypothesis testing before fixes |
+| 2 | User pushback | Process-level (behavioral) | Hypothesis testing before fixes |
 
 ### Resolved Hypotheses
 
 | # | Original Hypothesis | Resolution | Evidence |
 |---|---------------------|------------|----------|
 | 1 | "Root cause might be connection pooling" | CONFIRMED — pool exhaustion under load | Fixed with pool size increase |
+
+### Noted (Passed Quality Gates, Below Persistence Threshold)
+
+| # | Type | Summary | Why Not Persisted |
+|---|------|---------|-------------------|
+| [N] | [Type] | [Brief description] | [What would NOT go wrong if forgotten] |
 
 ### Needs Review (Failed Gate)
 
@@ -292,10 +298,16 @@ After user confirms, route each learning to its proper destination:
 | Type | Destination | Handler |
 |------|-------------|---------|
 | **Code-level** (confirmed fixes) | `docs/solutions/` | `/workflows:compound` (7 agents, schema-validated) |
-| **Process-level (global)** | Root CLAUDE.md | Learning-loop direct (with consolidation discipline) |
-| **Process-level (project)** | Project CLAUDE.md | Learning-loop direct |
+| **Process-level (behavioral)** | CLAUDE.md (root or project) | Learning-loop direct (with consolidation discipline) |
+| **Process-level (operational)** | Project operational docs* | Learning-loop direct |
 | **Facts** (pure recall, no behavior change) | Memory MEMORY.md | Learning-loop direct |
 | **Content-level** (understanding shifted) | Judgment Ledger | Learning-loop direct |
+| **Noted** (below persistence threshold) | Not persisted | Acknowledged in wrap-up summary |
+
+*Operational docs routing (adapts to repo infrastructure):
+1. Does the project have dedicated operational docs (playbooks/, OPERATIONS_PLAYBOOK, etc.)? → Route there
+2. No dedicated docs? Is it significant enough for CLAUDE.md? → Add to project CLAUDE.md under operational section
+3. Not significant enough for CLAUDE.md? → Memory as operational note, or Noted/drop
 
 **Memory Routing Decision Test:**
 
@@ -303,10 +315,12 @@ After user confirms, route each learning to its proper destination:
 
 | Answer | Destination | Example |
 |--------|-------------|---------|
-| **Yes — globally** | Root CLAUDE.md | "Always read the full file before editing" |
-| **Yes — in this project** | Project CLAUDE.md | "This repo uses camelCase for API endpoints" |
-| **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Playwright MCP tools are globally allowed" |
+| **Yes — changes decisions globally** | Root CLAUDE.md | "Always read the full file before editing" |
+| **Yes — changes decisions in this project** | Project CLAUDE.md | "Develop when you have lived material" |
+| **Yes — changes procedure execution** | Project operational docs* | "Reactive before evergreen scheduling" |
+| **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Dave is L1-L2" |
 | **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
+| **Interesting but forgettable** | Noted (not persisted) | "Research sprints need different cognitive mode" |
 | **Code fix** | `docs/solutions/` | Connection pooling timeout fix |
 
 **⚠️ Content-Level vs. Process-Level Distinction (Critical):**
@@ -338,9 +352,9 @@ Before routing to the Judgment Ledger, apply the content wedge test from `positi
 
 This prevents the Judgment Ledger from accumulating entries that are genuinely useful learnings but would never become published content under the Ground Truth positioning.
 
-**Process-Level Routing (Global vs. Project):**
+**Process-Level Routing (Behavioral — Global vs. Project):**
 
-Decision boundary test: *"Would this apply if I was working in a completely different project?"*
+For behavioral learnings, apply a second test: *"Would this apply if I was working in a completely different project?"*
 
 | YES → root CLAUDE.md | NO → project CLAUDE.md |
 |---|---|
@@ -391,8 +405,8 @@ FOR EACH RAW SIGNAL:
 
 2. **Classify the conclusion:**
    - Code-level: Specific to codebase/framework (fix confirmed working)
-   - Process-level (global): How to work better — applies across projects
-   - Process-level (project): Repo-specific conventions, preferences
+   - Process-level (behavioral): Changes decision-making — applies across sessions
+   - Process-level (operational): Changes procedure execution — specific to a workflow
    - Fact: Pure recall, no behavior change (names, dates, preferences)
    - Content-level: Understanding shifted, publishable insight
 
@@ -420,8 +434,20 @@ FOR EACH RAW SIGNAL:
    □ Accuracy - verified against conversation evidence?
    □ Persistence - worth remembering across sessions?
 
-4. **If PASSES all gates:** Extract with routing recommendation
-5. **If FAILS any gate:** Note which gate failed, include as "REVIEW NEEDED"
+4. **If FAILS Gates 1-4:** Note which gate failed, include as "REVIEW NEEDED"
+
+5. **Apply Significance Threshold (Gate 5):**
+   Ask: "If this were lost after this session, would a future session go WRONG?"
+   □ YES — Claude would repeat a mistake, skip a step, or lose needed context → Route to destination
+   □ NO — this is an interesting observation but forgettable → Route to "Noted"
+
+   For process-level conclusions that pass significance, apply the behavioral/operational split:
+   □ Behavioral (changes what Claude decides) → CLAUDE.md (root or project)
+   □ Operational (changes how Claude executes a procedure) → Check: does project have
+     dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
+     if significant, Memory if marginal.
+
+6. **If PASSES all gates + significance:** Extract with routing recommendation
 
 WRITE OUTPUT:
 
@@ -443,8 +469,9 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 
 ### 1. [Type]: [Brief Title]
 **Gate Status:** ✅ PASSED
-**Classification:** [Code-level / Process-level (global) / Process-level (project) / Fact / Content-level]
-**Route to:** [docs/solutions/ / Root CLAUDE.md / Project CLAUDE.md / Memory MEMORY.md / Judgment Ledger]
+**Classification:** [Code-level / Process-level (behavioral) / Process-level (operational) / Fact / Content-level]
+**Significance:** [✅ Future sessions would: repeat mistake / skip step / lose context] or [❌ Interesting but forgettable → Noted]
+**Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
 
 **Trigger Conditions:** (for process-level)
 - When: [Observable situation]
@@ -462,6 +489,11 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 - Before: [What was believed]
 - After: [What is now understood]
 - Trigger: [When to recall this]
+
+## Noted (Passed Quality Gates, Below Persistence Threshold)
+
+### [N]. [Type]: [Brief Title]
+**Why not persisted:** [What would NOT go wrong if this were forgotten]
 
 ## Signals That Failed Gates
 
@@ -634,9 +666,40 @@ Quality gates apply during **Wrap-up consolidation**, not during Scan mode. Scan
 | **Content-level** | Can I articulate what shifted in my worldview or judgment framework? | Could this become published content — does it contradict or refine a prior belief about the world (not just about how to work)? |
 | **Fact** | Can I verify this against conversation evidence? | Is this worth persisting across sessions? |
 
-**⚠️ Common misclassification:** A learning about content *operations* (editorial rules, scheduling, platform strategy) is **process-level (project)**, not content-level. It routes to Content Lab CLAUDE.md, not the Judgment Ledger. Content-level means your understanding of the *world* shifted — not your understanding of *how to do content work*.
+**⚠️ Common misclassification:** A learning about content *operations* (editorial rules, scheduling, platform strategy) is **process-level**, not content-level. It routes to Content Lab CLAUDE.md or its playbooks, not the Judgment Ledger. Content-level means your understanding of the *world* shifted — not your understanding of *how to do content work*.
 
 **If a signal fails any gate → Don't extract. Note why in consolidation output for review.**
+
+### Gate 5: Significance Threshold (Applied After Gates 1-4 Pass)
+
+Gates 1-4 are pass/fail on quality. Gate 5 determines WHETHER to persist — not just WHERE.
+
+> Ask: "If this observation were lost after this session, what's the consequence?"
+
+| Consequence | Action |
+|------------|--------|
+| Claude would make the **same mistake** again | Persist → route to destination |
+| A workflow step would **execute in the wrong order** | Persist → route to destination |
+| A fact would need to be **re-discovered** | Persist → Memory |
+| **Nothing** — it's an interesting observation | → Noted (don't persist) |
+
+**The bar:** "Would a future session go WRONG without this?" not "Is this interesting?"
+
+### Behavioral vs. Operational Split (Process-Level Only)
+
+When a process-level conclusion passes all 5 gates, apply one more split:
+
+> "Does this change how Claude makes DECISIONS, or how Claude executes a PROCEDURE?"
+
+| Answer | Sub-type | Example |
+|--------|----------|---------|
+| Changes decisions | Process-level (behavioral) | "Develop when you have lived material" |
+| Changes procedure execution | Process-level (operational) | "Reactive posts before evergreen in scheduling" |
+
+**Operational routing adapts to repo infrastructure:**
+1. Does the project have dedicated operational docs (playbooks/, OPERATIONS_PLAYBOOK, etc.)? → Route there
+2. No dedicated docs? Significant enough for CLAUDE.md? → Add to project CLAUDE.md under operational section
+3. Not significant enough for CLAUDE.md? → Memory as operational note, or Noted/drop
 
 ---
 
@@ -713,10 +776,13 @@ After writing any new rule to CLAUDE.md:
 | Type | Definition | Handler | Destination |
 |------|------------|---------|-------------|
 | **Code-level** | Specific to codebase/framework | `/workflows:compound` (multi-agent) | `docs/solutions/` with schema-validated YAML |
-| **Process-level (global)** | How to work better — applies across projects | Learning-loop direct | Root CLAUDE.md with trigger + warning signs |
-| **Process-level (project)** | Repo-specific conventions, preferences | Learning-loop direct | Project CLAUDE.md with trigger + context |
+| **Process-level (behavioral)** | Changes decision-making across sessions | Learning-loop direct | CLAUDE.md (root or project) with trigger + warning signs |
+| **Process-level (operational)** | Changes procedure execution in a workflow | Learning-loop direct | Project operational docs* or CLAUDE.md |
 | **Fact** | Pure recall, no behavior change | Learning-loop direct | Memory MEMORY.md |
 | **Content-level** | Publishable insight, understanding shifted | Learning-loop direct | Judgment Ledger with future trigger |
+| **Noted** | Interesting but below persistence threshold | Acknowledged in summary | Not persisted |
+
+*Operational docs = playbooks/ if project has them, otherwise project CLAUDE.md or Memory.
 
 ---
 
@@ -747,7 +813,16 @@ Session 3: Finally done!
 
 ---
 
-## What's New in v3.2
+## What's New in v3.3
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Significance threshold (Gate 5)** | Gates 1-4 are pass/fail on quality. Gate 5 asks "would a future session go WRONG without this?" — separating interesting observations from consequential learnings. Prevents over-documentation of signals that pass quality gates but aren't worth persisting. |
+| **"Noted" routing option** | Explicit acknowledgment for signals that pass quality gates but fall below the persistence threshold. Shown in wrap-up summary but not routed anywhere. Prevents the false binary of "document everything" vs. "lose it." |
+| **Behavioral vs. operational split** | Process-level learnings now split into behavioral (changes decisions → CLAUDE.md) vs. operational (changes procedures → project operational docs). Prevents CLAUDE.md from accumulating scheduling heuristics and workflow sequences that belong in playbooks or operational docs. |
+| **Repo-adaptive operational routing** | Operational learnings route to playbooks/ if the project has them, otherwise to CLAUDE.md or Memory. The skill is global but adapts to each project's documentation infrastructure instead of assuming playbooks exist. |
+
+### v3.2
 
 | Enhancement | Why It Matters |
 |-------------|----------------|
