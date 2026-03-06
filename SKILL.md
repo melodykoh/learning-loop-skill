@@ -372,6 +372,20 @@ rm -rf ~/.claude/learning-captures/[consolidated-session-id]/
 
 **Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
 
+#### Step 6b: Cross-Reference _ideas/
+
+After routing learnings, check if any frustration or bottleneck signal from this session matches a parked idea in `_ideas/`. Use the synthesis summary in `_ideas/CLAUDE.md` for matching — not filenames.
+
+```
+1. Read _ideas/CLAUDE.md "Current Synthesis Summary" table
+2. For each routed learning (especially process-level frustrations):
+   ask: "Does this pain connect to a parked idea?"
+3. If match found, note:
+   "This pain connects to `_ideas/[slug].md` — that idea may be gaining energy."
+```
+
+This is how Type 1 (Infrastructure) and Type 3 (Study/Learn) ideas gain priority — through accumulated pain signals, not scheduled reviews.
+
 #### Step 7: Mention Flagged Insights
 
 If any content-level insights were classified as Pattern or Principle:
@@ -383,6 +397,57 @@ when you have time — they won't be processed in this session."
 ```
 
 **Do NOT offer to process them now.** Content development requires dedicated thinking time.
+
+#### Step 8: Git Commit & Push Check
+
+After all learnings are routed and capture files cleaned up, check if the current repo is a git repository. If not a git repo, skip this step entirely.
+
+```
+0. Run `git rev-parse --is-inside-work-tree` — is this a git repo?
+   ├── NO → Skip Step 8 entirely
+   └── YES → Continue
+
+1. CHECK .gitignore exists:
+   ├── .gitignore EXISTS → Continue to step 2
+   └── .gitignore MISSING → Prompt:
+       "This repo has no .gitignore. Without one, system files (.DS_Store,
+        editor temp files, log files) will clutter commits.
+
+        Create a standard .gitignore? (Y/skip)"
+
+       If Y → Create .gitignore with:
+         .DS_Store
+         **/.DS_Store
+         .playwright-mcp/
+         *.swp
+         *.swo
+         *~
+
+       Then run `git rm --cached .DS_Store 2>/dev/null` to untrack if
+       already committed. Stage the new .gitignore.
+
+2. Run `git status` — are there uncommitted changes?
+   ├── NO changes → Skip (nothing to commit)
+   └── YES changes → Continue
+
+3. Show the user a summary:
+   "SESSION WORK TO COMMIT:
+    - [N] files modified, [N] files added, [N] files deleted
+    - Key changes: [1-2 sentence summary of what changed this session]
+
+    Commit and push to [remote URL]? (Y/skip)"
+
+4. If user approves:
+   └── Stage all relevant files (.gitignore handles exclusions)
+   └── Commit with descriptive message summarizing session work
+   └── Push to remote if one exists (`git remote -v` to check)
+   └── Confirm: "Committed and pushed: [short hash] [message]"
+
+5. If user skips:
+   └── "Skipped. You have uncommitted changes — run `git status` to review later."
+```
+
+**Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
 
 ### CONSOLIDATION_PROMPT
 
