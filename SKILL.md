@@ -300,6 +300,7 @@ After user confirms, route each learning to its proper destination:
 | **Code-level** (confirmed fixes) | `docs/solutions/` | `/workflows:compound` (7 agents, schema-validated) |
 | **Process-level (behavioral)** | CLAUDE.md (root or project) | Learning-loop direct (with consolidation discipline) |
 | **Process-level (operational)** | Project operational docs* | Learning-loop direct |
+| **Skills-level** (skill building/authoring/maintenance) | claude-skills repo (CLAUDE.md or playbook) | Learning-loop direct |
 | **Facts** (pure recall, no behavior change) | Memory MEMORY.md | Learning-loop direct |
 | **Content-level** (understanding shifted) | Judgment Ledger | Learning-loop direct |
 | **Noted** (below persistence threshold) | Not persisted | Acknowledged in wrap-up summary |
@@ -318,6 +319,7 @@ After user confirms, route each learning to its proper destination:
 | **Yes — changes decisions globally** | Root CLAUDE.md | "Always read the full file before editing" |
 | **Yes — changes decisions in this project** | Project CLAUDE.md | "Develop when you have lived material" |
 | **Yes — changes procedure execution** | Project operational docs* | "Reactive before evergreen scheduling" |
+| **Yes — changes how skills are built/maintained** | claude-skills CLAUDE.md or playbook | "Always include Gotchas section" |
 | **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Dave is L1-L2" |
 | **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
 | **Interesting but forgettable** | Noted (not persisted) | "Research sprints need different cognitive mode" |
@@ -367,7 +369,7 @@ After documentation is confirmed, clean up only the **sessions that were consoli
 
 ```bash
 # Delete consolidated session directories only — NOT sessions the user skipped
-rm -rf ~/.claude/learning-captures/[consolidated-session-id]/
+rm -r ~/.claude/learning-captures/[consolidated-session-id]/
 ```
 
 **Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
@@ -445,6 +447,18 @@ After all learnings are routed and capture files cleaned up, check if the curren
 
 5. If user skips:
    └── "Skipped. You have uncommitted changes — run `git status` to review later."
+
+6. CHECK cross-repo modifications:
+   For each repo that received a routed learning (other than current repo):
+   ├── cd to that repo
+   ├── git status → show changes
+   ├── Prompt: "Also modified [repo-name] with skills-level learning. Commit and push? (Y/skip)"
+   └── If Y → stage, commit, push, return to original repo
+
+   Repos to check:
+   - ~/Documents/claude-projects/claude-skills/ (if skills-level learnings were routed)
+   - ~/.claude/ (if reference docs or settings changed → claude-config auto-push handles this)
+   - ~/.claude/skills/learning-loop/ (if routing rules were updated → needs push to claude-learning-loop)
 ```
 
 **Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
@@ -472,6 +486,7 @@ FOR EACH RAW SIGNAL:
    - Code-level: Specific to codebase/framework (fix confirmed working)
    - Process-level (behavioral): Changes decision-making — applies across sessions
    - Process-level (operational): Changes procedure execution — specific to a workflow
+   - Skills-level: About skill authoring, structure, maintenance, deployment, or SKILL.md patterns
    - Fact: Pure recall, no behavior change (names, dates, preferences)
    - Content-level: Understanding shifted, publishable insight
 
