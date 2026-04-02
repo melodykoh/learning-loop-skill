@@ -482,7 +482,17 @@ FOR EACH RAW SIGNAL:
    actually happened. Did the hypothesis turn out correct? Was the root cause
    what we suspected? Mark as CONFIRMED, DISPROVEN, or STILL UNRESOLVED.
 
-2. **Classify the conclusion:**
+2. **Root cause check (repeated failures only):** If a signal represents a mistake
+   that an existing rule should have caught, or the same type of error occurred
+   multiple times in the session, STOP before classifying and ask:
+   - "Why did the existing rule fail to prevent this?"
+   - "Is it in the wrong place in the workflow? Missing a trigger? Wrong type of enforcement?"
+   - "Where in the decision flow does this rule need to fire to actually work?"
+   The answer determines the destination — don't default to the topically similar
+   location. A rule that fires at the wrong moment in the workflow is dead code
+   regardless of where it's documented.
+
+3. **Classify the conclusion:**
    - Code-level: Specific to codebase/framework (fix confirmed working)
    - Process-level (behavioral): Changes decision-making — applies across sessions
    - Process-level (operational): Changes procedure execution — specific to a workflow
@@ -490,7 +500,7 @@ FOR EACH RAW SIGNAL:
    - Fact: Pure recall, no behavior change (names, dates, preferences)
    - Content-level: Understanding shifted, publishable insight
 
-3. **Apply Quality Gates (on conclusions, not raw signals):**
+4. **Apply Quality Gates (on conclusions, not raw signals):**
 
    UNIVERSAL (all types):
    □ Reusability - applies beyond this specific instance?
@@ -514,9 +524,9 @@ FOR EACH RAW SIGNAL:
    □ Accuracy - verified against conversation evidence?
    □ Persistence - worth remembering across sessions?
 
-4. **If FAILS Gates 1-4:** Note which gate failed, include as "REVIEW NEEDED"
+5. **If FAILS Gates 1-5:** Note which gate failed, include as "REVIEW NEEDED"
 
-5. **Apply Significance Threshold (Gate 5):**
+6. **Apply Significance Threshold (Gate 6):**
    Ask: "If this were lost after this session, would a future session go WRONG?"
    □ YES — Claude would repeat a mistake, skip a step, or lose needed context → Route to destination
    □ NO — this is an interesting observation but forgettable → Route to "Noted"
@@ -527,7 +537,7 @@ FOR EACH RAW SIGNAL:
      dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
      if significant, Memory if marginal.
 
-6. **If PASSES all gates + significance:** Extract with routing recommendation
+7. **If PASSES all gates + significance:** Extract with routing recommendation
 
 WRITE OUTPUT:
 
