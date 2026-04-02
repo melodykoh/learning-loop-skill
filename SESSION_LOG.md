@@ -1,6 +1,338 @@
 # Learning-Loop Skill: Session Log
 
 > **Purpose:** This file captures the *reasoning* behind skill evolution — the investigations, failed approaches, and decisions that don't fit in git commits. It prevents re-litigation of settled questions.
+>
+> **Order:** Reverse chronological (newest first). Scroll to the bottom for v1 origins.
+
+---
+
+## Retro Documentation Note (Apr 2, 2026)
+
+Sessions from Mar 2 through Mar 18 were documented retroactively from git history. The commit messages contained sufficient reasoning context (what, why, born-from) to reconstruct meaningful SESSION_LOG entries. The README was also updated from v3 to v3.3+ to reflect all changes since Feb 25.
+
+This gap occurred because v3.1–v3.3 shipped rapidly (Mar 2–3) and the post-v3.3 enhancements were surgical single-commit changes. In each case, SKILL.md was updated (the "code") but SESSION_LOG and README were not (the "docs"). A reminder that the CLAUDE.md quality checklist exists for exactly this reason.
+
+---
+
+## Session: Apr 2, 2026 — Root Cause Check in Consolidation Prompt
+
+> Documented at time of change. Commit `7c4e8ed`.
+
+### Context
+During an Austin doc session, a "verify facts before citing" rule existed in CLAUDE.md but failed three times in one session. The learning was routed to the topically similar location (the same CLAUDE.md section) — but the real problem wasn't missing documentation. The rule existed; it just fired at the wrong point in the workflow (session start, not mid-draft).
+
+### Problem: Rules That Fail Repeatedly Get Reinforced Instead of Redesigned
+
+When a signal represents a repeated failure, the consolidation prompt would default to routing it to the topically similar location — adding more text to an already-existing rule. But the failure wasn't caused by insufficient documentation. It was caused by the rule firing at the wrong moment in the decision flow.
+
+### Decision: Root Cause Check Step
+
+Added a mandatory check to the consolidation prompt: before classifying a signal that represents a repeated failure, ask "Why did the existing rule fail to prevent this?" The answer (wrong timing, wrong location, wrong enforcement type) determines the destination — not topical similarity.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Root cause check step in consolidation prompt (FOR EACH RAW SIGNAL step 2) |
+
+---
+
+## Session: Mar 18, 2026 — Skills-Level Routing
+
+> Retroactively documented from git history (Apr 2, 2026). Commit `8e21976`.
+
+### Context
+The claude-skills repo is the canonical skill-building knowledge base. Learnings about skill authoring, structure, maintenance, deployment, or SKILL.md patterns had no dedicated route — they'd get classified as process-level and land in root CLAUDE.md, which isn't where skill-building knowledge belongs.
+
+### Decision: New Classification Type
+
+Added "Skills-level" as a classification type in the consolidation prompt, routing skill-building learnings to the claude-skills repo. Also enhanced Step 8 (session-end commit check) with cross-repo awareness — if learnings were routed to repos other than the current one, prompt to commit and push those changes too.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Skills-level classification type, cross-repo commit check in Step 8 |
+
+---
+
+## Session: Mar 6, 2026 — Ideas Cross-Reference at Wrap-up
+
+> Retroactively documented from git history (Apr 2, 2026). Commit `22b3763`.
+
+### Context
+The `_ideas/` system parks ideas that aren't urgent but may become important. The question was: how do parked ideas gain priority over time? Answer: through accumulated pain signals during learning-loop wrap-up.
+
+### Decision: Step 6b — Cross-Reference _ideas/ During Wrap-up
+
+During wrap-up routing, if any frustration or bottleneck signal matches a parked idea in `_ideas/CLAUDE.md` synthesis summary, surface it. This is how Type 1 (Infrastructure) and Type 3 (Study/Learn) ideas gain priority through accumulated pain signals rather than scheduled reviews.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Added Step 6b: _ideas/ cross-reference during wrap-up routing |
+
+---
+
+## Session: Mar 3, 2026 — V3.3: Significance Thresholds and Behavioral/Operational Routing
+
+> Retroactively documented from git history (Apr 2, 2026). Commit `eba5317`.
+
+### Context
+Over-documentation problem: signals were passing all four quality gates (reusability, non-triviality, specificity, validation) but still weren't worth persisting. The gates measured quality but not significance. Also, CLAUDE.md was accumulating scheduling heuristics and workflow sequences that belonged in operational docs.
+
+### Problem 1: No Significance Filter
+
+**Observation:** A signal can be reusable, non-trivial, specific, and validated — and still be forgettable. "Interesting observation" ≠ "consequential learning."
+
+**Fix:** Added Gate 5 (significance threshold): "If this were lost after this session, would a future session go WRONG?" This creates a "Noted" routing option — explicit acknowledgment without persistence. Prevents the false binary of "document everything" vs. "lose it."
+
+### Problem 2: Process-Level Was Too Broad
+
+**Observation:** Process-level learnings included both "changes what Claude decides" (behavioral) and "changes how Claude executes a procedure" (operational). These have different homes — behavioral rules belong in CLAUDE.md, operational procedures belong in playbooks or operational docs.
+
+**Fix:** Split process-level into behavioral (→ CLAUDE.md) vs. operational (→ project operational docs if they exist, otherwise CLAUDE.md or Memory). Operational routing adapts to repo infrastructure — uses playbooks/ if available, falls back gracefully.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Gate 5 significance threshold, "Noted" routing, behavioral/operational split, repo-adaptive operational routing, updated consolidation prompt |
+
+---
+
+## Session: Mar 2, 2026 — V3.2: Content Wedge Filter for Judgment Ledger
+
+> Retroactively documented from git history (Apr 2, 2026). Commit `05a36b0`.
+
+### Context
+Even after v3.1's routing fix, the Judgment Ledger was accumulating entries that were operationally useful but not publishable. The Judgment Ledger exists as input for content creation — entries need to fit the "where AI capability meets reality" positioning.
+
+### Decision: Content Wedge Filter
+
+Added a wedge fit test to routing: content-level learnings must pass "does this fit the content wedge?" before routing to the Judgment Ledger. Entries that fail get reclassified as process-level. Borderline cases tagged `⚠️ wedge-check` for user decision rather than auto-routing.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Content wedge filter in routing, wedge fit checkbox in content-level quality gates, version bump to 3.2.0 |
+
+---
+
+## Session: Mar 2, 2026 — V3.1: Session-Scoped Wrap-up and Sharper Routing
+
+> Retroactively documented from git history (Apr 2, 2026). Commit `7769b00`.
+
+### Context
+User feedback after using v3 wrap-up in practice revealed two problems: cross-session pollution and misrouted content learnings.
+
+### Problem 1: Wrap-up Consolidated Everything Regardless of Topic
+
+**What v3 did:** Read ALL accumulated captures across all session directories and consolidated them together.
+
+**What happened in practice:** Unrelated sessions (e.g., a debugging session and a content strategy session) would get cross-pollinated during wrap-up. Orphaned capture directories from sessions that closed without wrap-up also accumulated silently.
+
+**Fix:** Wrap-up now defaults to current session's captures only. Other session directories are surfaced in a triage step — user decides to include, skip, or delete. This prevents cross-pollination and surfaces orphaned captures explicitly.
+
+### Problem 2: Content Work Learnings Misrouted to Judgment Ledger
+
+**What v3 did:** Routed anything with "understanding shifted" to the Judgment Ledger.
+
+**What happened:** Editorial rules and scheduling heuristics ("post at 8am EST for LinkedIn") were landing in the Judgment Ledger alongside genuine worldview shifts.
+
+**Fix:** Sharpened the content-level routing test to distinguish "worldview/judgment shifted" (→ Judgment Ledger) from "learned a better way to do content work" (→ Project CLAUDE.md).
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Session-scoped wrap-up default, triage step for other sessions, sharper content-level routing test |
+
+---
+
+## Session: Feb 24, 2026 — V3: Explicit Invocation, Two-Mode Model, Auto-Memory Coexistence
+
+### Context
+
+Auto-memory collision discovered: Claude Code's built-in auto-memory feature intercepts natural-language phrases like "capture" and "remember this." The skill's YAML `triggers` field used the same phrases, causing unpredictable behavior — sometimes auto-memory handled the request, sometimes the skill did, sometimes neither. Additionally, the YAML frontmatter `triggers` field was causing parsing issues that prevented the skill from loading reliably.
+
+### Problem 1: Non-Deterministic Invocation (PRIMARY ROOT CAUSE)
+
+**What v2 assumed:**
+- The `triggers` YAML field would reliably auto-invoke the skill when users said matching phrases
+- Both capture ("run a capture") and wrap-up ("wrap up") would trigger reliably
+
+**What investigation revealed (Feb 25, post-implementation):**
+- The `triggers` field is **NOT a supported YAML frontmatter field** in Claude Code's SKILL.md spec
+- The official spec supports: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`
+- `triggers` was never parsed by the system as a machine feature
+- The only auto-invocation mechanism is **description-based matching** — Claude's LLM reads the `description` field and decides whether to invoke. This is non-deterministic.
+
+**However, the skill DID fire sometimes.** Orphaned capture files from Feb 15, 16, and 24 prove the capture/scan phase was invoked. User confirmed (Feb 25): they typically said **"capture before compaction"** and **"wrap up"** — never directly invoked `/learning-loop` via slash command. This means capture files were created entirely through non-deterministic matching, not explicit invocation.
+
+**The asymmetric failure:** Capture worked sometimes but wrap-up never did. Why?
+- "Capture before compaction" is a distinctive phrase that description-based matching could reliably associate with the skill
+- "Wrap up" is a common conversational phrase — Claude handled it conversationally or auto-memory intercepted it as a session-end cue
+- The user never knew which system would respond to which phrase
+
+**Result:** Capture files accumulated but were never consolidated. The system was half-working — the scan phase fired intermittently, but the consolidation phase never triggered automatically.
+
+### Problem 2: Auto-Memory Collision (CONTRIBUTING FACTOR)
+
+Auto-memory intercepting common phrases like "wrap up" and "capture" made the non-deterministic invocation worse:
+- For distinctive phrases ("run a capture"), the skill sometimes won
+- For common phrases ("wrap up"), auto-memory or conversational handling consistently won
+- The user had no way to know which system would respond
+
+### Decision: Explicit Invocation Only
+
+Given that:
+1. YAML `triggers` was never a supported feature — invocation depended on non-deterministic description matching
+2. Common phrases like "wrap up" were especially unreliable — too many things compete for them
+3. Auto-memory adds another competitor for natural-language phrases
+4. `/learning-loop` as a slash command is deterministic and unambiguous
+
+**The solution is explicit invocation with smart mode detection:**
+- User invokes `/learning-loop` directly (optionally with `scan` or `wrap up`)
+- Mode detection uses context clues from the user's recent messages
+- If ambiguous, the skill asks which mode
+
+This is a **determinism fix** — replacing non-deterministic natural-language matching with deterministic slash command invocation.
+
+### Decision: Two-Mode Model (Raw vs. Conclusions)
+
+**Previous model:** Single capture phase applied quality gates immediately
+**Problem:** Mid-session captures were drawing conclusions too early — hypotheses hadn't been validated yet
+
+**New model:**
+- **Scan mode:** Captures raw signals WITHOUT quality gates or conclusions. Hypotheses marked as UNRESOLVED.
+- **Wrap-up mode:** Reads ALL capture files, resolves hypotheses with hindsight, THEN applies quality gates and routes.
+
+This matches how learning actually works: observations accumulate, and conclusions emerge with the benefit of hindsight.
+
+### Decision: Memory as a Routing Destination
+
+**Previous model:** 4 destinations (docs/solutions, root CLAUDE.md, project CLAUDE.md, Judgment Ledger)
+**Gap:** Facts (pure recall, no behavior change) didn't fit any destination. "User's husband is Ted" shouldn't be a CLAUDE.md rule, and it's not an insight worth a Judgment Ledger entry.
+
+**New routing test:** "Does this change how Claude should behave?"
+- Yes → CLAUDE.md (global or project)
+- No, it's a fact → Memory MEMORY.md
+- No, understanding shifted → Judgment Ledger
+- Code fix → docs/solutions/
+
+### Investigation: Multi-Session Capture Consolidation
+
+**Previously a pending question** — "When captures span multiple sessions, what's the best consolidation UX?"
+
+**Resolution:** Wrap-up mode handles this explicitly:
+1. Scan current session first (final signals)
+2. Read ALL capture files across all session directories
+3. Consolidate with hindsight
+4. Present unified summary for user verification
+5. Route and clean up
+
+The multi-session flow is now documented in SKILL.md with a concrete example (3-session scenario).
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | v3 rewrite: removed triggers YAML, added mode detection, scan mode, wrap-up mode, auto-memory coexistence, memory routing, new scanner/consolidation prompts, v3 changelog |
+| SESSION_LOG.md | Added this entry |
+| README.md | Updated for v3: explicit invocation, two-mode flow, routing table with Memory, coexistence |
+| ~/.claude/reference/learning-and-content.md | Replaced trigger table with /learning-loop invocation instructions |
+| Root CLAUDE.md (Section 6) | Updated trigger description for explicit /learning-loop invocation |
+
+---
+
+## Session: Feb 11, 2026 — V2.1: Real-time Micro-Logging + Project-Level Routing
+
+### Context
+
+Analysis of the Napkin skill (blader/napkin) during content-lab work exposed two gaps in learning-loop v2. Napkin takes a radically simple approach — write mistakes down immediately, read them at session start, compound over sessions. Cross-analyzing this against our more sophisticated system revealed where the sophistication was hiding a blind spot.
+
+### Problem 1: Phase 1 Was Mental-Only
+
+**What v2 assumed:**
+- "Mentally flag for capture" was sufficient
+- User would initiate capture before compaction erased details
+
+**What Napkin exposed:**
+- If compaction happens before "run a capture", the Phase 3 sub-agent inherits a *summary*, not the specifics
+- The sub-agent can't extract what the conversation no longer contains
+- "Mental flagging" means details live only in volatile context — exactly the problem the skill exists to solve
+
+**The irony:** Learning-loop's entire purpose is "files persist, context doesn't" — but Phase 1 was relying on context persistence.
+
+### Solution: Scratch File via Bash Echo
+
+Instead of "mentally flag", Phase 1 now appends one-line entries to `scratch.md` via `Bash(echo *)` — already in the global allow list, so no permission prompt.
+
+**Key design decisions:**
+- **Bash echo, not Write tool** — `echo` was already permitted globally; Write required adding `Write(~/.claude/learning-captures/**)` to global settings (done as a fallback)
+- **One line per signal** — no multi-line entries. Forces concision, keeps the file scannable
+- **Source tags** (`[self]`, `[user]`, `[env]`) — allows Phase 3 to prioritize user corrections over Claude's own observations
+- **Not a source of truth** — scratch lines are *input* for Phase 3 quality gates, not verified learnings. The user verification step in Phase 4 still catches hallucinations.
+
+### What We Took from Napkin
+
+| Napkin Feature | Adopted? | Rationale |
+|----------------|----------|-----------|
+| Write mistakes immediately | ✅ Yes | Core of the scratch file mechanism |
+| Single-file structure | ❌ No | We need type-specific routing; single file can't distinguish code/process/content |
+| No quality gates | ❌ No | Quality gates prevent CLAUDE.md bloat and ensure learnings are actionable |
+| Read at session start | Already had | SessionStart hook + CLAUDE.md auto-loading already covers this |
+
+---
+
+### Problem 2: No Route to Project-Level CLAUDE.md
+
+**What v2 assumed:**
+- "Process-level → CLAUDE.md" was sufficient
+- All process learnings belong in root CLAUDE.md
+
+**What we observed:**
+- Root CLAUDE.md has a 550-line budget and global scope
+- Repo-specific observations ("this API uses camelCase", "user prefers LinkedIn drafts to open with a question") don't belong there
+- Without a route, project-specific learnings were silently dropped — user had to re-teach Claude each session
+
+### Solution: Split Process-Level Routing
+
+Added a decision boundary test: *"Would this apply if I was working in a completely different project?"*
+
+- YES → root CLAUDE.md (global process rule)
+- NO → project CLAUDE.md (repo-specific convention)
+
+**Key design decision: Why project CLAUDE.md, not a separate patterns file?**
+
+We considered creating `~/.claude/project-patterns/[repo-name].md` files. Rejected because:
+1. Claude Code already auto-loads all CLAUDE.md files in the working directory tree at session start
+2. A separate patterns directory would require custom loading logic
+3. CLAUDE.md is the canonical location for "instructions Claude should follow in this directory"
+4. Session-start review comes for free — no new Phase 0 needed
+
+### Also: Settings Cleanup
+
+The SessionStart hook detected two rogue project-level settings files created by "Always allow" clicks:
+- `NextView/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
+- Root `.claude/settings.local.json` — migrated Playwright MCP tools (`browser_navigate`, `browser_wait_for`, `browser_close`), `WebSearch`, and `gh api` to global
+
+Both files deleted after migration. Also added `Write(~/.claude/learning-captures/**)` to global settings for scratch file fallback.
+
+---
+
+### Files Changed This Session
+
+| File | Change |
+|------|--------|
+| SKILL.md | v2.1 upgrade: Phase 1 scratch logging, Phase 3 scratch awareness, Phase 4 routing split, diagrams/tables updated |
+| SESSION_LOG.md | Added this entry |
+| ~/.claude/settings.json | Added learning-captures Write permission + migrated rules from 2 rogue project files |
+| NextView/.claude/settings.local.json | Deleted (rules migrated to global) |
+| .claude/settings.local.json | Deleted (rules migrated to global) |
 
 ---
 
@@ -233,190 +565,6 @@ Learning-loop was conceived to solve: "Sometimes I remember to run `/workflows:c
 - Quality gates concept (refined with type-specificity)
 - The "human shouldn't need to remember" principle
 - Integration with `/workflows:compound` for code-level learnings
-
----
-
-## Session: Feb 11, 2026 — V2.1: Real-time Micro-Logging + Project-Level Routing
-
-### Context
-
-Analysis of the Napkin skill (blader/napkin) during content-lab work exposed two gaps in learning-loop v2. Napkin takes a radically simple approach — write mistakes down immediately, read them at session start, compound over sessions. Cross-analyzing this against our more sophisticated system revealed where the sophistication was hiding a blind spot.
-
-### Problem 1: Phase 1 Was Mental-Only
-
-**What v2 assumed:**
-- "Mentally flag for capture" was sufficient
-- User would initiate capture before compaction erased details
-
-**What Napkin exposed:**
-- If compaction happens before "run a capture", the Phase 3 sub-agent inherits a *summary*, not the specifics
-- The sub-agent can't extract what the conversation no longer contains
-- "Mental flagging" means details live only in volatile context — exactly the problem the skill exists to solve
-
-**The irony:** Learning-loop's entire purpose is "files persist, context doesn't" — but Phase 1 was relying on context persistence.
-
-### Solution: Scratch File via Bash Echo
-
-Instead of "mentally flag", Phase 1 now appends one-line entries to `scratch.md` via `Bash(echo *)` — already in the global allow list, so no permission prompt.
-
-**Key design decisions:**
-- **Bash echo, not Write tool** — `echo` was already permitted globally; Write required adding `Write(~/.claude/learning-captures/**)` to global settings (done as a fallback)
-- **One line per signal** — no multi-line entries. Forces concision, keeps the file scannable
-- **Source tags** (`[self]`, `[user]`, `[env]`) — allows Phase 3 to prioritize user corrections over Claude's own observations
-- **Not a source of truth** — scratch lines are *input* for Phase 3 quality gates, not verified learnings. The user verification step in Phase 4 still catches hallucinations.
-
-### What We Took from Napkin
-
-| Napkin Feature | Adopted? | Rationale |
-|----------------|----------|-----------|
-| Write mistakes immediately | ✅ Yes | Core of the scratch file mechanism |
-| Single-file structure | ❌ No | We need type-specific routing; single file can't distinguish code/process/content |
-| No quality gates | ❌ No | Quality gates prevent CLAUDE.md bloat and ensure learnings are actionable |
-| Read at session start | Already had | SessionStart hook + CLAUDE.md auto-loading already covers this |
-
----
-
-### Problem 2: No Route to Project-Level CLAUDE.md
-
-**What v2 assumed:**
-- "Process-level → CLAUDE.md" was sufficient
-- All process learnings belong in root CLAUDE.md
-
-**What we observed:**
-- Root CLAUDE.md has a 550-line budget and global scope
-- Repo-specific observations ("this API uses camelCase", "user prefers LinkedIn drafts to open with a question") don't belong there
-- Without a route, project-specific learnings were silently dropped — user had to re-teach Claude each session
-
-### Solution: Split Process-Level Routing
-
-Added a decision boundary test: *"Would this apply if I was working in a completely different project?"*
-
-- YES → root CLAUDE.md (global process rule)
-- NO → project CLAUDE.md (repo-specific convention)
-
-**Key design decision: Why project CLAUDE.md, not a separate patterns file?**
-
-We considered creating `~/.claude/project-patterns/[repo-name].md` files. Rejected because:
-1. Claude Code already auto-loads all CLAUDE.md files in the working directory tree at session start
-2. A separate patterns directory would require custom loading logic
-3. CLAUDE.md is the canonical location for "instructions Claude should follow in this directory"
-4. Session-start review comes for free — no new Phase 0 needed
-
-### Also: Settings Cleanup
-
-The SessionStart hook detected two rogue project-level settings files created by "Always allow" clicks:
-- `NextView/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
-- Root `.claude/settings.local.json` — migrated Playwright MCP tools (`browser_navigate`, `browser_wait_for`, `browser_close`), `WebSearch`, and `gh api` to global
-
-Both files deleted after migration. Also added `Write(~/.claude/learning-captures/**)` to global settings for scratch file fallback.
-
----
-
-### Files Changed This Session
-
-| File | Change |
-|------|--------|
-| SKILL.md | v2.1 upgrade: Phase 1 scratch logging, Phase 3 scratch awareness, Phase 4 routing split, diagrams/tables updated |
-| SESSION_LOG.md | Added this entry |
-| ~/.claude/settings.json | Added learning-captures Write permission + migrated rules from 2 rogue project files |
-| NextView/.claude/settings.local.json | Deleted (rules migrated to global) |
-| .claude/settings.local.json | Deleted (rules migrated to global) |
-
----
-
-## Session: Feb 24, 2026 — V3: Explicit Invocation, Two-Mode Model, Auto-Memory Coexistence
-
-### Context
-
-Auto-memory collision discovered: Claude Code's built-in auto-memory feature intercepts natural-language phrases like "capture" and "remember this." The skill's YAML `triggers` field used the same phrases, causing unpredictable behavior — sometimes auto-memory handled the request, sometimes the skill did, sometimes neither. Additionally, the YAML frontmatter `triggers` field was causing parsing issues that prevented the skill from loading reliably.
-
-### Problem 1: Non-Deterministic Invocation (PRIMARY ROOT CAUSE)
-
-**What v2 assumed:**
-- The `triggers` YAML field would reliably auto-invoke the skill when users said matching phrases
-- Both capture ("run a capture") and wrap-up ("wrap up") would trigger reliably
-
-**What investigation revealed (Feb 25, post-implementation):**
-- The `triggers` field is **NOT a supported YAML frontmatter field** in Claude Code's SKILL.md spec
-- The official spec supports: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`
-- `triggers` was never parsed by the system as a machine feature
-- The only auto-invocation mechanism is **description-based matching** — Claude's LLM reads the `description` field and decides whether to invoke. This is non-deterministic.
-
-**However, the skill DID fire sometimes.** Orphaned capture files from Feb 15, 16, and 24 prove the capture/scan phase was invoked. User confirmed (Feb 25): they typically said **"capture before compaction"** and **"wrap up"** — never directly invoked `/learning-loop` via slash command. This means capture files were created entirely through non-deterministic matching, not explicit invocation.
-
-**The asymmetric failure:** Capture worked sometimes but wrap-up never did. Why?
-- "Capture before compaction" is a distinctive phrase that description-based matching could reliably associate with the skill
-- "Wrap up" is a common conversational phrase — Claude handled it conversationally or auto-memory intercepted it as a session-end cue
-- The user never knew which system would respond to which phrase
-
-**Result:** Capture files accumulated but were never consolidated. The system was half-working — the scan phase fired intermittently, but the consolidation phase never triggered automatically.
-
-### Problem 2: Auto-Memory Collision (CONTRIBUTING FACTOR)
-
-Auto-memory intercepting common phrases like "wrap up" and "capture" made the non-deterministic invocation worse:
-- For distinctive phrases ("run a capture"), the skill sometimes won
-- For common phrases ("wrap up"), auto-memory or conversational handling consistently won
-- The user had no way to know which system would respond
-
-### Decision: Explicit Invocation Only
-
-Given that:
-1. YAML `triggers` was never a supported feature — invocation depended on non-deterministic description matching
-2. Common phrases like "wrap up" were especially unreliable — too many things compete for them
-3. Auto-memory adds another competitor for natural-language phrases
-4. `/learning-loop` as a slash command is deterministic and unambiguous
-
-**The solution is explicit invocation with smart mode detection:**
-- User invokes `/learning-loop` directly (optionally with `scan` or `wrap up`)
-- Mode detection uses context clues from the user's recent messages
-- If ambiguous, the skill asks which mode
-
-This is a **determinism fix** — replacing non-deterministic natural-language matching with deterministic slash command invocation.
-
-### Decision: Two-Mode Model (Raw vs. Conclusions)
-
-**Previous model:** Single capture phase applied quality gates immediately
-**Problem:** Mid-session captures were drawing conclusions too early — hypotheses hadn't been validated yet
-
-**New model:**
-- **Scan mode:** Captures raw signals WITHOUT quality gates or conclusions. Hypotheses marked as UNRESOLVED.
-- **Wrap-up mode:** Reads ALL capture files, resolves hypotheses with hindsight, THEN applies quality gates and routes.
-
-This matches how learning actually works: observations accumulate, and conclusions emerge with the benefit of hindsight.
-
-### Decision: Memory as a Routing Destination
-
-**Previous model:** 4 destinations (docs/solutions, root CLAUDE.md, project CLAUDE.md, Judgment Ledger)
-**Gap:** Facts (pure recall, no behavior change) didn't fit any destination. "User's husband is Ted" shouldn't be a CLAUDE.md rule, and it's not an insight worth a Judgment Ledger entry.
-
-**New routing test:** "Does this change how Claude should behave?"
-- Yes → CLAUDE.md (global or project)
-- No, it's a fact → Memory MEMORY.md
-- No, understanding shifted → Judgment Ledger
-- Code fix → docs/solutions/
-
-### Investigation: Multi-Session Capture Consolidation
-
-**Previously a pending question** — "When captures span multiple sessions, what's the best consolidation UX?"
-
-**Resolution:** Wrap-up mode handles this explicitly:
-1. Scan current session first (final signals)
-2. Read ALL capture files across all session directories
-3. Consolidate with hindsight
-4. Present unified summary for user verification
-5. Route and clean up
-
-The multi-session flow is now documented in SKILL.md with a concrete example (3-session scenario).
-
-### Changes Made
-
-| File | Change |
-|------|--------|
-| SKILL.md | v3 rewrite: removed triggers YAML, added mode detection, scan mode, wrap-up mode, auto-memory coexistence, memory routing, new scanner/consolidation prompts, v3 changelog |
-| SESSION_LOG.md | Added this entry |
-| README.md | Updated for v3: explicit invocation, two-mode flow, routing table with Memory, coexistence |
-| ~/.claude/reference/learning-and-content.md | Replaced trigger table with /learning-loop invocation instructions |
-| Root CLAUDE.md (Section 6) | Updated trigger description for explicit /learning-loop invocation |
 
 ---
 

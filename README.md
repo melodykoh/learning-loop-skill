@@ -14,13 +14,12 @@ Claude Code sessions accumulate valuable insights — bug fixes, process decisio
 
 **Scan mode** (mid-session): Captures raw signals — observations, hypotheses, failed attempts — without drawing conclusions. Fast, lightweight, back to work.
 
-**Wrap-up mode** (session end): Reads all capture files across sessions, resolves hypotheses with hindsight, applies quality gates, routes conclusions to the right destinations.
+**Wrap-up mode** (session end): Reads current session's captures (and optionally surfaces orphaned captures from other sessions), resolves hypotheses with hindsight, applies quality gates and significance thresholds, routes conclusions to the right destinations.
 
 ```
 Session 1: Working on feature...
   [context getting long]
   /learning-loop scan         → raw signals saved
-  [compaction happens]
 
 Session 2: Still working...
   /learning-loop scan         → more raw signals saved
@@ -28,9 +27,9 @@ Session 2: Still working...
 Session 3: Finally done!
   /learning-loop wrap up      → consolidates everything
     1. Scan this session
-    2. Read all captures (sessions 1-3)
+    2. Triage captures (this session + surface orphans)
     3. Resolve hypotheses → conclusions
-    4. Quality gates → verify → route → clean up
+    4. Quality gates + significance threshold → verify → route → clean up
 ```
 
 ### Smart Mode Detection
@@ -74,10 +73,12 @@ Learning-loop classifies and routes signals by type:
 | Type | Destination | Decision Test |
 |------|-------------|---------------|
 | **Code-level** | `docs/solutions/` via `/workflows:compound` | Specific to codebase/framework |
-| **Process-level (global)** | Root `CLAUDE.md` | "Would this apply in a different project?" → Yes |
-| **Process-level (project)** | Project `CLAUDE.md` | "Would this apply in a different project?" → No |
+| **Process-level (behavioral)** | Root or project `CLAUDE.md` | Changes decisions — "Would this apply in a different project?" |
+| **Process-level (operational)** | Project operational docs or `CLAUDE.md` | Changes procedures — adapts to repo infrastructure |
+| **Skills-level** | `claude-skills` repo | About skill authoring, structure, deployment |
 | **Fact** | Memory `MEMORY.md` | "Does this change behavior?" → No, it's a fact |
-| **Content-level** | Judgment Ledger | Understanding shifted, potentially publishable |
+| **Content-level** | Judgment Ledger | Understanding shifted + fits content wedge |
+| **Below threshold** | Noted (acknowledged, not persisted) | Interesting but forgettable |
 
 ### Quality Gates
 
@@ -85,7 +86,10 @@ Quality gates apply during **wrap-up consolidation**, not during scans. Each con
 
 1. **Reusability** — Would this help in a future similar situation?
 2. **Non-triviality** — Did this require genuine discovery?
-3. **Type-specific gates** — Error messages defined? Fix confirmed? Experience validated?
+3. **Type-specific gates** — Error messages defined? Fix confirmed? Experience validated? Content wedge fit?
+4. **Significance threshold** — "If lost, would a future session go WRONG?" Prevents over-documentation of signals that pass quality gates but aren't worth persisting.
+
+For repeated failures, a **root cause check** fires before routing: "Why did the existing rule fail to prevent this?" The answer determines the destination — not topical similarity.
 
 ### User Verification
 
@@ -101,8 +105,8 @@ This also avoids collision with Claude Code's built-in auto-memory, which interc
 |---------|-------------|---------------|
 | Invocation | Natural language | Explicit `/learning-loop` |
 | Scope | Quick facts | Multi-signal session analysis |
-| Quality gates | None | Type-specific + user verification |
-| Output | MEMORY.md | 5 destinations based on type |
+| Quality gates | None | Type-specific + significance threshold + user verification |
+| Output | MEMORY.md | 7 destinations based on type and significance |
 
 ## Key Design Decisions
 
@@ -110,7 +114,13 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
 - **Explicit invocation** — Description-based matching was non-deterministic (capture phrases matched intermittently, "wrap up" never triggered reliably). `/learning-loop` is deterministic.
 - **Two-mode model** — Scans capture raw signals; wrap-up resolves hypotheses with hindsight. Matches how learning actually works.
+- **Session-scoped wrap-up** — Defaults to current session's captures. Other sessions surfaced for triage, not auto-included.
+- **Significance threshold** — Quality gates measure signal quality; significance threshold measures persistence value. "Noted" acknowledges without persisting.
+- **Behavioral vs. operational split** — Process-level learnings split by what they change: decisions (→ CLAUDE.md) vs. procedures (→ operational docs).
+- **Content wedge filter** — Judgment Ledger entries must fit "where AI capability meets reality" positioning.
+- **Root cause check** — Repeated failures diagnosed before routing. Rules that fire at the wrong workflow moment are redesigned, not reinforced.
 - **Memory routing** — Facts (no behavior change) route to MEMORY.md instead of being forced into CLAUDE.md or lost.
+- **Ideas cross-reference** — Frustration/bottleneck signals matched against parked ideas at wrap-up.
 - **Orchestration over duplication** — Prompts for `/workflows:compound`, doesn't replace it.
 - **Resilience principle** — Adapts to platform changes rather than fighting them.
 - **Git + SESSION_LOG** — Git shows what changed. SESSION_LOG shows why.
@@ -146,6 +156,20 @@ Files persist. Context doesn't. This skill ensures the right things get written 
 v2 added: *"...and the system should be able to find what it learned."*
 v2.1 added: *"...and nothing is lost between the moment of learning and the moment of capture."*
 v3 added: *"...and the system adapts to its environment rather than fighting it."*
+
+## Version History
+
+| Version | Date | Key Changes |
+|---------|------|-------------|
+| **v3.3** | Mar 3, 2026 | Significance thresholds (Gate 5), "Noted" routing, behavioral/operational split |
+| v3.2 | Mar 2, 2026 | Content wedge filter for Judgment Ledger |
+| v3.1 | Mar 2, 2026 | Session-scoped wrap-up, orphan surfacing, sharper content routing |
+| v3.0 | Feb 25, 2026 | Explicit invocation, two-mode model, auto-memory coexistence |
+| v2.1 | Feb 11, 2026 | Real-time micro-logging (scratch files), project-level CLAUDE.md routing |
+| v2.0 | Jan 24, 2026 | Type-specific quality gates, orchestration model |
+| v1.0 | Jan 23, 2026 | Proactive monitoring (failed — Claude can't sense context %) |
+
+Post-v3.3 enhancements: ideas cross-reference (Mar 6), skills-level routing (Mar 18), root cause check in consolidation (Apr 2).
 
 ## Contributing
 
