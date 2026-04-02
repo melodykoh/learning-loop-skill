@@ -4,7 +4,7 @@ A two-mode learning system that captures raw signals mid-session and consolidate
 
 ## The Problem
 
-> "Sometimes I remember to run `/workflows:compound`, and sometimes I forget before context diminishes or I just clear without thinking."
+> "Sometimes I remember to run `/ce:compound`, and sometimes I forget before context diminishes or I just clear without thinking."
 
 Claude Code sessions accumulate valuable insights — bug fixes, process decisions, failed approaches. But context compaction and `/clear` destroy these details. **Learning-loop ensures nothing valuable is lost.**
 
@@ -72,7 +72,7 @@ Learning-loop classifies and routes signals by type:
 
 | Type | Destination | Decision Test |
 |------|-------------|---------------|
-| **Code-level** | `docs/solutions/` via `/workflows:compound` | Specific to codebase/framework |
+| **Code-level** | `docs/solutions/` via [`/ce:compound`](#what-is-cecompound) | Specific to codebase/framework |
 | **Process-level (behavioral)** | Root or project `CLAUDE.md` | Changes decisions — "Would this apply in a different project?" |
 | **Process-level (operational)** | Project operational docs or `CLAUDE.md` | Changes procedures — adapts to repo infrastructure |
 | **Skills-level** | `claude-skills` repo | About skill authoring, structure, deployment |
@@ -121,7 +121,7 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 - **Root cause check** — Repeated failures diagnosed before routing. Rules that fire at the wrong workflow moment are redesigned, not reinforced.
 - **Memory routing** — Facts (no behavior change) route to MEMORY.md instead of being forced into CLAUDE.md or lost.
 - **Ideas cross-reference** — Frustration/bottleneck signals matched against parked ideas at wrap-up.
-- **Orchestration over duplication** — Prompts for `/workflows:compound`, doesn't replace it.
+- **Orchestration over duplication** — Prompts for `/ce:compound`, doesn't replace it.
 - **Resilience principle** — Adapts to platform changes rather than fighting them.
 - **Git + SESSION_LOG** — Git shows what changed. SESSION_LOG shows why.
 
@@ -146,6 +146,16 @@ Add this to `~/.claude/settings.json` for post-clear recovery:
   }
 }
 ```
+
+## What Is `/ce:compound`?
+
+Learning-loop references `/ce:compound` as the handler for code-level learnings. This is the **Compound** skill from [Every's Compound Engineering plugin](https://github.com/EveryInc/compound-engineering-plugin) — a Claude Code plugin that documents recently solved problems so your team's knowledge compounds over time.
+
+When learning-loop detects a code-level fix during wrap-up, it prompts you to run `/ce:compound` while context is fresh. `/ce:compound` spawns multiple agents to extract the solution into a structured, schema-validated entry in `docs/solutions/` — complete with error messages, root cause, fix, and prevention steps. Learning-loop orchestrates *when* to invoke it; `/ce:compound` handles *how* to document it.
+
+**To install:** Follow the setup instructions at [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin). The plugin provides `/ce:compound` along with other engineering workflow skills.
+
+> **Note:** Earlier versions of this skill referenced `/workflows:compound` — the old name before the skill moved to Every's plugin.
 
 ## The Meta-Principle
 

@@ -15,7 +15,7 @@ allowed-tools:
 
 # learning-loop Skill v3.3
 
-**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/workflows:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
+**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/ce:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
 ---
 
@@ -57,7 +57,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 **Before routing ANY learning to a destination:**
 1. **Present a summary** of captured/consolidated signals to the user
 2. **Explicitly ask for verification** — "Does this accurately reflect what happened?"
-3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, Memory, or running `/workflows:compound`
+3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, Memory, or running `/ce:compound`
 
 > **Why this exists (Jan 29, 2026):** AI-generated captures can contain hallucinations — wrong names, fabricated premises, misremembered details. A capture once referenced "Henry" when the user's husband is "Ted" and claimed constraints that didn't exist.
 
@@ -71,7 +71,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 
 Context compaction and `/clear` destroy details. Files persist. This skill ensures:
 1. **Learnings are captured** before compaction erases them
-2. **The right tools get invoked** (`/workflows:compound` for code-level, direct edits for process/content)
+2. **The right tools get invoked** (`/ce:compound` for code-level, direct edits for process/content)
 3. **Nothing falls through the cracks** — even when you forget to document
 
 ---
@@ -297,7 +297,7 @@ After user confirms, route each learning to its proper destination:
 
 | Type | Destination | Handler |
 |------|-------------|---------|
-| **Code-level** (confirmed fixes) | `docs/solutions/` | `/workflows:compound` (7 agents, schema-validated) |
+| **Code-level** (confirmed fixes) | `docs/solutions/` | `/ce:compound` (7 agents, schema-validated) |
 | **Process-level (behavioral)** | CLAUDE.md (root or project) | Learning-loop direct (with consolidation discipline) |
 | **Process-level (operational)** | Project operational docs* | Learning-loop direct |
 | **Skills-level** (skill building/authoring/maintenance) | claude-skills repo (CLAUDE.md or playbook) | Learning-loop direct |
@@ -657,9 +657,9 @@ echo "[ISO-timestamp] [source] Signal summary | Key detail or corrective action"
 
 ---
 
-## Code-Level Orchestration: When to Prompt for /workflows:compound
+## Code-Level Orchestration: When to Prompt for /ce:compound
 
-For **code-level learnings**, learning-loop's job is to prompt for `/workflows:compound` while context is still fresh.
+For **code-level learnings**, learning-loop's job is to prompt for `/ce:compound` while context is still fresh.
 
 ### The Decision Flow
 
@@ -675,10 +675,10 @@ Code-level fix just confirmed working
     │         │
     ▼         ▼
 PROMPT IMMEDIATELY:              TOO LATE for full treatment:
-"Want to run /workflows:compound Save signal in scan file
+"Want to run /ce:compound Save signal in scan file
 while details are fresh?"        for wrap-up documentation later
     │
-    ├── User: "Yes" → Invoke /workflows:compound (7 agents, schema-validated)
+    ├── User: "Yes" → Invoke /ce:compound (7 agents, schema-validated)
     │
     └── User: "No/Later" → Capture signal, route at wrap-up
 ```
@@ -687,8 +687,8 @@ while details are fresh?"        for wrap-up documentation later
 
 | Trigger | Action |
 |---------|--------|
-| **Code-level fix just confirmed** | Prompt for `/workflows:compound` immediately (context freshest) |
-| **User invokes `/learning-loop scan`** | "Any undocumented code-level fixes? Last chance for `/workflows:compound`" |
+| **Code-level fix just confirmed** | Prompt for `/ce:compound` immediately (context freshest) |
+| **User invokes `/learning-loop scan`** | "Any undocumented code-level fixes? Last chance for `/ce:compound`" |
 | **After compaction** | Too late for multi-agent treatment; capture what you can for wrap-up |
 
 ---
@@ -865,7 +865,7 @@ After writing any new rule to CLAUDE.md:
 
 | Type | Definition | Handler | Destination |
 |------|------------|---------|-------------|
-| **Code-level** | Specific to codebase/framework | `/workflows:compound` (multi-agent) | `docs/solutions/` with schema-validated YAML |
+| **Code-level** | Specific to codebase/framework | `/ce:compound` (multi-agent) | `docs/solutions/` with schema-validated YAML |
 | **Process-level (behavioral)** | Changes decision-making across sessions | Learning-loop direct | CLAUDE.md (root or project) with trigger + warning signs |
 | **Process-level (operational)** | Changes procedure execution in a workflow | Learning-loop direct | Project operational docs* or CLAUDE.md |
 | **Fact** | Pure recall, no behavior change | Learning-loop direct | Memory MEMORY.md |
@@ -954,7 +954,7 @@ Session 3: Finally done!
 | **Scans are raw, wrap-up draws conclusions** | Mid-session hypotheses resolved at session end with hindsight |
 | **Smart default, explicit override** | Context clue detection with fallback to asking |
 | **Memory is a routing destination** | Facts route to MEMORY.md; behavioral changes route to CLAUDE.md |
-| **Orchestration over duplication** | Prompts for `/workflows:compound` instead of reimplementing code-level documentation |
+| **Orchestration over duplication** | Prompts for `/ce:compound` instead of reimplementing code-level documentation |
 | **Consolidation over accumulation** | CLAUDE.md edits require reading and merging, not just appending |
 | **Persistence over memory** | Scratch lines and scan files survive compaction; mental notes don't |
 | **Resilience over rigidity** | Complements auto-memory, adapts when system behaviors change |

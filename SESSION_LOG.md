@@ -452,11 +452,11 @@ This prevents capturing vague "lessons" that aren't actionable.
 
 ### New in V2: Orchestration Model
 
-**Key insight:** Learning-loop doesn't replace `/workflows:compound` — it ensures it gets run.
+**Key insight:** Learning-loop doesn't replace `/ce:compound` — it ensures it gets run.
 
-For code-level learnings, `/workflows:compound` does the heavy lifting (7 parallel agents, schema-validated output). Learning-loop's job is to:
+For code-level learnings, `/ce:compound` does the heavy lifting (7 parallel agents, schema-validated output). Learning-loop's job is to:
 1. Detect when code-level learning occurred
-2. Prompt to run `/workflows:compound` while context is fresh
+2. Prompt to run `/ce:compound` while context is fresh
 3. Fall back to capture if context is too low
 
 This prevents duplication and leverages existing tools.
@@ -545,7 +545,7 @@ The reasoning trail is as valuable as the skill itself.
 
 ### Original Design Intent
 
-Learning-loop was conceived to solve: "Sometimes I remember to run `/workflows:compound`, and sometimes I forget before context diminishes."
+Learning-loop was conceived to solve: "Sometimes I remember to run `/ce:compound`, and sometimes I forget before context diminishes."
 
 ### V1 Approach (What We Tried)
 
@@ -564,7 +564,7 @@ Learning-loop was conceived to solve: "Sometimes I remember to run `/workflows:c
 - Core purpose: Ensure learnings are captured before compaction
 - Quality gates concept (refined with type-specificity)
 - The "human shouldn't need to remember" principle
-- Integration with `/workflows:compound` for code-level learnings
+- Integration with `/ce:compound` for code-level learnings
 
 ---
 
