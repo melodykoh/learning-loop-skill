@@ -1,0 +1,5 @@
+# Doc Companion Map — learning-loop
+# Format: source -> companion1, companion2
+# The pre-push hook warns when source changes without companions.
+
+SKILL.md -> SESSION_LOG.md, README.md

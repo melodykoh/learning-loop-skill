@@ -84,10 +84,23 @@ After updating both SKILL.md and SESSION_LOG.md:
 Before committing changes:
 
 - [ ] SKILL.md change is minimal and focused
-- [ ] SESSION_LOG.md explains the reasoning
-- [ ] README.md updated if user-facing behavior changed
-- [ ] Commit message is descriptive
+- [ ] SESSION_LOG.md explains the reasoning (newest entry first — reverse chronological)
+- [ ] README.md updated if user-facing behavior changed (routing table, quality gates, design decisions, version history)
+- [ ] Commit message is descriptive (include what, why, born-from context)
 - [ ] Changes pushed to origin
+
+### Version-Sensitive vs. Stable Files
+
+Not all files need updating on every change:
+
+| File | Updates when... | Version-sensitive? |
+|------|----------------|-------------------|
+| **SKILL.md** | Behavior changes | Yes — the "code" |
+| **SESSION_LOG.md** | Any SKILL.md change | Yes — the reasoning trail |
+| **README.md** | User-facing behavior changes | Yes — the public face |
+| **CLAUDE.md** | Development process changes | No — structural conventions |
+
+The pre-push hook (`doc-companion-check.sh`) enforces this via `.claude/doc-map`. If SKILL.md changes but SESSION_LOG.md or README.md don't, the hook warns before push.
 
 ## The Principle
 
