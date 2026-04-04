@@ -6,6 +6,30 @@
 
 ---
 
+## Session: Apr 3, 2026 — CLAUDE.md Size Gate
+
+### Context
+Root CLAUDE.md had grown from 173 to 351 lines over 6 weeks — well past the 250-line target. Extraction audit revealed that every behavioral learning routed to root without any size check. The same mechanism applied to project CLAUDE.md files.
+
+### Problem: No Size Gate on CLAUDE.md Routing
+The process-level routing decision tree had a global-vs-project split but no trigger-vs-protocol split. A 2-line trigger and a 25-line STOP checklist both landed in CLAUDE.md equally. Over time, triggers accumulated protocols and STOP items, bloating the file past scannability.
+
+### Decision: Universal Size Gate
+Added a mandatory **trigger-vs-protocol split** to the routing step that applies to ALL CLAUDE.md files:
+- Triggers (2-5 lines, *when* to act) → write to CLAUDE.md
+- Protocols (>5 lines, *how* to act) → write to reference/companion file + pointer in CLAUDE.md
+- Extensions to existing rules → add to the existing reference file, not CLAUDE.md
+- Root has a hard line budget (force extraction at ≥230 lines); project files use a heuristic
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Size gate added after global-vs-project routing test (Step 5) |
+| README.md | Routing table updated, new "CLAUDE.md Size Gate" section |
+
+---
+
 ## Retro Documentation Note (Apr 2, 2026)
 
 Sessions from Mar 2 through Mar 18 were documented retroactively from git history. The commit messages contained sufficient reasoning context (what, why, born-from) to reconstruct meaningful SESSION_LOG entries. The README was also updated from v3 to v3.3+ to reflect all changes since Feb 25.

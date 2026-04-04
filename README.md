@@ -73,12 +73,16 @@ Learning-loop classifies and routes signals by type:
 | Type | Destination | Decision Test |
 |------|-------------|---------------|
 | **Code-level** | `docs/solutions/` via [`/ce:compound`](#what-is-cecompound) | Specific to codebase/framework |
-| **Process-level (behavioral)** | Root or project `CLAUDE.md` | Changes decisions — "Would this apply in a different project?" |
+| **Process-level (behavioral)** | Root or project `CLAUDE.md` (with size gate) | Changes decisions — "Would this apply in a different project?" |
 | **Process-level (operational)** | Project operational docs or `CLAUDE.md` | Changes procedures — adapts to repo infrastructure |
 | **Skills-level** | `claude-skills` repo | About skill authoring, structure, deployment |
 | **Fact** | Memory `MEMORY.md` | "Does this change behavior?" → No, it's a fact |
 | **Content-level** | Judgment Ledger | Understanding shifted + fits content wedge |
 | **Below threshold** | Noted (acknowledged, not persisted) | Interesting but forgettable |
+
+### CLAUDE.md Size Gate
+
+Before writing any behavioral learning to a CLAUDE.md file, a **trigger-vs-protocol split** applies: triggers (2-5 lines, *when* to act) go in CLAUDE.md; protocols (>5 lines, *how* to act) go in a reference/companion file with a pointer in CLAUDE.md. Root CLAUDE.md has a hard line budget (<250 lines, force extraction at 230+). Project CLAUDE.md files use a "needs scrolling to scan = too long" heuristic.
 
 ### Quality Gates
 

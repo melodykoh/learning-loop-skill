@@ -322,6 +322,7 @@ After user confirms, route each learning to its proper destination:
 | **Yes — changes how skills are built/maintained** | claude-skills CLAUDE.md or playbook | "Always include Gotchas section" |
 | **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Dave is L1-L2" |
 | **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
+| **No — career/life-level context changed** | PERSONAL_CONTEXT.md | "Content is career infrastructure, not a side project" |
 | **Interesting but forgettable** | Noted (not persisted) | "Research sprints need different cognitive mode" |
 | **Code fix** | `docs/solutions/` | Connection pooling timeout fix |
 
@@ -358,10 +359,32 @@ This prevents the Judgment Ledger from accumulating entries that are genuinely u
 
 For behavioral learnings, apply a second test: *"Would this apply if I was working in a completely different project?"*
 
-| YES → root CLAUDE.md | NO → project CLAUDE.md |
+| YES → root CLAUDE.md (with size gate below) | NO → project CLAUDE.md |
 |---|---|
 | "When building APIs, ask about naming convention first" | "This repo's API uses camelCase for all endpoints" |
 | "Before modifying functions, read entire implementation" | "Supabase RPCs in this project use `verb_noun` naming" |
+
+**⚠️ CLAUDE.md Size Gate (MANDATORY — applies to ALL CLAUDE.md files):**
+
+Before writing ANY behavioral learning to a CLAUDE.md file (root or project), apply the **trigger-vs-protocol split**:
+
+> "Is this a trigger/routing keyword (2-5 lines) or a detailed protocol (>5 lines, STOP lists, checklists)?"
+
+| Answer | Action |
+|--------|--------|
+| **Trigger** (2-5 lines, tells Claude *when* to act) | Write to the target CLAUDE.md |
+| **Protocol** (>5 lines, tells Claude *how* to act in detail) | Write to a reference/companion file, add 2-3 line trigger + pointer in CLAUDE.md |
+| **Extends existing rule** (new STOP item or provenance for an existing section) | Add to the existing rule's reference/companion file, NOT to CLAUDE.md |
+
+**Reference file locations by target:**
+- Root CLAUDE.md → `~/.claude/reference/<topic>.md`
+- Project CLAUDE.md → project's own docs folder, or `_meta/<topic>.md`, or inline in SESSION_LOG.md if it's a one-off
+
+**Line count check before writing:** Read the target CLAUDE.md and count lines. If at or near its budget, force extraction regardless of learning size.
+- Root CLAUDE.md target: <250 lines (force extraction at ≥230)
+- Project CLAUDE.md: no fixed number, but apply judgment — if the file requires scrolling to scan, it's too long. Extract.
+
+> Why this exists (Apr 3, 2026): Root CLAUDE.md grew from 173 to 351 lines over 6 weeks. Every learning routed without a size gate. The same mechanism applies to project CLAUDE.md files — any destination that receives learnings without a size check will bloat.
 
 #### Step 6: Clean Up
 
