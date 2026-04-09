@@ -154,6 +154,7 @@ SCAN FOR THESE RAW SIGNALS:
 4. "Direction change: pivoted from A to B" — approach changes with reasons
 5. "Discovery: turns out X works because Y" — findings (may or may not be confirmed)
 6. "Process observation: we should always..." — meta-observations about workflow
+7. "Repeated instruction: user gave the same multi-step instruction seen in a prior session" — skill candidate signal. If the user directed the same workflow pattern across 2+ sessions, flag it as a potential skill to codify. Note what the pattern is and why it recurs.
 
 FOR EACH SIGNAL:
 - Capture the raw observation, not a conclusion
