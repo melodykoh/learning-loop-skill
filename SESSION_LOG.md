@@ -239,7 +239,7 @@ This matches how learning actually works: observations accumulate, and conclusio
 ### Decision: Memory as a Routing Destination
 
 **Previous model:** 4 destinations (docs/solutions, root CLAUDE.md, project CLAUDE.md, Judgment Ledger)
-**Gap:** Facts (pure recall, no behavior change) didn't fit any destination. "User's husband is Ted" shouldn't be a CLAUDE.md rule, and it's not an insight worth a Judgment Ledger entry.
+**Gap:** Facts (pure recall, no behavior change) didn't fit any destination. Personal facts like a spouse's name shouldn't be a CLAUDE.md rule, and it's not an insight worth a Judgment Ledger entry.
 
 **New routing test:** "Does this change how Claude should behave?"
 - Yes → CLAUDE.md (global or project)

@@ -59,7 +59,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 2. **Explicitly ask for verification** — "Does this accurately reflect what happened?"
 3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, Memory, or running `/ce:compound`
 
-> **Why this exists (Jan 29, 2026):** AI-generated captures can contain hallucinations — wrong names, fabricated premises, misremembered details. A capture once referenced "Henry" when the user's husband is "Ted" and claimed constraints that didn't exist.
+> **Why this exists (Jan 29, 2026):** AI-generated captures can contain hallucinations — wrong names, fabricated premises, misremembered details. A capture once got the user's husband's name wrong and claimed constraints that didn't exist.
 
 **DO NOT** update any destination based on captures without user sign-off.
 
@@ -321,7 +321,7 @@ After user confirms, route each learning to its proper destination:
 | **Yes — changes decisions in this project** | Project CLAUDE.md | "Develop when you have lived material" |
 | **Yes — changes procedure execution** | Project operational docs* | "Reactive before evergreen scheduling" |
 | **Yes — changes how skills are built/maintained** | claude-skills CLAUDE.md or playbook | "Always include Gotchas section" |
-| **No — it's a fact** | Memory MEMORY.md | "User's husband is Ted", "Dave is L1-L2" |
+| **No — it's a fact** | Memory MEMORY.md | "User's spouse's name", "Dave is L1-L2" |
 | **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
 | **No — career/life-level context changed** | PERSONAL_CONTEXT.md | "Content is career infrastructure, not a side project" |
 | **Interesting but forgettable** | Noted (not persisted) | "Research sprints need different cognitive mode" |
@@ -671,7 +671,7 @@ echo "[ISO-timestamp] [source] Signal summary | Key detail or corrective action"
 | Tag | Meaning | Example |
 |-----|---------|---------|
 | `[self]` | Claude's own mistake or discovery | `[self] Tried WebFetch on X URL, blocked \| Always use Playwright MCP for social media` |
-| `[user]` | User correction or pushback | `[user] Corrected: husband's name is Ted not Henry \| Verify names before persisting` |
+| `[user]` | User correction or pushback | `[user] Corrected: got spouse's name wrong \| Verify personal names before persisting` |
 | `[env]` | Tooling or environment surprise | `[env] Playwright MCP doesn't support PDF export \| Use sips or wkhtmltopdf instead` |
 
 ### Scratch File Rules
