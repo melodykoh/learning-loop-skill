@@ -268,6 +268,18 @@ From [N] scans ([this session only / this session + M others]), I found these co
 |---|---------------------|------------|----------|
 | 1 | "Root cause might be connection pooling" | CONFIRMED — pool exhaustion under load | Fixed with pool size increase |
 
+### Watch List (Recurring Candidates)
+
+Before finalizing the Noted bucket: check `~/.claude/learning-captures/watch-list.md`.
+
+| # | Observation | Prior Count | New Count | Threshold | Action |
+|---|-------------|-------------|-----------|-----------|--------|
+| [N] | [Brief description] | [existing count] | [+1] | [2] | [Escalate → destination / Still watching] |
+
+- If an observation from this session **matches an existing entry**: increment its count. If count reaches threshold, move it to "Ready for Documentation" and route it.
+- If an observation is "Noted" but **could recur** (a gap in a skill, a behavioral pattern that slipped): add it as a new watch-list entry with count=1.
+- After user verification, update `watch-list.md` (increment or add entries). Move escalated entries to the Archived section.
+
 ### Noted (Passed Quality Gates, Below Persistence Threshold)
 
 | # | Type | Summary | Why Not Persisted |
@@ -304,6 +316,7 @@ After user confirms, route each learning to its proper destination:
 | **Skills-level** (skill building/authoring/maintenance) | claude-skills repo (CLAUDE.md or playbook) | Learning-loop direct |
 | **Facts** (pure recall, no behavior change) | Memory MEMORY.md | Learning-loop direct |
 | **Content-level** (understanding shifted) | Judgment Ledger | Learning-loop direct |
+| **Watch List** (noted, but may recur) | `~/.claude/learning-captures/watch-list.md` | Learning-loop direct (increment or add entry) |
 | **Noted** (below persistence threshold) | Not persisted | Acknowledged in wrap-up summary |
 
 *Operational docs routing (adapts to repo infrastructure):
@@ -325,6 +338,7 @@ After user confirms, route each learning to its proper destination:
 | **No — worldview/judgment shifted** | Judgment Ledger | "The Leash Length Problem" insight |
 | **No — career/life-level context changed** | PERSONAL_CONTEXT.md | "Content is career infrastructure, not a side project" |
 | **Interesting but forgettable** | Noted (not persisted) | "Research sprints need different cognitive mode" |
+| **Interesting but only 1 occurrence** | Watch List (`watch-list.md`) | "Editorial review missed structural-fit check" |
 | **Code fix** | `docs/solutions/` | Connection pooling timeout fix |
 
 **⚠️ Content-Level vs. Process-Level Distinction (Critical):**
