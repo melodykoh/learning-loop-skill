@@ -519,6 +519,39 @@ After all learnings are routed and capture files cleaned up, check if the curren
    "Routed files belong to N repo(s): [repo1, repo2, ...].
     Local-only files (skipped): [paths].
     Proceeding to per-repo commit prompts."
+
+7. RECONCILE Pass A drift (runs AFTER all commits in step 6 succeed):
+   Compare Pass B's discovered set against Pass A's hardcoded list.
+   For each repo Pass B found that is NOT in Pass A, prompt the user:
+
+   "Pass B discovered 1 repo not in Pass A's hardcoded list:
+      - [toplevel path]
+        Files touched: [file1, file2, ...]
+        Routing context: [which destination added these files]
+
+    Pass B will catch this repo every session, but adding it to Pass A
+    documents it as an expected destination and makes future sessions
+    faster. Add to Pass A? (Y/skip/one-off)
+
+      Y       → edit SKILL.md to add the repo to Pass A with a dated note
+                  (e.g. '- [path] (added [date]: [routing context]')
+      skip    → leave as-is; Pass B keeps rediscovering it each session
+      one-off → don't prompt for this repo again this session (use for
+                  temporary worktrees, migration scratch repos, or other
+                  genuinely one-time destinations)"
+
+   If Y:
+   ├── Edit this SKILL.md file to add the repo under Pass A with a dated note
+   ├── The SKILL.md edit is itself a file touched this session — it will be
+   │   committed via the normal Step 6 flow on the NEXT wrap-up, since
+   │   Pass A already covers ~/.claude/skills/learning-loop/
+   └── Confirm: "Added [repo] to Pass A. Will be committed to learning-loop-skill
+       next wrap-up."
+
+   Why a three-way choice: two-way (Y/skip) trains users to reflexively skip
+   when a legitimate one-off appears (temporary worktree, experimental repo).
+   The one-off option preserves the signal value of Y by giving drift a
+   legitimate non-persistent home.
 ```
 
 **Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
