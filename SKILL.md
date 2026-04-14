@@ -497,10 +497,28 @@ After all learnings are routed and capture files cleaned up, check if the curren
    ├── Prompt: "Also modified [repo-name] with skills-level learning. Commit and push? (Y/skip)"
    └── If Y → stage, commit, push, return to original repo
 
-   Repos to check:
+   Build the list of repos to check in TWO passes:
+
+   Pass A — Hardcoded known repos (always check):
    - ~/Documents/claude-projects/claude-skills/ (if skills-level learnings were routed)
    - ~/.claude/ (if reference docs or settings changed → claude-config auto-push handles this)
    - ~/.claude/skills/learning-loop/ (if routing rules were updated → needs push to claude-learning-loop)
+
+   Pass B — Dynamic discovery (catches nested repos not in the hardcoded list):
+   For each file written or modified during Step 5 routing:
+   ├── cd to the file's containing directory
+   ├── Run: git rev-parse --show-toplevel 2>/dev/null
+   │   ├── Returns a path → that path is the repo this file belongs to. Add to the check list.
+   │   ├── Returns nothing → file is outside any repo (local-only, e.g. watch-list.md). Skip — but log as "intentionally local-only" in the wrap-up summary.
+   │   └── Returns a path DIFFERENT from the parent repo's toplevel → this is a nested repo. It would be invisible to `git status` run from the parent. Flag clearly.
+   └── Union Pass B results with Pass A. Deduplicate by toplevel path.
+
+   Why Pass B exists: Pass A is a fixed list and goes stale when new nested repos are added. Pass B treats the routed files themselves as the source of truth — whichever repo git actually assigns them to is the repo that needs a commit. Without Pass B, a newly-introduced nested repo would silently miss commits until someone notices and adds it to Pass A.
+
+   Expected output of the combined pass:
+   "Routed files belong to N repo(s): [repo1, repo2, ...].
+    Local-only files (skipped): [paths].
+    Proceeding to per-repo commit prompts."
 ```
 
 **Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
