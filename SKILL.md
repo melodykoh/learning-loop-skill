@@ -405,6 +405,20 @@ Before writing ANY behavioral learning to a CLAUDE.md file (root or project), ap
 
 > Why this exists (Apr 3, 2026): Root CLAUDE.md grew from 173 to 351 lines over 6 weeks. Every learning routed without a size gate. The same mechanism applies to project CLAUDE.md files — any destination that receives learnings without a size check will bloat.
 
+#### Step 5b: Reverse-Check Consumers (Added Apr 17, 2026)
+
+If Step 5 routed any learning that **restructures an authoritative doc** (creates a new source-of-truth section, moves a principle between files, consolidates duplicates, cuts a section), run the reverse-check before cleanup:
+
+1. Enumerate downstream consumers — grep for references to the restructured section/file across skills, agents, playbooks, reference files, hooks
+2. Verify each reference still resolves correctly after the restructure
+3. Update routing logic in every affected consumer
+
+See `~/.claude/reference/procedural-rule-routing.md` "Reverse-Check: Consumers After Doc Restructure" for the full protocol. Global principle lives in root CLAUDE.md ("Procedural Rules Belong at the Workflow Step").
+
+**STOP and correct if:**
+- A learning restructured a rule's home but the skills/agents that invoke that rule still route to the old home
+- The distillation output updates the authoritative doc but doesn't mention which consumers need follow-up updates
+
 #### Step 6: Clean Up
 
 After documentation is confirmed, clean up only the **sessions that were consolidated** (this session + any user-approved others):
