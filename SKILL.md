@@ -522,20 +522,57 @@ After all learnings are routed and capture files cleaned up, check if the curren
 
 7. RECONCILE Pass A drift (runs AFTER all commits in step 6 succeed):
    Compare Pass B's discovered set against Pass A's hardcoded list.
-   For each repo Pass B found that is NOT in Pass A, prompt the user:
+   For each repo Pass B found that is NOT in Pass A, check the
+   Pass-A-worthy criteria BEFORE prompting the user.
+
+   Pass A exists to solve DISCOVERY problems that Pass B alone might miss
+   or make implicit. It is NOT a registry of every project repo Melody
+   touches. A standard top-level project repo where files resolve cleanly
+   via `git rev-parse --show-toplevel` is already handled by Pass B —
+   adding it to Pass A duplicates coverage and bloats the list toward
+   "every repo ever" until the list is meaningless.
+
+   Pass-A-worthy criteria (at least ONE must be true to prompt for addition):
+
+   a. **Nested repo** — the discovered repo is inside another git repo
+      (e.g., `~/.claude/skills/learning-loop/` inside `~/.claude/`). Running
+      `git status` in the parent does NOT surface the child. Pass B's
+      `git rev-parse` catches this ONLY if a file under the child was
+      touched this session; if routing doesn't happen to touch the child
+      next session, the check silently skips. Pass A makes the nested
+      dependency explicit.
+
+   b. **Non-obvious or symlinked path** — the repo lives somewhere
+      unexpected (e.g., symlinked in from outside the usual project tree,
+      or at a path that looks like a file rather than a repo). Pass B
+      finds it when files are written, but a human reading the SKILL.md
+      wouldn't predict it's a destination.
+
+   c. **Routing-named destination** — the repo is NAMED explicitly in the
+      skill's routing rules (e.g., `claude-skills` appears in the routing
+      table for skills-level learnings). Pass A documents the rule→repo
+      mapping for readability, not for discovery.
+
+   If NONE of a/b/c apply:
+   └── DO NOT prompt. Log as "Pass B will continue to handle [repo]
+       naturally — no Pass A entry needed (standard top-level project repo)."
+       Move on.
+
+   If AT LEAST ONE of a/b/c applies:
+   └── Prompt the user:
 
    "Pass B discovered 1 repo not in Pass A's hardcoded list:
       - [toplevel path]
         Files touched: [file1, file2, ...]
         Routing context: [which destination added these files]
+        Pass-A-worthy reason: [a / b / c with specifics]
 
-    Pass B will catch this repo every session, but adding it to Pass A
-    documents it as an expected destination and makes future sessions
-    faster. Add to Pass A? (Y/skip/one-off)
+    Add to Pass A? (Y/skip/one-off)
 
       Y       → edit SKILL.md to add the repo to Pass A with a dated note
-                  (e.g. '- [path] (added [date]: [routing context]')
-      skip    → leave as-is; Pass B keeps rediscovering it each session
+                  (e.g. '- [path] (added [date]: [reason: nested/symlink/routing-named]')
+      skip    → leave as-is; Pass B keeps handling discovery, but the
+                  discovery risk flagged above remains
       one-off → don't prompt for this repo again this session (use for
                   temporary worktrees, migration scratch repos, or other
                   genuinely one-time destinations)"
@@ -548,10 +585,14 @@ After all learnings are routed and capture files cleaned up, check if the curren
    └── Confirm: "Added [repo] to Pass A. Will be committed to learning-loop-skill
        next wrap-up."
 
-   Why a three-way choice: two-way (Y/skip) trains users to reflexively skip
-   when a legitimate one-off appears (temporary worktree, experimental repo).
-   The one-off option preserves the signal value of Y by giving drift a
-   legitimate non-persistent home.
+   Why this criteria gate: without it, "add to Pass A?" becomes a reflexive
+   "Y" for every new repo, and the list grows into a useless enumeration
+   of every project destination. The value of Pass A is catching what Pass B
+   misses or makes implicit — NOT documenting what Pass B already handles.
+   Source: Apr 18 2026 session — I offered to add `openclaw-ops` to Pass A
+   after it was Pass-B-discovered; user correctly pushed back ("why don't
+   we add every single repo in there?"). Standard project repos resolve
+   cleanly via git rev-parse — Pass B is enough. Pass A should be reserved.
 ```
 
 **Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
