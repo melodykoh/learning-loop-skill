@@ -216,6 +216,59 @@ signals_found: [total]
 
 Run a scan of the current session first (same as Scan mode), since this context hasn't been captured yet. This ensures the final session's signals are included.
 
+#### Step 1b: Deferred Methodology Check (MANDATORY)
+
+Before consolidating, scan for failures in **this session** that match the `revisit_triggers` of any deferred methodology memory. This binds deferred-methodology review to the session-end event so deferred investigations accumulate real production evidence instead of rotting.
+
+**STOP before proceeding to Step 2 unless all of the following have been produced:**
+
+1. **Enumerate deferred methodologies.** Evidence: paste the output of
+
+   ```bash
+   for f in ~/.claude/projects/*/memory/*.md; do
+     [ "$(basename "$f")" = "MEMORY.md" ] && continue
+     if grep -q "^status:[[:space:]]*deferred[[:space:]]*$" "$f" 2>/dev/null; then
+       echo "$f"
+     fi
+   done
+   ```
+
+   If no deferred methodologies exist, state "No deferred methodologies found" and skip to Step 2.
+
+2. **Scan the session for failure events.** Review the session transcript for:
+   - User pushback calling out premature completion ("said done but wasn't", "skipped a step", etc.)
+   - Stop hook catches (`{"ok": false, "reason": "..."}` messages)
+   - Your own acknowledged mistakes that fit a deferred methodology's failure mode
+
+3. **Cross-reference.** For each deferred methodology, check its `revisit_triggers` (regex, case-insensitive) against the session's failure events. Evidence: paste each memory's triggers list and the matched session evidence.
+
+4. **If any match, surface to the user in this shape:**
+
+   ```
+   ⚠️ Deferred methodology resurfaced: [name from memory]
+   - Matched trigger: [regex pattern]
+   - Session failure evidence: [specific quote/line from transcript]
+   - This methodology was deferred pending production data; the session provided fresh evidence.
+   - Decision: (a) implement now this session, (b) next session, (c) keep deferred + append incident
+   ```
+
+5. **If user chooses "keep deferred + append incident" OR "next session",** append a dated entry to the memory file's `## Incidents` section:
+
+   ```markdown
+   ### [YYYY-MM-DD] [session-id-short] — [skill involved, if identifiable]
+   - **Failure:** [quote or paraphrase]
+   - **Gate form at failure:** [compact-imperative / descriptive-label / none / N/A]
+   - **Would the deferred methodology have prevented it?** [yes / no / unclear — with reasoning]
+   ```
+
+6. **If user chooses "implement now",** scope it as part of this wrap-up OR spin out an immediate task.
+
+7. **If no matches,** say so in one line and proceed to Step 2. No noise when nothing matches.
+
+**Complement:** the `~/.claude/hooks/deferred-methodology-detector.py` UserPromptSubmit hook fires the same check *in-session* when failure phrases are typed in real time. This step is the session-end retrospective backstop for cases the in-session hook missed or where the user wants a consolidated review.
+
+> **Why this step exists (Apr 22, 2026):** Memory entries that say "revisit later" rot without an active trigger. The gate-template production test memory was the motivating case — deferred pending production data, but prior to this wiring had no mechanism to resurface automatically. Generalized to any `status: deferred` memory so future deferrals inherit the behavior.
+
 #### Step 2: Triage Captures
 
 ```bash

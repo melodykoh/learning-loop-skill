@@ -6,6 +6,35 @@
 
 ---
 
+## Session: Apr 22, 2026 — Step 1b Deferred Methodology Check (First Execution + Tuning)
+
+### Context
+User wired a two-trigger system for resurfacing deferred methodology memories: (1) UserPromptSubmit hook (`~/.claude/hooks/deferred-methodology-detector.py`), (2) learning-loop wrap-up Step 1b ("Deferred Methodology Check"). Both implemented as generic — scan any `status: deferred` memory across `~/.claude/projects/*/memory/*.md`. Motivating case was `project_gate_template_production_test.md`, deferred after a 6-agent A/B experiment produced a negative result on `simple-pr-review` gate-form comparison.
+
+### First Execution of Step 1b (This Session's Own Wrap-up)
+Step 1b ran for the first time during this wrap-up. Two findings that will shape future Step 1b runs:
+
+1. **Trigger voice mismatch — user-voice ≠ Stop-hook-voice.** Initial `revisit_triggers` were regexes tuned to user-voice corrections ("you said done but it wasn't"). The session's actual premature-completion event was caught by the Stop hook, not the user, and the Stop hook's phrasing ("You claimed this is ready but haven't verified it works") did NOT match any user-voice trigger. Added 3 Stop-hook-voice patterns in-session. Verified with smoke tests across both voice families.
+
+2. **YAML comment bug in regex parser.** Added YAML comments (`# User-voice patterns`) as section dividers inside the `revisit_triggers:` list. Silent regression — all 3 positive smoke tests failed because the regex parser `^revisit_triggers:\s*\n((?:[ \t]*-\s*.+\n)+)` requires consecutive `-` lines and comments interrupted them. Fix: removed the comments, moved the voice-family distinction to the body of the memory instead of the frontmatter. Documented in `~/.claude/reference/hook-authoring-gotchas.md` so the next hook author doesn't rediscover it.
+
+### Methodology Note — Claude as the instrument for stress-testing Claude (with caveat)
+When designing methodology that governs Claude (gate forms, skill structures, stop-hook behaviors), the right test instrument is fresh subagents simulating the target scenario — not design intuition. Scenario framings should match user's real task-momentum profile (self-assumed urgency, step-count rushing, eager-to-please closure), not externally-imposed urgency.
+
+**H2 caveat (unresolved):** fresh subagents are inherently more compliant than in-session Claude accumulating cognitive load across 20+ messages. Negative results from synthetic stress tests are weak evidence — the test cannot reproduce real mid-session momentum. Positive catches (gates that fail even on fresh subagents) are strong evidence.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Step 1b added to Wrap-up Process between Steps 1 and 2 (MANDATORY scan for deferred methodologies matching session failure events) |
+| `project_gate_template_production_test.md` | `status: deferred` + `revisit_triggers` + `revisit_action` frontmatter; Stop-hook-voice triggers added after first-execution miss; first Incidents entry logged |
+| `~/.claude/hooks/deferred-methodology-detector.py` | New Python UserPromptSubmit hook; generic (scans any `status: deferred` memory) |
+| `~/.claude/settings.json` | Hook registered under `hooks.UserPromptSubmit` |
+| `~/.claude/reference/hook-authoring-gotchas.md` | New file capturing 3 session bugs (Python 3.9 compat, regex apostrophes, YAML comments, shell quoting) |
+
+---
+
 ## Session: Apr 3, 2026 — CLAUDE.md Size Gate
 
 ### Context
