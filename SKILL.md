@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.3
+# learning-loop Skill v3.4
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/ce:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
 
@@ -269,6 +269,44 @@ Before consolidating, scan for failures in **this session** that match the `revi
 
 > **Why this step exists (Apr 22, 2026):** Memory entries that say "revisit later" rot without an active trigger. The gate-template production test memory was the motivating case — deferred pending production data, but prior to this wiring had no mechanism to resurface automatically. Generalized to any `status: deferred` memory so future deferrals inherit the behavior.
 
+#### Step 1b.5: Phase 1 Persona Panel Evaluation Check (added v3.5 Apr 28 2026)
+
+Active when Phase 1 shadow mode is in flight. Skip entirely if `~/.claude/learning-captures/persona-eval-runs.txt` does not exist (Phase 1 not yet shipped or already past Phase 1).
+
+If the file exists:
+
+1. **Read accumulators:**
+   - Count entries (excluding the header line) in `persona-eval-runs.txt`
+   - Read first-entry timestamp from same file
+   - Read `~/.claude/learning-captures/phase-1-ship-date.txt` for Phase 1 ship date (set in Step 4c bootstrap)
+   - Read `~/.claude/learning-captures/phase-1-decision-log.md` if it exists — most recent decision marks where Phase 1 stands today
+
+2. **Trigger condition (per D2):** evaluation fires if BOTH:
+   - `count ≥ 3` (≥3 prior shadow runs accumulated, not counting this current wrap-up) OR `(today - phase_1_ship_date) ≥ 7 days`, whichever first
+   - **AND** the latest entry in `phase-1-decision-log.md` is NOT a recent decision (< 24 hours old) — prevents re-firing within the same 24-hour window after a decision was just made
+
+3. **If trigger condition met:**
+   a. Spawn Phase 1 Decision Report sub-agent with `PHASE_1_DECISION_REPORT_PROMPT` (see prompt block alongside CONSOLIDATION_PROMPT). Pass it: all `~/.claude/learning-captures/*/persona-eval.md` files, plus the `persona-eval-runs.txt` log.
+   b. Surface the report to the user — show match rate, coverage rate, noise rate, failure-mode distribution, and the GO/HOLD/ITERATE/REVERT recommendation.
+   c. Capture user's decision in `~/.claude/learning-captures/phase-1-decision-log.md`. Append in this format:
+
+      ```markdown
+      ## <YYYY-MM-DD HH:MM ET> — Decision: <GO|HOLD|ITERATE|REVERT>
+      **Eval window:** <first_run_date> to <latest_run_date> (<N> runs)
+      **Metrics:** match=<X%>, coverage=<X%>, noise=<X%>
+      **Sub-agent recommendation:** <GO|HOLD|ITERATE|REVERT>
+      **User decision:** <accepted|overrode-to-X>
+      **Reasoning:** <user's note or "accepted recommendation">
+      ```
+
+   d. **Per D2: the decision applies to the NEXT wrap-up's Step 3a behavior, not this current wrap-up.** This wrap-up proceeds as scheduled (consolidation + Step 3a personas in shadow mode + Step 4).
+
+4. **If trigger condition not met but Phase 1 is active:** append a one-line note to the user — `Phase 1 still accumulating data: <N> of 3 runs, <X> days since ship.` Proceed to Step 2.
+
+5. **If `persona-eval-runs.txt` does not exist:** Phase 1 not yet shipped (or already past Phase 1 — gatekeeper or revert). Skip this sub-step entirely.
+
+> **Why this step exists (Apr 28, 2026):** The persona panel needs a self-evaluating decision gate at 4 wrap-ups or 7 days post-ship. Without binding the eval trigger to a workflow step that fires every wrap-up, the eval would rot the same way deferred methodology memories do. Step 1b.5 binds the eval to `/learning-loop wrap-up` itself — the same enforcement principle that worked for Step 1b.
+
 #### Step 2: Triage Captures
 
 ```bash
@@ -299,6 +337,43 @@ List all capture files with timestamps, then present a **triage view**:
 
 Spawn a sub-agent with the consolidation prompt (see below). Pass only the **approved captures** (this session + any user-selected others). This is where raw signals become conclusions.
 
+#### Step 3a: Persona Panel (Shadow Mode — Phase 1, added v3.5 Apr 28 2026)
+
+After consolidation produces its draft, run a two-persona adversarial review BEFORE Step 4 surfaces the proposal to the user. The personas target the dominant failure modes observed across 4 prior wrap-up sessions (12 correction rounds, ~75% concentrated in trigger-framing + destination-routing).
+
+**Phase 1 mode:** personas REPORT but do NOT block. Their output appears as additional columns in Step 4's verification view. User reads both views, decides per-row.
+
+**Phase mode resolution** — read `~/.claude/learning-captures/phase-1-decision-log.md` if it exists:
+- File missing OR latest decision = `HOLD` OR latest decision absent → **shadow mode** (Phase 1, run + report, do not block)
+- Latest decision = `GO` → **gatekeeper mode** (Phase 2, out of scope for Phase 1 build — placeholder)
+- Latest decision = `REVERT` → **skip Step 3a entirely** (proceed to Step 4 unchanged)
+- Latest decision = `ITERATE` → shadow mode, but flag in output that prompts may be in revision
+
+**Sequence (sequential, not parallel — Router depends on Auditor's output):**
+
+1. **Trigger-Moment Auditor** runs first. Spawn as sub-agent with `TRIGGER_MOMENT_AUDITOR_PROMPT`. Pass: full consolidation output (`consolidation.md`) + current root CLAUDE.md contents. Returns per-conclusion JSON: `{id, named_trigger_moment, framing_assessment, broader_trigger_class_if_applicable, verdict, challenge_reasoning, counter_proposal}`.
+
+2. **Workflow-Step Router** runs second. Spawn as sub-agent with `WORKFLOW_STEP_ROUTER_PROMPT`. Pass: same inputs as Auditor PLUS Auditor's JSON output. Returns per-conclusion JSON: `{id, classification, existing_workflow_step_list_at_trigger, recommended_destination_ranked, consolidation_destination_assessment, verdict, challenge_reasoning, re_route_proposal}`.
+
+3. Both outputs written to `~/.claude/learning-captures/[session-id]/persona-review.json` as a single combined file:
+
+   ```json
+   {
+     "session_id": "...",
+     "phase": "1-shadow",
+     "trigger_moment_auditor": [...],
+     "workflow_step_router": [...]
+   }
+   ```
+
+**Skip-this-step conditions:**
+- Phase decision = `REVERT` (per phase mode resolution above)
+- Consolidation produced 0 conclusions (no input to review)
+
+**STOP and surface if:**
+- Either persona sub-agent returns malformed JSON (capture verbatim, surface to user, fall through to Step 4 without persona columns)
+- Either persona sub-agent times out or errors (same handling — Phase 1 personas are non-blocking by design)
+
 #### Step 4: Present for User Verification
 
 Present the consolidated summary:
@@ -325,13 +400,21 @@ From [N] scans ([this session only / this session + M others]), I found these co
 
 Before finalizing the Noted bucket: check `~/.claude/learning-captures/watch-list.md`.
 
-| # | Observation | Prior Count | New Count | Threshold | Action |
-|---|-------------|-------------|-----------|-----------|--------|
-| [N] | [Brief description] | [existing count] | [+1] | [2] | [Escalate → destination / Still watching] |
+⚠️ **Root-cause matching, not observation matching (Mod 1, Apr 28 2026).** The match criterion is **"is the fix/remediation the same?"**, not "does the observation text look similar?" Two superficially different observations with the same underlying cognitive or process origin and the same remediation path are **the same watch-list item — increment its incident list, do not create a new entry.**
 
-- If an observation from this session **matches an existing entry**: increment its count. If count reaches threshold, move it to "Ready for Documentation" and route it.
-- If an observation is "Noted" but **could recur** (a gap in a skill, a behavioral pattern that slipped): add it as a new watch-list entry with count=1.
-- After user verification, update `watch-list.md` (increment or add entries). Move escalated entries to the Archived section.
+For each candidate from this session:
+1. State the candidate's **root cause** in one sentence (cognitive origin: what mental move broke down? + process origin: which workflow step / rule type drifted?)
+2. State the candidate's **proposed fix** (what mechanism would prevent recurrence?)
+3. Read every active watch-list entry's `Root cause` and `Fix` columns. For each, ask: "Would the same fix close both?" If yes → **increment the cluster, append this incident as a sub-entry (W_N.x) preserving the specific framing/transcript ref**. If no → new entry with count=1.
+4. If the fix is "the W4 retrofit plan" or another already-known plan, the new instance is an instance of that cluster. Add as sub-entry, do not file standalone — even if the surface framing is novel.
+5. **When in doubt between fold and new: fold.** Sprawl is the bigger cost. Sub-IDs (W_N.a, W_N.b, …) preserve incident-level traceability inside the cluster so the eventual fix author can trace through every test case.
+
+| # | Root cause (cognitive + process origin) | Fix | Incident summary | Aggregated count | Threshold | Action |
+|---|----------------------------------------|-----|------------------|------------------|-----------|--------|
+| [N] | [One-sentence origin] | [Remediation mechanism] | [W_N.x: brief framing + date + transcript ref] | [sum] | [2 or 3] | [Escalate → plan generation per Mod 5 / Still watching] |
+
+- After user verification, update `watch-list.md` (increment + sub-entry, or new entry). Move escalated entries to the Archived section.
+- **Threshold escalation now triggers Mod 5 (auto-draft plan)** — see Step 4b cluster audit + Step 5 routing for the plan-generation flow.
 
 ### Noted (Passed Quality Gates, Below Persistence Threshold)
 
@@ -345,17 +428,161 @@ Before finalizing the Noted bucket: check `~/.claude/learning-captures/watch-lis
 |---|------|-------------|--------|
 | 3 | Failed attempt | Verification | Never confirmed fix works |
 
+### Persona Panel Review (Phase 1 shadow mode — informational, not a gate)
+
+If `~/.claude/learning-captures/[session-id]/persona-review.json` exists, render its contents into a per-conclusion table. The personas reviewed each routed conclusion. Their output is informational — user reads both views and decides per-row.
+
+| # | Conclusion (consolidation summary) | Trigger-Moment Auditor | Workflow-Step Router |
+|---|-----------------------------------|------------------------|---------------------|
+| 1 | "..." | ✅ pass | ✅ pass |
+| 2 | "..." | ⚠️ challenge: scope-too-narrow → broader trigger "<phrase>" | ✅ pass |
+| 3 | "..." | ⚠️ challenge: symptom-anchored → mechanism framing "<phrase>" | ⚠️ challenge: re-route from <X> to <Y> |
+
+For each challenged conclusion, expand the counter-proposal underneath:
+
+```
+**C2 — Trigger-Moment Auditor counter-proposal:**
+- Original framing: "<from consolidation>"
+- Proposed mechanism framing: "<from persona>"
+- Broader trigger class: "<from persona, if applicable>"
+
+**C3 — Workflow-Step Router counter-proposal:**
+- Original destination: "<from consolidation>"
+- Re-route to: <destination + section>
+- Reasoning: <one sentence>
+```
+
+Per-conclusion choices for the user: (a) accept consolidation, (b) accept persona counter-proposal, (c) write your own. The user's choice for each conclusion is captured in Step 4c for eval purposes.
+
+If `persona-review.json` does not exist (Phase 1 not yet shipped, REVERT in effect, or persona run failed and surfaced as malformed), this section is omitted entirely.
+
 ---
 
 ⚠️ **VERIFICATION REQUIRED:** Does this summary accurately reflect what happened?
 - Are names, facts, and premises correct?
 - Did I miss anything important?
 - Did I capture something that didn't actually happen?
+- For each persona challenge: do you accept the counter-proposal, accept the consolidation, or write your own?
 
 Please confirm accuracy before I proceed to documentation.
 ```
 
-**WAIT FOR USER CONFIRMATION before proceeding to Step 5.**
+**WAIT FOR USER CONFIRMATION before proceeding to Step 4c.**
+
+#### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
+
+Before routing, run a cluster check on the active watch-list:
+
+1. Read `~/.claude/learning-captures/watch-list.md`.
+2. Count active entries. **Sprawl alert thresholds (tighter, Apr 28 2026):**
+   - **>15 active top-level entries** → sprawl alert
+   - **>3 entries sharing the same `Fix` field value** → cluster collision alert
+
+   If either threshold is hit, surface to user:
+   ```
+   ⚠️ Watch-list cluster check:
+   - [N] active entries (threshold: 15)
+   - [Cluster name] has [M] entries sharing fix "[fix value]" (threshold: 3)
+
+   Recommend re-consolidation pass before more entries accumulate.
+   Consolidate now (spawn sub-agent), defer to next wrap-up, or skip?
+   ```
+3. If user opts in, spawn re-consolidation sub-agent with the same root-cause-matching prompt as Mod 2 — applied to existing entries, not new candidates. Output: proposed merges with justification.
+4. User approves merges; update watch-list.md (preserve sub-IDs for incident traceability).
+
+Skip this step entirely if active entry count ≤15 AND no fix-cluster ≥3.
+
+**Mod 5 — Threshold-met → auto-draft plan in plan-execution-pipeline schema:**
+
+When any cluster reaches its escalation threshold (count ≥ 2 or 3 depending on entry), the wrap-up sub-agent generates a draft plan file conforming to `~/Documents/claude-projects/Personal/plan-execution-pipeline/schema/plan-schema.md`. This replaces the prior "route to destination location" pattern with a structured plan-pipeline handoff.
+
+Plan generation contents:
+
+| Plan Field | Source from watch-list cluster |
+|---|---|
+| `## Objective` | Cluster's root cause + fix in one paragraph |
+| `## Success Criteria` | **Every historical incident reframed as a test case checkbox**: "Would this fix have prevented incident W_N.x ([date], [transcript ref])?" Each W_N sub-entry becomes a criterion. The fix must trace through all test cases and demonstrate robustness against all of them. |
+| `## Context` | Aggregated incident notes + transcript references + dates + N-failure count + cognitive/process origins |
+| YAML `status` | `draft` |
+| YAML `plan_kind` | `executable` (queues into autonomous pipeline) or `pr-spec` if scoped narrowly |
+| YAML `priority` | Based on cluster size + criticality (W4 retrofit = high; smaller clusters = medium/low) |
+| YAML `priority_rationale` | "[N] failure incidents documented across [M] sessions; rule has demonstrably failed under [framings]" |
+| YAML `created` | Today's date |
+| YAML `project_bucket` | Inferred from incident locations (skill, project, etc.) |
+
+Plan file location: `~/Documents/claude-projects/Personal/plan-execution-pipeline/plans/[YYYY-MM-DD]-[cluster-slug].md` (or repo's plans/ folder if pipeline tooling specifies elsewhere).
+
+**Why Mod 5 exists (Apr 28 2026 — Melody design directive):** Prior mechanism routed threshold-met items to a "destination location" without producing a plan. The W4 retrofit plan was hand-drafted weeks after sprawl was already visible. Going forward: threshold = automatic plan generation = pipeline queue. This makes the fix author's job tractable — they receive a plan with every historical incident as a test case, not just a vague "go fix the recurring drift."
+
+**STOP and surface if:**
+- A cluster hits threshold but plan auto-generation is skipped (default action is to generate, not defer)
+- The auto-drafted plan is missing test cases for incidents present in the watch-list cluster (every sub-ID must become a checkbox)
+
+#### Step 4c: Capture Phase 1 Eval Data (added v3.5 Apr 28 2026)
+
+Skip this step entirely if `~/.claude/learning-captures/[session-id]/persona-review.json` does not exist (Phase 1 not active, REVERT in effect, or persona run failed).
+
+Otherwise, after user verification completes:
+
+1. **For each conclusion the personas reviewed**, classify the user's actual choice in Step 4:
+   - `accepted_consolidation` — user kept consolidation's original framing/destination
+   - `accepted_persona_counter` — user accepted the persona's challenge counter-proposal
+   - `wrote_own` — user wrote a third version (counts as a correction the persona did not match)
+   - `no_correction_needed` — consolidation was right, no challenge issued, no correction made
+
+2. **Compute match classification per persona challenge:**
+   - `full_match` — persona's counter-proposal matches user's actual final decision
+   - `partial_match` — persona challenged the right conclusion but with different specifics from user's correction
+   - `mismatch` — persona challenged but user's correction went a different direction
+   - `no_challenge_user_corrected` — persona issued no challenge but user corrected anyway (counts toward coverage miss)
+
+3. **Write `~/.claude/learning-captures/[session-id]/persona-eval.md`** in this exact YAML schema:
+
+   ```yaml
+   ---
+   session_id: <session-id>
+   eval_date: <YYYY-MM-DD>
+   phase: 1-shadow
+   consolidation_proposals: <int>
+   persona_challenges_issued: <int>  # sum across both personas, deduped per conclusion
+   user_corrections_made_in_step4: <int>
+   ---
+
+   ## Per-Challenge Records
+
+   - challenge_id: 1
+     persona: trigger-moment-auditor
+     conclusion_id: C1
+     consolidation_proposed: "..."
+     persona_counter_proposed: "..."
+     user_final_decision: "..."
+     match_class: full_match | partial_match | mismatch | no_challenge_user_corrected
+     failure_category_observed: a | c | d | g | other  # which class the user's correction targeted
+
+   ## Aggregate Metrics
+
+   match_rate: <float, 0.0-1.0>
+   coverage_rate: <float, 0.0-1.0>
+   noise_rate: <float, 0.0-1.0>
+
+   match_rate_calc: "<numerator>/<denominator>"
+   coverage_rate_calc: "<numerator>/<denominator>"
+   noise_rate_calc: "<numerator>/<denominator>"
+   ```
+
+4. **Append a one-line entry to `~/.claude/learning-captures/persona-eval-runs.txt`** with the format:
+
+   ```
+   <YYYY-MM-DD> <session-id> challenges=<N> matches=<N> noise=<N>
+   ```
+
+   If the file does not exist, create it with a one-line header: `# Phase 1 persona-panel shadow run log (created <YYYY-MM-DD>)` followed by the entry.
+
+5. **Bootstrap-on-first-run note:** if this is the first Phase 1 wrap-up (file did not exist before this step), also write a sentinel file at `~/.claude/learning-captures/phase-1-ship-date.txt` containing today's date in `YYYY-MM-DD` format. Step 1b.5 reads this to compute the 7-day-since-ship trigger.
+
+**STOP and surface if:**
+- Step 3a wrote `persona-review.json` but Step 4 did not present persona columns to the user (means render step is broken — eval would be invalid)
+- Per-challenge records reference conclusion IDs that don't exist in the consolidation output (means JSON is malformed — surface verbatim)
 
 #### Step 5: Route to Destinations
 
@@ -683,9 +910,27 @@ FOR EACH RAW SIGNAL:
    actually happened. Did the hypothesis turn out correct? Was the root cause
    what we suspected? Mark as CONFIRMED, DISPROVEN, or STILL UNRESOLVED.
 
-2. **Root cause check (repeated failures only):** If a signal represents a mistake
-   that an existing rule should have caught, or the same type of error occurred
-   multiple times in the session, STOP before classifying and ask:
+2. **Root cause check (in-session repetition AND cross-session via watch-list — Mod 2, Apr 28 2026):**
+
+   **FIRST — read `~/.claude/learning-captures/watch-list.md` end to end.** Every active entry has a `Root cause` column and a `Fix` column. These are the matching anchors.
+
+   For EACH conclusion you draw, ALSO determine:
+   - **Cognitive origin:** What mental move broke down? (e.g., "asserted from field name without verifying," "continuous rule failed to fire mid-task," "didn't read source before proposing.")
+   - **Process origin:** Which workflow step or rule type drifted? (e.g., "session-start check," "pre-assertion verification," "skill-modification flow.")
+   - **Proposed fix:** What mechanism would prevent recurrence? (e.g., "W4 hook (b)," "discrete trigger conversion," "pre-presentation check.")
+
+   THEN — for each conclusion, check against every active watch-list entry:
+   - "Is the cognitive origin the same as entry W_N?"
+   - "Is the proposed fix the same as W_N's fix?"
+   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + transcript reference. Do NOT file a new top-level entry.
+   - If origin matches but fix differs → check whether you've actually thought about the fix carefully, or whether you're inventing a parallel fix where W_N's existing fix would work. Default to W_N's fix unless you can articulate why it wouldn't apply.
+   - If neither matches → propose new top-level watch-list entry with `Root cause` and `Fix` populated.
+
+   Then continue with the in-session repetition check below.
+
+   If a signal represents a mistake that an existing rule should have caught, or
+   the same type of error occurred multiple times in the session, STOP before
+   classifying and ask:
    - "Why did the existing rule fail to prevent this?"
    - "Is it in the wrong place in the workflow? Missing a trigger? Wrong type of enforcement?"
    - "Where in the decision flow does this rule need to fire to actually work?"
@@ -797,6 +1042,204 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 - Conclusions drawn: [X]
 - Failed gates: [Y]
 - Routing plan: [list by destination]
+```
+
+### TRIGGER_MOMENT_AUDITOR_PROMPT (added v3.5 Apr 28 2026)
+
+```
+You are auditing the consolidation sub-agent's routing proposals for ONE specific failure mode: scope-too-narrow framing where the rule is anchored on the symptom (the specific failure that occurred) rather than the underlying cognitive move.
+
+INPUTS (will be passed to you):
+- The consolidation.md output from Step 3 (full conclusions list)
+- The current ~/Documents/claude-projects/CLAUDE.md contents
+- The current ~/.claude/reference/reason-upstream.md contents (umbrella reference)
+
+YOUR JOB: For each routed conclusion in the consolidation output, audit the rule's framing.
+
+FOR EACH CONCLUSION:
+
+1. Identify the SPECIFIC TRIGGER MOMENT in the user's workflow at which the rule needs to fire. Be concrete: "about to ask user a question", "about to declare done/working/complete", "about to draft prose with external facts", "about to assert a config field's behavior", "about to act on any request that pulls in code/infra/offers/scheduled work."
+
+2. Compare the trigger moment to the rule's proposed name and framing:
+   - Is the rule named after the symptom (the specific failure case that motivated it) — e.g., "Proactive-Offer Filter for /schedule"?
+   - Or is it named after the cognitive move being prevented — e.g., "Reason Upstream Before Acting"?
+   - If symptom-anchored → flag CHALLENGE and propose mechanism framing.
+
+3. Zoom out one level: is there a BROADER TRIGGER CLASS where the same failure mechanism would also fire?
+   - If yes → name the broader class. The narrow rule may be missing cases the broader rule would catch.
+
+4. Consider: would this rule fire for a related-but-distinct failure case in a future session?
+   - If only the exact symptom would trigger it → framing is too narrow → CHALLENGE.
+   - If the cognitive move is named such that adjacent symptoms also trigger it → PASS.
+
+5. Cross-check against existing umbrella rules:
+   - Grep ~/.claude/reference/reason-upstream.md and root CLAUDE.md for keywords that overlap the proposed rule's trigger.
+   - If an existing umbrella rule already covers this trigger → CHALLENGE with re-framing as "extend existing rule's STOP list" rather than "create new rule."
+
+OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
+
+```json
+{
+  "id": "C1",
+  "named_trigger_moment": "<specific phrase>",
+  "framing_assessment": "symptom" | "mechanism",
+  "broader_trigger_class_if_applicable": "<phrase or null>",
+  "verdict": "pass" | "challenge",
+  "challenge_reasoning": "<one sentence if challenge, else null>",
+  "counter_proposal": "<rephrased rule name + trigger if challenge, else null>"
+}
+```
+
+EXAMPLES from past sessions (illustrative — rule names in some cases have since been further consolidated):
+- "Investigate Before Asking" → CHALLENGED → renamed to "Exhaust Capabilities Before Declaring Blocked" (trigger moved from 'about to ask' to 'about to declare blocked'). Later consolidated into "Investigate Before Declaring (blocked trigger)".
+- "Existing Knowledge Check" routing → CHALLENGED → broader trigger "before drafting anything" was right level, not just "before fact-citing". Later consolidated into "Investigate Before Declaring (assertion trigger)".
+- "Proactive-Offer Filter" → CHALLENGED twice in 2026-04-24 session → broadened to "Reason Upstream Before Acting" (trigger moved from /schedule offers specifically to any pre-action moment).
+
+For current rule names, grep ~/Documents/claude-projects/CLAUDE.md and ~/.claude/reference/reason-upstream.md.
+
+WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "trigger_moment_auditor".
+```
+
+### WORKFLOW_STEP_ROUTER_PROMPT (added v3.5 Apr 28 2026)
+
+```
+You are auditing the consolidation sub-agent's destination choices. ONE specific failure mode: filing rules to memory or to topic-similar reference docs when they belong in workflow-step lists where they fire automatically at the trigger point.
+
+INPUTS (will be passed to you):
+- The consolidation.md output from Step 3 (full conclusions list)
+- The current ~/Documents/claude-projects/CLAUDE.md contents
+- The Trigger-Moment Auditor's JSON output (you receive its named_trigger_moment values to align destination selection with the named trigger)
+
+YOUR JOB: For each routed conclusion, classify decision-changer vs. recall-fact and recommend destination.
+
+FOR EACH CONCLUSION:
+
+1. Classify: does this rule CHANGE A DECISION Claude makes, or is it a FACT Claude needs to recall, or is it EXECUTION-TIME BEHAVIOR?
+   - decision-changer → CLAUDE.md (root or project) OR a workflow-step list at the trigger point
+   - recall-fact → memory MEMORY.md
+   - execution-time-behavior → reference doc + 2-3 line trigger pointer in CLAUDE.md
+
+2. If decision-changer: is there an EXISTING workflow-step list at the named trigger point (use the Trigger-Moment Auditor's named_trigger_moment value)?
+   - Examples of workflow-step lists: skills' STOP checklists, project CLAUDE.md "Error Handling" sections, "Pre-publish checklist" sections, "When debugging, check these" lists.
+   - If yes → route there. The rule fires automatically when the workflow step is read.
+   - If no → root or project CLAUDE.md as a new section.
+
+3. If routing to root CLAUDE.md: check the size budget.
+   - Root CLAUDE.md target: <250 lines. Force extraction at ≥230.
+   - At/over budget → force extraction to reference doc, keep 2-3 line trigger only.
+
+4. Compare to consolidation's proposed destination:
+   - aligned → verdict: pass
+   - misaligned → verdict: challenge with re-route recommendation
+
+5. Apply the Memory Routing Decision Test:
+   - "Does this change how Claude should behave?" → if YES, it's NOT a memory entry, it's a CLAUDE.md or workflow-step rule.
+   - If consolidation routed a behavior-changing rule to memory → CHALLENGE with re-route to CLAUDE.md or workflow-step list.
+
+OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
+
+```json
+{
+  "id": "C1",
+  "classification": "decision-changer" | "recall-fact" | "execution-time-behavior",
+  "existing_workflow_step_list_at_trigger": "<path or null>",
+  "recommended_destination_ranked": ["<first choice>", "<fallback>"],
+  "consolidation_destination_assessment": "aligned" | "misaligned",
+  "verdict": "pass" | "challenge",
+  "challenge_reasoning": "<one sentence if challenge, else null>",
+  "re_route_proposal": "<destination + section if challenge, else null>"
+}
+```
+
+EXAMPLES from past sessions (illustrative — rule names in some cases have since been further consolidated):
+- C2 (config field fragility) was routed to fact_*.md memory → user moved to project CLAUDE.md "Error Handling" section.
+- "Existing Knowledge Check" was first routed to a reference subsection → user re-routed to root CLAUDE.md as sibling of "Before Any Code". Later consolidated into "Investigate Before Declaring".
+- 2026-04-24 C2 (`/schedule` remote vs `CronCreate` local) was routed to feedback memory → could have routed to a "tool selection" section.
+
+WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "workflow_step_router".
+```
+
+### PHASE_1_DECISION_REPORT_PROMPT (added v3.5 Apr 28 2026)
+
+```
+You are evaluating Phase 1 shadow-mode performance of the persona panel and producing a GO/HOLD/ITERATE/REVERT recommendation.
+
+INPUTS (will be passed to you):
+- All persona-eval.md files at ~/.claude/learning-captures/*/persona-eval.md (the per-wrap-up eval data)
+- The persona-eval-runs.txt log at ~/.claude/learning-captures/persona-eval-runs.txt (one-line entries per shadow run)
+
+YOUR JOB:
+
+1. AGGREGATE METRICS across all shadow runs in the log:
+   - Match rate = (challenges that match user's actual Step 4 corrections) / (challenges issued)
+     - "Match" includes full_match (persona named exact issue) AND partial_match (persona challenged the right conclusion with different specifics).
+   - Coverage rate = (user corrections caught by some persona) / (total user corrections in Step 4)
+     - Counts no_challenge_user_corrected toward the denominator (user corrected but personas missed).
+   - Noise rate = (challenges user did NOT act on, classified as mismatch where user kept consolidation's framing) / (challenges issued)
+
+2. AGGREGATE FAILURE-MODE DISTRIBUTION from the failure_category_observed values:
+   - Category (a) Wrong destination
+   - Category (c) Missed dedup/umbrella
+   - Category (d) Scope too narrow
+   - Category (g) Performative / agreed-without-thinking
+   - Other (premature conclusion, etc.)
+
+3. APPLY DECISION LOGIC:
+
+| Outcome | Action |
+|---|---|
+| Match ≥60% AND Coverage ≥60% AND Noise ≤30% | GO to Phase 2 |
+| 1 of 3 metrics borderline (within 10% of threshold) | HOLD — run 3 more shadow wrap-ups |
+| 2 of 3 below threshold but failure mode consistent | ITERATE prompts |
+| Match rate <40% across the eval window | REVERT — rip out Step 3a |
+
+4. PHASE 2 PERSONA SELECTION (only if GO, per D4):
+   - If category (c) ≥20% incidence → recommend ship Persona 3 (Dedup/Umbrella Checker) in shadow at Phase 2 promotion time
+   - If category (g) ≥20% incidence → recommend ship Persona 4 (Evidence Sufficiency Challenger) in shadow at Phase 2 promotion time
+   - Both above → ship both
+   - Neither above → Phase 2 = promotion-only (Personas 1+2 to gatekeeper, no new personas)
+
+OUTPUT FORMAT (markdown report):
+
+```markdown
+# Phase 1 Persona Panel Decision Report
+
+**Eval window:** <first_run_date> to <latest_run_date> (<N> shadow runs)
+**Generated:** <YYYY-MM-DD HH:MM ET>
+
+## Metrics
+
+| Metric | Value | Target | Status |
+|---|---|---|---|
+| Match rate | X% | ≥60% | ✅ / ⚠️ / ❌ |
+| Coverage rate | X% | ≥60% | ✅ / ⚠️ / ❌ |
+| Noise rate | X% | ≤30% | ✅ / ⚠️ / ❌ |
+
+Detailed calc: match=<num>/<denom>, coverage=<num>/<denom>, noise=<num>/<denom>
+
+## Failure-Mode Distribution
+
+| Category | Count | Share |
+|---|---|---|
+| (a) Wrong destination | N | X% |
+| (c) Missed dedup/umbrella | N | X% |
+| (d) Scope too narrow | N | X% |
+| (g) Performative agreement | N | X% |
+| Other | N | X% |
+
+## Decision: <GO | HOLD | ITERATE | REVERT>
+
+**Reasoning:** <2-3 sentences explaining which thresholds were met/missed and what pattern emerged>
+
+## Phase 2 Persona Selection (if GO)
+
+- Persona 3 (Dedup/Umbrella): SHIP in shadow / HOLD — based on category (c) at X% (threshold ≥20%)
+- Persona 4 (Evidence Sufficiency): SHIP in shadow / HOLD — based on category (g) at X% (threshold ≥20%)
+
+## Recommended Next Action
+
+<Specific next step the user should take. For HOLD: "run 3 more shadow wrap-ups, re-evaluate." For ITERATE: "review TRIGGER_MOMENT_AUDITOR_PROMPT or WORKFLOW_STEP_ROUTER_PROMPT against the X% mismatched cases." For REVERT: "remove Step 3a from SKILL.md, rerun historian on a richer dataset before redesigning." For GO: "promote Personas 1+2 to gatekeeper mode, ship Phase 2 part B per persona selection above.">
+```
 ```
 
 ---
@@ -1104,7 +1547,39 @@ Session 3: Finally done!
 
 ---
 
-## What's New in v3.3
+## What's New in v3.5 (Apr 28, 2026)
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Step 3a — Persona Panel (Phase 1, shadow mode)** | Step 3 (consolidation) reliably extracts the right *facts* from raw signals but produces the *wrong rule architecture* in routing proposals at a high rate. Across 4 mined sessions (Apr 2 – Apr 18 2026), 12 correction rounds were observed; 75% changed trigger-framing and/or destination, not facts. Step 3a runs two adversarial sub-agent personas (Trigger-Moment Auditor + Workflow-Step Router) BEFORE Step 4 surfaces proposals to the user. Phase 1 is shadow mode — personas REPORT but DO NOT BLOCK. User reads both views in Step 4 verification, decides per-row. |
+| **Step 1b.5 — Phase 1 Persona Panel Evaluation Check** | Self-evaluating decision gate. Fires automatically inside `/learning-loop wrap-up` after ≥3 prior shadow runs OR ≥7 days post-ship, whichever first. Spawns a Phase 1 Decision Report sub-agent that aggregates match/coverage/noise metrics across shadow runs and recommends GO / HOLD / ITERATE / REVERT. Decision applies to NEXT wrap-up's Step 3a behavior, not the current one (per D2 — eval decisions deserve thought, not in-the-moment pressure). Same enforcement principle as Step 1b: bind eval to a workflow step that fires every wrap-up so it cannot rot. |
+| **Step 4c — Capture Phase 1 Eval Data** | After user verification in Step 4, classify each persona challenge against the user's actual decision (full_match / partial_match / mismatch / no_challenge_user_corrected). Write `persona-eval.md` per session + append entry to `persona-eval-runs.txt`. Bootstrap `phase-1-ship-date.txt` on first run. This is the dataset Step 1b.5's evaluation gate operates on. |
+| **Three new prompt blocks alongside CONSOLIDATION_PROMPT** | `TRIGGER_MOMENT_AUDITOR_PROMPT` (audits symptom-vs-mechanism rule framing for each conclusion), `WORKFLOW_STEP_ROUTER_PROMPT` (audits decision-changer-vs-recall-fact destination choices, receives Auditor's named triggers as input), `PHASE_1_DECISION_REPORT_PROMPT` (aggregates shadow-run metrics and outputs the GO/HOLD/ITERATE/REVERT recommendation). |
+| **Storage and presentation separated (per D3)** | Personas write JSON to `persona-review.json` for clean machine-parsing; Step 4 renders into a markdown verification table for user readability. |
+
+**Provenance for v3.5:** Apr 24 2026 — kids-activities `/learning-loop wrap-up` produced 3 sequential narrowings on C3 (Proactive-Offer Filter → Present Options Before Building → Reason Upstream Before Acting). User raised the structural concern: *"a lot of times learning loop is reasonable at summarizing the actual facts that happened in session, but comes to the wrong conclusion and suggests the routing and documentation."* Apr 24-27 — `ce-session-historian` mined 4 prior wrap-up sessions for failure-pattern dataset (12 correction rounds), confirmed dominant failure mix is trigger-framing (33%) + destination (33%) + their compound (25%). Apr 27 — plan hardened with 6 Resolved Decisions (D1-D6). Apr 28 — Phase 1 ship.
+
+**Phase 2 trigger:** Step 1b.5 fires automatically. If GO, promote Personas 1+2 to gatekeeper mode + ship Persona 3 and/or 4 in shadow per failure-mode distribution at ≥20% incidence (per D4). If HOLD, run 3 more shadow wrap-ups. If ITERATE, refine prompts. If REVERT, rip out Step 3a.
+
+**Plan reference:** `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md` — full plan, decision history, evidence base, and Appendix A historian output.
+
+**D5 deviation note:** Plan originally specified v3.4 for Phase 1 ship. Watch-list mods (Mods 1-5) shipped earlier the same day as v3.4, so Phase 1 ships as v3.5. Plan's D5 update logic remains correct (additive minor bump per Phase).
+
+### v3.4 (Apr 28, 2026)
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **Mod 1 — Root-cause matching, not observation matching (Step 4 watch-list)** | Watch-list sprawled from 1 → 30 entries in 15 days because the prior matching criterion was surface-text-similarity on observations. The user's actual criterion is "is the FIX the same?" — two superficially different observations sharing a cognitive/process origin and remediation path are the SAME watch-list item. New rule forces the sub-agent to articulate root cause + fix BEFORE deciding fold-vs-new, with explicit bias toward folding. |
+| **Mod 2 — Watch-list matching invoked inside CONSOLIDATION_PROMPT** | Previously, the sub-agent that did all the rich cognitive work (classify, gates, significance, destination) never read watch-list.md or proposed increments. Match happened post-hoc in main-session against single-line descriptions. New rule: the sub-agent reads watch-list end-to-end, articulates cognitive origin + process origin + proposed fix for each conclusion, then matches against existing entries with explicit increment-vs-new justifications. |
+| **Mod 3 — Watch-list schema upgrade (Root cause + Fix + Incidents columns)** | Old schema (`ID \| Observation \| Count \| Threshold \| Escalate to`) made fix-matching a NLP problem on 200-word prose. New schema makes "same fix?" a deterministic check. **Sub-IDs (W_N.a, W_N.b, …) preserve incident-level traceability inside clusters** so the eventual fix author can trace through every test case when crafting the remediation. |
+| **Mod 4 — Cluster audit step (Step 4b) at every wrap-up** | Bounded-cost sprawl detector: skip entirely if active entries ≤15 AND no fix-cluster ≥3 (tighter than original 20/5 thresholds). When triggered, surfaces sprawl alert + offers re-consolidation sub-agent. Catches sprawl while it's small instead of waiting for manual user invocation at 30+ entries. |
+| **Mod 5 — Threshold-met → auto-draft plan in plan-execution-pipeline schema** | The biggest structural change. Previously, threshold-met meant "route to a destination location" — destination was a place, not a plan. The W4 retrofit plan was hand-drafted weeks after sprawl was visible. Going forward: threshold = automatic plan generation, conforming to `~/Documents/claude-projects/Personal/plan-execution-pipeline/schema/plan-schema.md`. **Every historical incident becomes a Success Criteria checkbox** so the fix author receives the full test-case set, not a vague "fix the recurring drift." This makes the fix tractable and the robustness verifiable. |
+
+**Provenance for v3.4:** Apr 27-28 2026 wrap-up session. The Apr 27 consolidation surfaced that 4 of the 30 active watch-list entries shared the same fix (continuous-rule drift via W4 retrofit) and another 3 shared a different fix (stress-test designs before proposing). User pushback: "There is no point incrementing on very specific downstream scenarios, because the solution is not to fix those symptoms, it's to fix the root cause... If the fix is the same, then they should increment the same watch list item as opposed to sprawling to a bunch of different items." Two parallel sub-agents diagnosed the rule (matching criterion was wrong, CONSOLIDATION_PROMPT didn't invoke matching at all, schema lacked structural anchors for fix-comparison). Mods 1-5 are the structural fix.
+
+**Migration note:** The first wrap-up under v3.4 will see the watch-list re-consolidated from 30 → 5 active clusters + 15 standalone, with new schema applied retroactively. After migration, going forward the sub-agent's increment-or-new decisions are governed by the v3.4 root-cause matching rule.
+
+### v3.3
 
 | Enhancement | Why It Matters |
 |-------------|----------------|

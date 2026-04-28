@@ -6,6 +6,69 @@
 
 ---
 
+## Session: Apr 27-28, 2026 — v3.4 Watch-List Root-Cause Routing Rewrite (Mods 1-5)
+
+### Context
+
+Wrap-up consolidation of 4 content-lab capture sessions surfaced that the watch-list had sprawled from 1 → 30 active entries in 15 days, with multiple entries (W3, W7, W12, W13, W19, W22, plus new W34, W35, W36) all sharing the same fix (continuous-rule drift via the W4 retrofit plan). User pushback established the actual matching criterion the rule should have used:
+
+> "There is no point incrementing on very specific downstream scenarios, because the solution is not to fix those symptoms, it's to fix the root cause... If the fix is the same, then they should increment the same watch list item as opposed to sprawling to a bunch of different items."
+
+User directive: spawn two sequential sub-agents — first to consolidate the watch-list around root-cause/fix matching, second to inspect whether the rule itself needs modification to codify the approach.
+
+### Sub-Agent Findings
+
+**Sub-agent #1 (consolidation)** — reduced 30 entries → 5 active clusters + 15 standalones. Cluster 1 (continuous-rule drift) absorbed 11+ entries that all shared the W4 retrofit plan as their fix. Cluster 2 (stress-test before proposing) absorbed W25 + W32 + new W37 to threshold. Cluster 3 (doc-vs-reality drift) merged W19 cross-session + W31. Clusters 4 + 5 grouped pattern-pending and diligence-toolkit entries.
+
+**Sub-agent #2 (rule inspection)** — diagnosed 4 failure modes:
+- (A, Critical) Match criterion is "observation," not "fix" — the rule never asks the user's actual criterion
+- (B, Critical) CONSOLIDATION_PROMPT never invokes watch-list matching at all — the sub-agent doing the rich cognitive work is never asked to read watch-list.md or propose increments
+- (C, Significant) Watch-list file lacks structured `Root cause` / `Fix` columns, making fix-comparison a NLP problem on 200-word prose
+- (D, Significant) No periodic re-cluster step — sprawl had to be caught manually after it was already at 30
+
+Failure mode (E "sub-agent didn't follow rule") was explicitly ruled out — sub-agents WERE applying the rule as written. The rule produces sprawl because it asks the wrong question.
+
+### Mods 1-5 Implemented
+
+| Mod | What | Where |
+|---|---|---|
+| 1 | Replace "matches existing entry" with root-cause + fix matching; bias toward fold; sub-IDs (W_N.a, W_N.b…) preserve incident-level traceability | Step 4 watch-list section |
+| 2 | Add watch-list matching to CONSOLIDATION_PROMPT — sub-agent reads watch-list end-to-end, articulates cognitive origin + process origin + fix for each conclusion, matches against existing entries with explicit increment-vs-new justification | Step 2 of CONSOLIDATION_PROMPT |
+| 3 | Watch-list schema upgrade: `ID \| Root cause \| Fix \| Incidents \| Aggregated count \| Threshold \| Action` — applied retroactively to all 30 existing entries during the v3.4 migration | watch-list.md structure |
+| 4 | Mandatory cluster audit at every wrap-up — alert thresholds: >15 active entries OR >3 entries sharing a fix (tightened from initial proposal of 20/5) | New Step 4b in Wrap-up flow |
+| 5 | **Threshold-met → auto-draft plan in plan-execution-pipeline schema.** Every historical incident becomes a Success Criteria checkbox. Replaces "route to destination location" with structured plan-pipeline handoff at `~/Documents/claude-projects/Personal/plan-execution-pipeline/schema/plan-schema.md`. | New section in Step 4b + Step 5 |
+
+### Mod 5 Significance
+
+Mod 5 is the most structurally important change. Prior mechanism routed threshold-met items to a destination *location* (a CLAUDE.md section, a playbook, a memory file). Locations are not plans. The W4 retrofit plan was hand-drafted by the user weeks after sprawl was visible.
+
+Going forward: threshold = automatic plan generation. The plan inherits every historical incident from the cluster's sub-IDs as Success Criteria checkboxes — meaning the fix author receives the full test-case set when crafting the remediation. They can verify the fix against W4.a, W4.b, W4.c… not just "the recurring drift in general." This makes fixes tractable and robustness verifiable.
+
+### User Decisions Locked
+
+- Open Q1 (apply Mod 3 schema retroactively): **yes**
+- Open Q2 (Mod 4 thresholds): **tighter — 15/3** (not 20/5)
+- Open Q3 (preserve specific incidents inside clusters): **yes via sub-IDs**, plus the new Mod 5 plan-generation flow that surfaces incidents as test cases
+- Open Q4 (preserve original framing in evidence list): **yes**
+
+### Migration
+
+The first wrap-up under v3.4 will see the watch-list re-consolidated from 30 → 5 active clusters + 15 standalones. After migration, going forward the sub-agent's increment-or-new decisions are governed by the v3.4 root-cause matching rule, with cluster-audit catching sprawl before it grows.
+
+### Changes Made
+
+| File | Change |
+|---|---|
+| SKILL.md | Step 4 watch-list section rewritten (Mod 1); Step 2 of CONSOLIDATION_PROMPT extended (Mod 2); new Step 4b cluster audit + Mod 5 plan generation; new schema documented in Step 4 table; v3.4 changelog entry |
+| watch-list.md (out-of-repo, local-only) | Re-consolidated structure with new schema applied retroactively |
+
+### Open / Unresolved
+
+- Mod 5's plan-generation flow assumes the wrap-up sub-agent has read access to plan-schema.md and write access to plan-execution-pipeline/plans/. The first time threshold is hit under v3.4, this assumption gets verified.
+- Sub-IDs (W_N.a, W_N.b) introduce a question for very large clusters: when does W4 grow large enough that the cluster itself should be split? No threshold codified yet — next wrap-up's experience will inform.
+
+---
+
 ## Session: Apr 22, 2026 — Step 1b Deferred Methodology Check (First Execution + Tuning)
 
 ### Context
