@@ -6,6 +6,82 @@
 
 ---
 
+## Session: Apr 28, 2026 — v3.5 Phase 1 Persona Panel (Shadow Mode Ship)
+
+### Context
+
+Phase 1 build of the persona-panel adversarial review for `/learning-loop wrap-up`. Designed Apr 24-27 across 3 sessions; plan hardened to 539 lines with 6 Resolved Decisions before build. Origin of the problem: in 4 of 12 mined correction rounds across prior wrap-ups (Apr 2-18, 2026), Step 3 consolidation produced symptom-anchored rule names that the user had to push back against repeatedly. The kids-activities C3 case (Proactive-Offer Filter → Present Options Before Building → Reason Upstream Before Acting) is the canonical motivating example.
+
+### What Shipped (v3.5 additions to SKILL.md)
+
+| Change | Location |
+|---|---|
+| Step 3a — Persona Panel (Shadow Mode) | Inserted between Step 3 (Consolidate) and Step 4 (Verify) |
+| Step 1b.5 — Phase 1 Persona Panel Evaluation Check | Inserted between Step 1b (Deferred Methodology) and Step 2 (Triage) |
+| Step 4c — Capture Phase 1 Eval Data | Inserted between Step 4b (Watch-list cluster) and Step 5 (Route) |
+| Step 4 — Persona Panel Review subsection added | Verification view |
+| `TRIGGER_MOMENT_AUDITOR_PROMPT` | New prompt block alongside CONSOLIDATION_PROMPT |
+| `WORKFLOW_STEP_ROUTER_PROMPT` | New prompt block alongside CONSOLIDATION_PROMPT |
+| `PHASE_1_DECISION_REPORT_PROMPT` | New prompt block alongside CONSOLIDATION_PROMPT |
+| v3.5 changelog entry | "What's New" section, top of changelog stack |
+
+Phase 1 is **shadow mode** — personas REPORT but DO NOT BLOCK. User reads consolidation + persona challenges side-by-side in Step 4. Per D2, evaluation gate (Step 1b.5) decisions apply to NEXT wrap-up's behavior, never the current one.
+
+### D5 Deviation — v3.5, not v3.4
+
+Plan originally specified v3.4 for Phase 1 ship. The watch-list mods (Mods 1-5) shipped earlier the same day under the v3.4 label. Phase 1 ships as v3.5 — additive minor bump remains correct framing per the plan's D5 update logic.
+
+### Retroactive Test (D1 + D6) — PASSED on single attempt
+
+Per D1, applied Trigger-Moment Auditor v1 prompt draft to the C3 v1 dataset ("Proactive-Offer Filter for /schedule") with no prompt iteration allowed. Pass criteria: persona challenges with symptom-vs-mechanism reasoning OR proposes broader trigger class. Result:
+
+- `framing_assessment: "symptom"` ✅
+- `verdict: "challenge"` ✅
+- `broader_trigger_class_if_applicable` named concretely ✅
+- `counter_proposal` correctly identifies the existing "Reason Upstream Before Acting" umbrella and recommends extending it rather than creating a new rule ✅
+
+Test capture: `~/.claude/learning-captures/2026-04-28-persona-panel-phase1-build/retroactive-test-c3-v1.md`
+
+The test agent volunteered a useful observation flagged for shadow-mode tracking: the prompt's example list mentions "Proactive-Offer Filter" as a prior known challenge, which biases toward an automatic challenge verdict on this exact input. For this specific test, Step 5's grep (umbrella-existence check) independently produced the challenge verdict — but on inputs where the umbrella didn't already exist, the example-list bias would be doing more work. **Per D6, no prompt iteration now.** Track in shadow-mode evaluation; if noise rate (target ≤30%) concentrates on inputs whose framing visibly resembles example list entries, the bias is real and warrants ITERATE-prompts disposition.
+
+### Provenance Gotcha — Two-Session Race
+
+Phase 1 SKILL.md edits were authored in this session while a parallel session was committing the v3.4 watch-list rewrite. The v3.4 commit (`b87878c`) ran `git add -A` (or equivalent) at commit time and inadvertently swept up this session's uncommitted Phase 1 edits. Net result: Phase 1 SKILL.md additions are on `origin/main` already, but the commit message reads "v3.4: Watch-list root-cause routing rewrite (Mods 1-5)" — provenance for v3.5 lives in:
+
+- The v3.5 changelog block inside SKILL.md itself
+- This SESSION_LOG.md entry
+- The plan file at `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md`
+- The retroactive test capture above
+
+Lesson for future parallel sessions: each session should commit its own work BEFORE the other session adds, or use git worktrees to isolate working trees. Did NOT amend `b87878c` because it's already pushed to origin and force-push to main is destructive (per global CLAUDE.md guidance).
+
+### What Phase 1 Eval Will Watch
+
+After ≥3 shadow runs OR ≥7 days post-ship (whichever first), Step 1b.5 fires the Phase 1 Decision Report. Three metrics with targets:
+
+- Match rate ≥60% (challenges that match user's actual Step 4 corrections)
+- Coverage rate ≥60% (user corrections caught by some persona)
+- Noise rate ≤30% (challenges user did not act on)
+
+GO/HOLD/ITERATE/REVERT decision logic codified in PHASE_1_DECISION_REPORT_PROMPT. If GO: per D4, ship Personas 3 and/or 4 in shadow at Phase 2 promotion time based on observed failure-mode distribution at ≥20% incidence threshold.
+
+### Open / Unresolved
+
+- Phase 1 prompt-bias risk (example list naming a concrete prior rule) — track via noise rate in shadow-mode eval
+- First real shadow run will be the next user `/learning-loop wrap-up` — this session itself shipped Phase 1 but did NOT trigger a Phase 1 wrap-up to test
+- Plan file in `claude-skills` repo needs status flip from "Plan / awaiting Phase 1 build" → "Phase 1 shipped, shadow mode active" (separate commit in that repo)
+
+### Changes Made
+
+| File | Change |
+|---|---|
+| SKILL.md | Step 3a + Step 1b.5 + Step 4c added; Step 4 verification view extended with Persona Panel Review section; 3 new prompt blocks; v3.5 changelog entry |
+| SESSION_LOG.md | This entry |
+| `~/.claude/learning-captures/2026-04-28-persona-panel-phase1-build/retroactive-test-c3-v1.md` (new) | Captured retroactive test result verbatim |
+| `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md` (TODO) | Status flip pending |
+
+---
+
 ## Session: Apr 27-28, 2026 — v3.4 Watch-List Root-Cause Routing Rewrite (Mods 1-5)
 
 ### Context
