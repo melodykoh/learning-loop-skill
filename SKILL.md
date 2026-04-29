@@ -63,6 +63,20 @@ When `/learning-loop` is invoked, determine which mode to run:
 
 **DO NOT** update any destination based on captures without user sign-off.
 
+### Skill Version Ship Verification (added v3.6 Apr 28 2026)
+
+**When shipping a new version of this skill (or any skill that adds bootstrap state files, accumulator logs, or one-time initialization):**
+
+1. **Enumerate every bootstrap step the new version added** — accumulator file creation, sentinel file writes, decision-log initialization, schema migrations, etc.
+2. **Run them, OR confirm they will be triggered by a downstream workflow step that has actually fired**.
+3. **Verify each artifact exists on disk** before declaring the version "shipped."
+
+**STOP and correct if you're:**
+- About to declare a new skill version "shipped" / "live" / "deployed" without checking that the version's added bootstrap files exist
+- Assuming "Step N will create the file when it first runs" without confirming Step N has run at least once after the ship
+
+> **Why (Apr 28, 2026):** v3.5 Phase 1 Persona Panel shipped with three new files supposed to be bootstrapped by Step 4c (`persona-eval-runs.txt`, `phase-1-ship-date.txt`, eventually `phase-1-decision-log.md`). At ship time none existed, because Step 4c only runs DURING a wrap-up — and no wrap-up had run yet under v3.5. Step 1b.5 read these files at the next wrap-up start, found them missing, and silently took the "skip Phase 1 evaluation entirely" branch. The Phase 1 self-evaluation gate would have stayed dormant indefinitely. Caught only by explicit consolidation analysis. Section 1d Verification rule in root CLAUDE.md covered this trigger semantically ("infrastructure done after writing files but before running them") but didn't fire on this ship — this STOP is the enforcement upgrade.
+
 ---
 
 ## Core Insight
@@ -971,6 +985,22 @@ FOR EACH RAW SIGNAL:
    □ Persistence - worth remembering across sessions?
 
 5. **If FAILS Gates 1-5:** Note which gate failed, include as "REVIEW NEEDED"
+
+5.5. **Enforcement-Gap Check (added v3.6 Apr 28 2026 — when existing rule covers trigger but failed to fire):**
+
+   If the conclusion identifies that an existing rule (in CLAUDE.md, a reference doc, or a SKILL.md gate) covers this trigger semantically but did NOT fire in this session, **do NOT route to NOTED with reasoning "already codified."** That dismissal makes learning-loop incapable of improving enforcement — it just confirms gaps without proposing fixes.
+
+   Instead, propose a specific ENFORCEMENT MECHANISM upgrade:
+
+   - **Mechanical:** Stop hook / pre-commit hook / pre-push hook / SessionStart hook that fires on the symptom phrase or state
+   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural Rules + Canonical Truth" in root CLAUDE.md)
+   - **Evidence:** add `Evidence:` requirement so the rule produces an artifact that proves it fired
+   - **Trigger:** tighten the trigger phrase to match the failure-mode framing (per Trigger-Moment Auditor)
+   - **Workflow-step ship gate:** add a STOP item to the relevant skill's ship/closeout checklist that mechanically requires the rule's protocol be run before declaring done
+
+   Route the enforcement proposal as a NEW CONCLUSION (with its own gates + destination), not as part of the original signal's NOTED disposition. The original signal can still route to NOTED — but the enforcement upgrade is a separate, actionable conclusion.
+
+   > **Why this exists (Apr 28, 2026):** During the v3.5 Phase 1 Persona Panel ship wrap-up, conclusion C2 (bootstrap accumulator files not created at ship time) was initially routed to ACTION ITEM only with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'), so no codification needed." User pushback: *"When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."* The dismissal pattern is what makes rule-coverage-without-rule-firing a recurring failure mode — learning-loop must propose enforcement upgrades or the gap stays open. Step 5.5 is the structural fix.
 
 6. **Apply Significance Threshold (Gate 6):**
    Ask: "If this were lost after this session, would a future session go WRONG?"

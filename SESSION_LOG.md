@@ -6,6 +6,94 @@
 
 ---
 
+## Session: Apr 28-29, 2026 — v3.6 CONSOLIDATION_PROMPT step 5.5 + Ship Verification STOP
+
+### Context
+
+First real `/learning-loop wrap up` under v3.5 Phase 1 Persona Panel (shadow mode). Wrap-up surfaced two structural gaps in the v3.5 design that the personas themselves missed, plus a documented gap from a parallel hanzi-dojo wrap-up. Two SKILL.md additions resulted; provenance below.
+
+### What Shipped (v3.6 additions to SKILL.md)
+
+| Change | Location | Why |
+|---|---|---|
+| `CONSOLIDATION_PROMPT` step 5.5 — Enforcement-Gap Check | Inserted between step 5 (failed gates) and step 6 (significance threshold) | When existing rule covers a trigger but failed to fire, the consolidation must propose enforcement upgrades (mechanical hook / structural relocation / evidence requirement / trigger tightening), NOT dismiss as "already codified." |
+| MANDATORY PROCEDURES — Skill Version Ship Verification STOP | Inserted after User Verification (Critical), before Core Insight | Before declaring a new skill version "shipped," enumerate every bootstrap step the version added, run them or confirm a downstream workflow step has run that fires them, and verify each artifact exists on disk. |
+
+### Provenance — User Pushback During Step 4 of First Shadow Run
+
+The first real Phase 1 shadow run consolidated 3 conclusions (C1, C2, C3). Both v3.5 personas (Trigger-Moment Auditor + Workflow-Step Router) **PASSED on C2** with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'); gap is enforcement, not codification." User pushback:
+
+> "When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."
+
+The "rule covers but didn't fire" pattern is precisely what makes recurring failures recurring — and the consolidation prompt's lack of an enforcement-gap step let the gap propagate into NOTED. Step 5.5 is the structural fix.
+
+C2's underlying defect (Phase 1 bootstrap accumulator files were not created at ship time — Step 4c only runs DURING wrap-up, but no wrap-up had run yet under v3.5) is the canonical example. Section 1d Verification covered the trigger semantically but didn't fire on this ship. The Skill Version Ship Verification STOP is the enforcement-mechanism upgrade for this specific class of failure.
+
+### First Shadow Run Eval Data (Phase 1 Decision Report fixture, run #1)
+
+| Metric | Value | Target | Notes |
+|---|---|---|---|
+| Match rate | 1.0 (2/2) | ≥60% | Both Auditor + Router challenges on C1 were partial_match |
+| Coverage rate | 0.5 (1/2) | ≥60% | Personas missed C2's enforcement_gap_dismissal — a NEW failure category not in original a/c/d/g taxonomy |
+| Noise rate | 0.0 (0/2) | ≤30% | No challenges user did not act on |
+| Auditor first attempt | TIMEOUT (~3 min stream idle, no output written) | n/a | Recovery in ~6 sec after fast-path discipline added to prompt |
+| Router first attempt | SUCCESS (~50 sec) | n/a | Single attempt, narrow reading |
+
+Eval data persisted at `~/.claude/learning-captures/2026-04-28-persona-panel-phase1-build/persona-eval.md` + log entry at `~/.claude/learning-captures/persona-eval-runs.txt`.
+
+### Plan Amendments Triggered (in claude-skills repo)
+
+Tonight's evidence (this shadow run + a parallel hanzi-dojo wrap-up's documented cluster-design failure modes) drove 7 plan amendments to `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md`. Headline amendments:
+
+- **A1:** Replace planned Persona 3 (Dedup/Umbrella Checker, per-conclusion-scoped, speculative) with Cluster Coherence Auditor (cluster-scoped, evidence-grounded by gold-set test fixture)
+- **A2:** Add Persona 4 candidate (Existing-Coverage Auditor — failure mode B, cluster vs existing tooling)
+- **A3:** Sequencing change — Cluster Coherence Auditor runs BEFORE Personas 1+2 if shipped
+- **A4:** Gold-set fixture (A1/A2/A3 test cases) embedded as retroactive test for any future Persona 3 prompt
+- **A5:** Updated D4 — replace per-conclusion (c) "Missed dedup/umbrella" trigger with cluster-coherence failure trigger
+- **A6:** First-shadow-run latency event documented; track as Phase 1 cost signal
+- **A7:** Persona 3 plan-amendment provenance summary
+
+### Watch-list Cluster Audit (Step 4b)
+
+Sprawl alert hit (22 active entries, threshold 15). Re-consolidation sub-agent ran with strict v3.4 root-cause + fix matching. **Result: 0 firm folds proposed.** The 16 standalones each track a genuinely distinct mechanism + fix venue. Sub-agent's recommended next-pass mechanism: **age-based archival of standalones with no recurrence** rather than root-cause consolidation. One borderline candidate (W15 + W33 → potential "Performance-log Pattern Candidates" cluster at 3rd instance) flagged for next-pass defer.
+
+Output: `~/.claude/learning-captures/2026-04-28-persona-panel-phase1-build/watch-list-reconsolidation.md`.
+
+### Deferred-Methodology Closure (Step 1b)
+
+`gate template production test` memory closed as DISPROVEN PREMISE (option d) at incident #6/6 disproven votes. Methodology closeout is itself a designed first-class outcome — deferral exists precisely so hypotheses can be invalidated by accumulated evidence rather than acted on prematurely. Status flipped to `closed-disproven` in frontmatter; future Step 1b enumerations no longer surface it.
+
+### Spec-vs-Practice Tension Surfaced (for v3.7 consideration)
+
+Step 6 (Cleanup) says delete consolidated session directories. But Phase 1 puts persistent eval data + fixtures inside the session directory (`persona-eval.md`, `persona-review.json`, gold-set fixtures), and Step 1b.5 reads them across sessions via `~/.claude/learning-captures/*/persona-eval.md`. Deleting the session dir at Step 6 would delete the Phase 1 eval data Step 1b.5 needs.
+
+**Tonight's pragmatic fix:** selective cleanup — deleted scan-001.md + consolidation.md (working artifacts that served their consolidation purpose), kept Phase 1 fixtures + eval files. Plan-design session dir (no Phase 1 fixtures) was deleted entirely.
+
+**Durable structural fix (deferred to v3.7):** either (a) move persona-eval.md + persona-review.json to a global location (`~/.claude/learning-captures/persona-evals/[session-id].md`) so cleanup of the session dir is safe, OR (b) extend Step 6 to differentiate working artifacts from persistent eval/fixture artifacts. Option (a) is structurally cleaner; option (b) preserves the SKILL.md's existing single-location pattern.
+
+### Open / Unresolved (deferred to next wrap-up)
+
+- Phase 1 Decision Report sub-agent fires automatically when ≥3 shadow runs OR ≥7 days since ship (per Step 1b.5). Earliest fire: 2026-05-05 (7 days post-ship) OR after 2 more shadow runs.
+- Coverage-rate gap (0.5 vs 60% target) is N=1 data — not yet diagnosable. C2's enforcement_gap_dismissal failure category may need a 5th persona OR an extension of an existing persona if it recurs.
+- Watch-list age-based archival mechanism (sub-agent's recommended next-pass approach) — not codified in SKILL.md yet.
+- v3.7 cleanup-vs-eval-persistence structural fix.
+- Project-level settings cleanup (3 files: Personal root, hanzi-dojo, NextView/diligence) — deferred from this wrap-up.
+
+### Changes Made
+
+| File | Change |
+|---|---|
+| SKILL.md | CONSOLIDATION_PROMPT step 5.5 (Enforcement-Gap Check) + MANDATORY PROCEDURES Skill Version Ship Verification STOP |
+| SESSION_LOG.md | This entry |
+| `~/.claude/reference/reason-upstream.md` | Added "Parallel-Session Coordination Before Mutation" specialization (table row + full section + STOP block + walked example) |
+| `~/.claude/workspace/CLAUDE.md` (= root CLAUDE.md via symlink) | Reason Upstream trigger updated to non-exhaustive specialization framing |
+| `~/.claude/projects/.../memory/project_gate_template_production_test.md` | Closed as DISPROVEN PREMISE; closeout decision block + 6th incident appended |
+| `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md` | 7 plan amendments (A1-A7) |
+| `~/.claude/learning-captures/persona-eval-runs.txt` | Bootstrap header + run #1 entry |
+| `~/.claude/learning-captures/phase-1-ship-date.txt` | Bootstrap (2026-04-28) |
+
+---
+
 ## Session: Apr 28, 2026 — v3.5 Phase 1 Persona Panel (Shadow Mode Ship)
 
 ### Context
