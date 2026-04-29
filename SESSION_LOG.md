@@ -6,6 +6,69 @@
 
 ---
 
+## Session: Apr 29, 2026 — v3.7 Verification Detail Floor + Same-Root-Cause Collapse Check
+
+### Context
+
+A parallel content-lab session ran a wrap-up using v3.6 + an experimental "prose-expanded verification" template the user provided. The transcript surfaced two structural gaps that v3.6 doesn't address:
+
+1. The default Step 4 verification view (table with one-line summaries + cluster IDs + persona-verdict labels) is too compressed for accurate user verification — the user can't reconstruct what's being verified.
+2. CONSOLIDATION_PROMPT lacks a final pass to detect when two conclusions are the same mechanism mis-fragmented into separate items.
+
+Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md`.
+
+### What Shipped (v3.7 additions to SKILL.md)
+
+| Change | Location | Why |
+|---|---|---|
+| **Step 4 — Verification Detail Floor (MANDATORY)** | New subsection inside Step 4, after the consolidated-summary block | Each conclusion in the verification view MUST include a per-conclusion narrative block: what happened (with quote), what's wrong, what the fix does, why this destination, persona challenges with specificity. Required fields, not optional. |
+| **CONSOLIDATION_PROMPT step 5.6 — Same-Root-Cause Collapse Check** | New step inserted between step 5.5 (Enforcement-Gap Check) and step 6 (Significance Threshold) | Before output, for each pair of conclusions ask: same cognitive origin, same process origin, same proposed fix? If all 3 → collapse. If 2/3 → surface to user. Inverse of C4-style chain-fabrication check; here the failure is fabricated distinctness. |
+
+### Provenance — The (α) Experiment
+
+Other-session wrap-up applied the prose-expansion template to its 4 conclusions (C1-C4). **All four had errors** that the compressed format had hidden:
+
+- **C1:** Original framing routed to skill-design pattern (Cluster 4). User reframed: failure is upstream of skill design — Claude not reasoning from question-intent → operational doc. Skill scaffolding would be a defensive patch.
+- **C2:** Routing reasoning was "don't add to root CLAUDE.md because it's at line budget." User: *"the conclusion on not routing to root level Claude.md should not be that it is already at budget. If it's at budget, but then it needs to be there, then the task is not to avoid it, it is to edit to make sure that it stays tight."*
+- **C3:** Summarized as "default to ask vs default to assume." User clarified: *"it's not just ask cheaply because you also do that a lot. It's to review the body of data and evidence you have easily accessible before you ask."* Sharper discipline than ask-vs-assume.
+- **C4:** Original routing deferred enforcement until count 3. User reframed: build the gate now in performance-capture SKILL.md Phase 4 because the failure shape is well-understood and a focused gate is buildable now.
+
+4/4 errors caught. Compressed format would have passed all four through Step 4 unchallenged. **The user cannot verify what they cannot reconstruct.** Verification Detail Floor (v3.7-A) is the structural fix.
+
+### Provenance — Same-Root-Cause Collapse
+
+Other session's user collapsed C1 and C3 via a diagnostic question:
+
+> "the question on C1 is why didn't Claw follow instruction? Was that expectation not realistic? Or mechanically it just cannot do that reliably, so thus we need a mechanically enforceable way to make sure it's 100% or close to 100% compliant and reduce the rate of this mistake."
+
+That collapsed both into one conclusion: same root cause (continuous always-rule drifting under task momentum), same fix shape (mechanical pre-prose hook fired on synthesis-question intent). CONSOLIDATION_PROMPT didn't natively run the "are these two the same mechanism?" check. Step 5.6 forces it.
+
+### What Was NOT Codified Tonight (deferred)
+
+The transcript surfaced 5 candidates total. Two shipped (v3.7-A, v3.7-B). Three deferred to a dedicated design session:
+
+- **Plan-coverage check at routing time** (audit existing plan against new evidence — distinct from Mod 5's auto-generate-plan flow). Substantial new workflow step.
+- **Mechanism-anchored naming upstream in CONSOLIDATION_PROMPT** — currently the persona Auditor catches this; moving upstream may conflict with persona panel value. Adjudicate during Phase 2 persona-panel design.
+- **Other routing biases** — defer-until-threshold when fix shape is buildable now; route-around-budget instead of route-and-prune; coarse framings ("ask vs assume") when sharper discipline exists. Each deserves careful integration with step 5.5 / 5.6.
+
+The agent's own ★Insight in the transcript flagged a deeper meta-pattern worth a dedicated v3.8+ design session: **"the deliberation arc itself is data; one-shot consolidation discards it."** Even with personas, the current Step 3a captures only final-state JSON, not the deliberation that produced the routing. Worth structural thinking.
+
+### Open / Unresolved (deferred to next wrap-up)
+
+- v3.7 retroactive validation: next /learning-loop wrap-up uses v3.7 structure; transcript shared back; if Verification Detail Floor + Same-Root-Cause Collapse Check produce materially better output, the iteration was correct. If new failure modes surface, that's signal for v3.8.
+- Plan-coverage check (deferred) — concrete design needed; integrates with Mod 5.
+- Mechanism-anchored naming (deferred) — adjudicate vs persona Auditor mandate.
+- Deliberation-arc preservation (deferred) — v3.8 structural concept.
+
+### Changes Made
+
+| File | Change |
+|---|---|
+| SKILL.md | Step 4 Verification Detail Floor (new MANDATORY subsection) + CONSOLIDATION_PROMPT step 5.6 (Same-Root-Cause Collapse Check) |
+| SESSION_LOG.md | This entry |
+
+---
+
 ## Session: Apr 28-29, 2026 — v3.6 CONSOLIDATION_PROMPT step 5.5 + Ship Verification STOP
 
 ### Context

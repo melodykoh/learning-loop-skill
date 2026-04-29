@@ -483,6 +483,36 @@ Please confirm accuracy before I proceed to documentation.
 
 **WAIT FOR USER CONFIRMATION before proceeding to Step 4c.**
 
+#### Step 4 — Verification Detail Floor (added v3.7 Apr 29 2026, MANDATORY)
+
+Each conclusion in the verification view MUST include a per-conclusion narrative block. Single-line summaries + cluster IDs + persona-verdict labels are insufficient for accurate user verification — they assume more shared context than the user actually has at end-of-session.
+
+**Required fields per conclusion (in addition to the table row):**
+
+```
+**[C-id] [Title]**
+- **What happened in this session:** [1-3 sentences with specific incident or
+  pattern. Quote the user or quote yourself if a direct exchange triggered the
+  signal. Not the abstracted rule — the concrete event.]
+- **What's wrong / what's missing:** [explicit gap or failure mode]
+- **What the fix does:** [concrete before/after. If destination is a watch-list
+  cluster or sub-entry, NAME what's already in that cluster and how this
+  addition interacts (sub-entry W_N.x increment vs new cluster).]
+- **Why this destination:** [why this cluster/file/section vs alternatives.
+  Don't reason from secondary constraints (e.g., "root CLAUDE.md is at line
+  budget") when the rule's logic dictates a destination.]
+- **Persona challenges (if any):** [with the same level of specificity — what
+  the persona objected to and what their concrete counter-proposal is]
+```
+
+**STOP and correct if you're:**
+- Presenting a verification view with single-line summaries + cluster IDs + persona-verdict labels only
+- Referencing a watch-list cluster ID without expanding what it contains
+- Asking the user to verify routing without first surfacing the source incident
+- Using compressed format because the table is "cleaner" — the user cannot verify what they cannot reconstruct
+
+> **Why (Apr 29, 2026):** A parallel content-lab wrap-up applied a prose-expanded verification format (Verification Detail Floor template) and surfaced **4/4 consolidation errors** in conclusions C1-C4. The compressed format had passed all four through Step 4 unchallenged. User feedback: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Compressed format hides errors; verification under those conditions is performative. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md`.
+
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
 Before routing, run a cluster check on the active watch-list:
@@ -1001,6 +1031,22 @@ FOR EACH RAW SIGNAL:
    Route the enforcement proposal as a NEW CONCLUSION (with its own gates + destination), not as part of the original signal's NOTED disposition. The original signal can still route to NOTED — but the enforcement upgrade is a separate, actionable conclusion.
 
    > **Why this exists (Apr 28, 2026):** During the v3.5 Phase 1 Persona Panel ship wrap-up, conclusion C2 (bootstrap accumulator files not created at ship time) was initially routed to ACTION ITEM only with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'), so no codification needed." User pushback: *"When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."* The dismissal pattern is what makes rule-coverage-without-rule-firing a recurring failure mode — learning-loop must propose enforcement upgrades or the gap stays open. Step 5.5 is the structural fix.
+
+5.6. **Same-Root-Cause Collapse Check (added v3.7 Apr 29 2026):**
+
+   Before continuing to significance threshold, for each PAIR of conclusions you've drawn so far, ask:
+
+   1. Do they share the SAME cognitive origin (same mental move broken down)?
+   2. Do they share the SAME process origin (same workflow step or rule type drifted)?
+   3. Do they share the SAME proposed fix?
+
+   If all three YES → **COLLAPSE into one conclusion.** Two instances of the same mechanism are not two conclusions — they're two incidents of one conclusion. Combine the evidence (both incidents become sub-evidence of the unified conclusion); do NOT carry forward as two separate conclusions.
+
+   If 2 of 3 YES → flag as **"borderline same-mechanism, surface to user for verification at Step 4"** rather than auto-collapsing. The user has context the prompt doesn't.
+
+   This is the inverse of the C4-style mechanism-collapse-into-causal-chain check (which warns: don't fabricate causal connection between independent mechanisms). Here the warning is the opposite: **don't fabricate distinctness between two instances of the same mechanism.**
+
+   > **Why (Apr 29, 2026):** A parallel content-lab wrap-up produced separate conclusions C1 ("skill needs dual entry triggers") and C3 ("read file before drafting synthesis prose"). User collapsed both via a diagnostic question — same root cause (continuous always-rule drifting under task momentum), same fix shape (mechanical pre-prose hook). The collapsibility was visible in retrospect. CONSOLIDATION_PROMPT didn't natively run the check. Step 5.6 forces it. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md`.
 
 6. **Apply Significance Threshold (Gate 6):**
    Ask: "If this were lost after this session, would a future session go WRONG?"
