@@ -6,6 +6,83 @@
 
 ---
 
+## Session: May 2, 2026 — v3.8 Tiered Verification (Zone Classification + Zone-1 Cap)
+
+### Context
+
+A diligence-engine wrap-up under v3.7 produced 14 conclusions + 4 persona challenges + 2 borderline calls + 18 Noted items. User reported: *"my brain just fried and I just kind of want to give up."* Diagnosis: tier mismatch, not detail-level mismatch. The agent itself had cognitively differentiated the conclusions (its own ★Insight: *"the other 10 conclusions are methodology codifications for the new diligence engine, not failure-mode captures — different shape, different routing"*) but had no structural way to surface them differently. v3.7's MANDATORY-for-all Verification Detail Floor made every conclusion equally heavy regardless of whether the user's judgment was actually needed.
+
+User framing of the materiality question: *"in the early days of learning loop it wasn't this much work but we kept making it better to catch more things and then now it's probably potentially swung in all the other direction."*
+
+### What Shipped (v3.8 additions to SKILL.md)
+
+| Change | Location | Why |
+|---|---|---|
+| **CONSOLIDATION_PROMPT step 6.5 — Zone Classification** | New step inserted between 5.6 (collapse check) and 6 (significance threshold) | Every conclusion classified into Zone 1 (Decisions Required) / Zone 2 (Routine Confirmation) / Zone 3 (Auto-routed). Zone determines how Step 4 surfaces the item. |
+| **Output schema: `zone` field per conclusion** | CONSOLIDATION_PROMPT WRITE OUTPUT template | Sub-agent emits zone classification + zone reason for each conclusion |
+| **Step 4 — Zoned Verification View (replaces flat sections)** | New verification view template structured by zone, not by content-type-flat-sections | Zone 1 first (full Detail Floor + per-item choice), Zone 2 batch table (accept-all default, expand on demand), Zone 3 single-line summary + "anything to promote?" prompt |
+| **Zone-1 cap rule (>5 items)** | Step 6.5 + Step 4 rendering check | Surface options to user when Zone 1 > 5 items: (a) triage all, (b) partial-triage with shelve, (c) treat all as Noted. Prevents "wall of decisions" failure mode. |
+| **v3.7 Verification Detail Floor scoped to Zone 1 only** | Step 4 — Verification Detail Floor section | v3.7 made the floor mandatory for ALL conclusions; v3.8 makes it mandatory for Zone 1, optional/on-demand for Zone 2, omitted for Zone 3 |
+
+### The Three Zones
+
+- **Zone 1** (Decisions Required): persona-challenged, borderline same-mechanism (2/3 from step 5.6), NEW top-level cluster, NEW root CLAUDE.md edit, plan amendment, cross-repo restructure. **Full Verification Detail Floor + explicit user choice per item.** Capped at 5.
+- **Zone 2** (Routine Confirmations): existing-cluster sub-entry increment + personas pass, mechanical destination. **1-line summary + accept-all default.** User can "expand C5, C7" to see floor on demand.
+- **Zone 3** (Auto-routed): methodology codification of in-session-approved decisions, session-scoped observations, routing already-committed-by-user. **NOT in main verification scroll.** Surfaced as "Auto-routed N items to [destinations]. Anything to promote?" — single yes/no.
+
+### Persona-Challenge Promotion Rule
+
+Personas still run on every conclusion regardless of base zone. **Any persona challenge promotes the conclusion to Zone 1**, ensuring adversarial review never gets bypassed by zone classification. Step 4 applies promotion BEFORE rendering.
+
+### Zone-1 Cap Rule
+
+When Zone 1 has >5 items, surface at top of Step 4:
+
+```
+⚠️ Zone 1 cap exceeded: [N] items require your judgment. This is high cognitive load. Options:
+- (a) Triage all [N] now
+- (b) Triage top-priority items, shelve the rest as Noted
+- (c) Treat all as Noted — accept consolidation defaults
+```
+
+This prevents the wall-of-decisions failure mode where the user gives up because it's too much to review.
+
+### Why This Reframe (vs. tightening the existing floor)
+
+The user's framing was sharp: *"materiality vs granularity."* The original learning-loop wasn't this heavy because consolidation surfaced fewer things. As v3.x iterated to catch more, it surfaced more — but ALL surfaced items got the same treatment. The fix isn't to surface fewer things (we'd lose signal). The fix is to **scale verification rigor with materiality** — Zone 1 gets full attention, Zone 2 gets default-accept, Zone 3 doesn't surface at all.
+
+### What v3.8 Does NOT Do
+
+- Personas still run on every conclusion (cheap insurance; persona challenge auto-promotes to Zone 1)
+- Step 5.5 (Enforcement-Gap Check), 5.6 (Same-Root-Cause Collapse), 4b (Watch-list cluster audit), 4c (Phase 1 eval) all unchanged — they still fire as before
+- Watch-list mechanics unchanged
+- Phase 1 evaluation logic unchanged
+
+The ONLY change is the verification view's structural organization + the floor's scope.
+
+### Plan-Amendment-Worthy Followups (deferred)
+
+Three v3.8 questions to monitor across next 2-3 wrap-ups:
+
+1. **Zone classification accuracy.** Sub-agent's zone calls may need tuning. Track: how often does user override "Zone 3" → "Zone 1" via the promote-prompt?
+2. **Zone-1 cap-trigger rate.** If cap fires every wrap-up, the cap threshold (5) may be too low — OR Zone 3 routing may be too conservative.
+3. **The 3 still-deferred candidates from v3.7 amendment session** (plan-coverage check at routing time, mechanism-anchored naming upstream, defer-until-threshold/route-around-budget biases) — may interact with v3.8 zoning. Re-evaluate after 2-3 v3.8 wrap-ups.
+
+### Open / Unresolved (deferred to next wrap-up)
+
+- v3.8 retroactive validation: user's next /learning-loop wrap-up uses v3.8; if the cognitive load drops materially, the iteration was correct.
+- Zone classification calibration — sub-agent guidance may need tuning based on observed misclassifications.
+- v3.8+ deliberation-arc preservation (still pending from v3.7 design session) — even with zones, current Step 3a captures only final-state JSON, not the deliberation that produced the routing.
+
+### Changes Made
+
+| File | Change |
+|---|---|
+| SKILL.md | CONSOLIDATION_PROMPT step 6.5 (Zone Classification, MANDATORY) + `zone` output field + Step 4 zoned verification view (replaces flat-section template) + v3.7 floor scoped to Zone 1 |
+| SESSION_LOG.md | This entry |
+
+---
+
 ## Session: Apr 29, 2026 — v3.7 Verification Detail Floor + Same-Root-Cause Collapse Check
 
 ### Context

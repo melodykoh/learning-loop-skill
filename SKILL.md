@@ -390,14 +390,111 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 
 #### Step 4: Present for User Verification
 
-Present the consolidated summary:
+**v3.8 zoned presentation (May 2 2026):** The verification view is structured by **zone** (per Step 6.5 classification), NOT by content-type-flat-sections. This scales the user's cognitive load with materiality — Zone 1 items get full attention; Zone 2 batch-confirm; Zone 3 auto-routed. Apply persona-challenge promotion BEFORE rendering: any conclusion with a persona challenge is promoted to Zone 1 regardless of base classification.
+
+**Zone-1 cap check:** before rendering, count Zone 1 items. If COUNT > 5, surface the cap warning at top of the view (per Step 6.5).
+
+Present the consolidated summary in zone order:
 
 ```
-## Session Learning Signals (Consolidated)
+## Session Learning Signals — v3.8 Zoned Verification
 
-From [N] scans ([this session only / this session + M others]), I found these conclusions:
+From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2, [Z3] Zone 3), [H] resolved hypotheses, [N] Noted observations. Cluster audit (Step 4b): [N] active clusters, [sprawl alert? yes/no].
 
-### Ready for Documentation (Passed All Gates)
+[IF Zone-1 cap exceeded:]
+⚠️ Zone 1 cap exceeded: [N] items require your judgment. This is high cognitive load. Options:
+- (a) Triage all [N] now (estimated: ~[N×2]min)
+- (b) Triage top-priority items now (you pick how many), shelve the rest as Noted
+- (c) Treat all as Noted — accept consolidation defaults, no judgment exercised
+[/IF]
+
+---
+
+### Zone 1 — Decisions Required ([Z1] items)
+
+[For each Zone 1 conclusion, render with FULL Verification Detail Floor:]
+
+**[C-id] [Type]: [Brief Title]**
+
+- **What happened in this session:** [1-3 sentences with specific incident or pattern. Quote the user or quote yourself if a direct exchange triggered the signal. Concrete event, not abstracted rule.]
+- **What's wrong / what's missing:** [explicit gap or failure mode]
+- **What the fix does:** [concrete before/after. If destination is a watch-list cluster or sub-entry, NAME what's already in that cluster and how this addition interacts.]
+- **Why this destination:** [why this cluster/file/section vs alternatives. Don't reason from secondary constraints (e.g., "root CLAUDE.md is at line budget") when the rule's logic dictates a destination.]
+- **Persona challenges (if any):**
+  - **[Trigger-Moment Auditor]** ⚠️ challenge: [one-sentence reasoning]
+    - Original framing: "[from consolidation]"
+    - Counter-proposal: "[from persona]"
+    - Broader trigger class (if applicable): "[from persona]"
+  - **[Workflow-Step Router]** ⚠️ challenge: [one-sentence reasoning]
+    - Original destination: "[from consolidation]"
+    - Re-route to: [destination + section]
+- **Zone reason:** [why this is Zone 1 — e.g., "persona challenged" / "new top-level cluster" / "borderline 2/3 same-mechanism" / "root CLAUDE.md edit"]
+
+**Your choice for [C-id]:** (a) accept consolidation, (b) accept persona counter-proposal, (c) write your own
+
+[Repeat for each Zone 1 conclusion]
+
+---
+
+### Zone 2 — Routine Confirmations ([Z2] items, accept-all default)
+
+| # | Conclusion (1-line) | Destination | Personas |
+|---|---------------------|-------------|----------|
+| C5 | "..." | [destination] | ✅✅ |
+| C6 | "..." | [destination] | ✅✅ |
+| ... | ... | ... | ... |
+
+**Default action:** accept the batch.
+- Reply **"y"** to confirm all Zone 2 items.
+- OR list specific items to expand into full Verification Detail Floor (e.g., "expand C5, C7").
+
+---
+
+### Zone 3 — Auto-routed ([Z3] items, informational)
+
+[Z3] items auto-routed to: [destinations summary, e.g., "workflow doc default rules (×6), MEMORY.md (×2), Noted (×4)"].
+
+**Anything to promote to Zone 1?** Reply **"y"** to accept the auto-routing OR list specific item IDs to promote (e.g., "promote C9, C12 to Zone 1").
+
+---
+
+### Cluster + Watch-List State
+
+[Brief summary of cluster audit result + any new entries proposed. Single paragraph or compact table.]
+
+---
+
+### Resolved Hypotheses ([H] total)
+
+| # | Hypothesis | Resolution |
+|---|------------|------------|
+| 1 | "[from scan]" | CONFIRMED / DISPROVEN / STILL UNRESOLVED |
+
+---
+
+### Phase 1 Eval Status
+
+[1-line: "Run #[N], [days] post-ship — Phase 1 Decision Report [trigger met / not met]." If trigger met, surface Decision Report inline below.]
+
+---
+
+### Noted ([N] items collapsed — reply "expand noted" to see)
+
+---
+
+⚠️ **VERIFICATION REQUIRED:**
+- Zone 1: explicit per-item choice for each (above)
+- Zone 2: "y" to accept batch OR list items to expand
+- Zone 3: "y" to accept auto-routing OR list items to promote
+- Names, facts, premises in Zone 1 — anything wrong?
+
+Once confirmed, I proceed to Step 4b (cluster audit if not done) → Step 4c (eval data capture) → Step 5 (route).
+
+---
+
+[LEGACY FORMAT REFERENCE — only used if zone classification unavailable, e.g., persona-review.json missing AND consolidation predates v3.8:]
+
+### Ready for Documentation (Passed All Gates) — flat fallback
 
 | # | Type | Classification | Summary |
 |---|------|----------------|---------|
@@ -483,11 +580,17 @@ Please confirm accuracy before I proceed to documentation.
 
 **WAIT FOR USER CONFIRMATION before proceeding to Step 4c.**
 
-#### Step 4 — Verification Detail Floor (added v3.7 Apr 29 2026, MANDATORY)
+#### Step 4 — Verification Detail Floor (originally added v3.7, scoped v3.8 May 2 2026)
 
-Each conclusion in the verification view MUST include a per-conclusion narrative block. Single-line summaries + cluster IDs + persona-verdict labels are insufficient for accurate user verification — they assume more shared context than the user actually has at end-of-session.
+The Verification Detail Floor scales rigor with zone (per Step 6.5):
 
-**Required fields per conclusion (in addition to the table row):**
+| Zone | Floor requirement |
+|---|---|
+| **Zone 1** | **MANDATORY full Verification Detail Floor** — per-conclusion narrative block with all 5 fields (what happened, what's wrong, what fix does, why destination, persona challenges) |
+| **Zone 2** | 1-line summary + destination by default. Full floor available on user request ("expand C5, C7"). |
+| **Zone 3** | Destination + 1-line summary only. No floor. User can promote to Zone 1 to see full floor. |
+
+**Required fields for Zone 1 conclusions:**
 
 ```
 **[C-id] [Title]**
@@ -506,12 +609,16 @@ Each conclusion in the verification view MUST include a per-conclusion narrative
 ```
 
 **STOP and correct if you're:**
-- Presenting a verification view with single-line summaries + cluster IDs + persona-verdict labels only
-- Referencing a watch-list cluster ID without expanding what it contains
-- Asking the user to verify routing without first surfacing the source incident
-- Using compressed format because the table is "cleaner" — the user cannot verify what they cannot reconstruct
+- Presenting a Zone 1 conclusion without full Verification Detail Floor (Zone 1 = mandatory floor)
+- Mixing Zone 1 and Zone 2 in the same section of the verification view
+- Surfacing Zone 3 items in the user's main verification scroll (Zone 3 = single-line summary + "anything to promote?" prompt only)
+- Failing to apply zone classification (Step 6.5) before rendering Step 4
+- Skipping the Zone-1 cap check when Zone 1 has >5 items
+- Defaulting to "compressed format because the table is cleaner" for Zone 1 items — Zone 1 always gets the floor
 
-> **Why (Apr 29, 2026):** A parallel content-lab wrap-up applied a prose-expanded verification format (Verification Detail Floor template) and surfaced **4/4 consolidation errors** in conclusions C1-C4. The compressed format had passed all four through Step 4 unchallenged. User feedback: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Compressed format hides errors; verification under those conditions is performative. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md`.
+> **Why v3.7 (Apr 29 2026):** Compressed format passed 4/4 consolidation errors through Step 4 unchallenged in a parallel content-lab wrap-up. User: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Verification under those conditions is performative. The Detail Floor was the v3.7 fix.
+
+> **Why v3.8 amendment (May 2 2026):** v3.7 made the floor MANDATORY for ALL conclusions. Result: a single wrap-up with 14 conclusions (3 Zone-1-shape + 10 Zone-3-shape methodology codifications + many Noted) became 14× the cognitive load. User: *"my brain just fried and I just kind of want to give up."* The floor is right; the scope was wrong. v3.8 makes the floor's rigor scale with zone — so the user's attention scales with where their judgment actually matters. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md` (v3.7 evidence) + the May 2 wrap-up output that motivated v3.8 zones.
 
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
@@ -1059,7 +1166,62 @@ FOR EACH RAW SIGNAL:
      dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
      if significant, Memory if marginal.
 
-7. **If PASSES all gates + significance:** Extract with routing recommendation
+6.5. **Zone Classification (added v3.8 May 2 2026, MANDATORY):**
+
+   For every conclusion that passes gates and significance, classify into ONE of three zones. Each conclusion gets a `zone` field in the output. The zone determines how Step 4 surfaces it for user verification — directly affecting cognitive load.
+
+   **Zone 1 — Decisions Required (user judgment matters):**
+   Trigger any of:
+   - Persona challenged this conclusion (Auditor or Router issued a `challenge` verdict)
+   - Step 5.6 returned 2/3 borderline same-mechanism — surfaced for user verification
+   - Conclusion creates a NEW top-level watch-list cluster (not an increment to existing)
+   - Conclusion proposes a NEW root CLAUDE.md edit
+   - Conclusion proposes a plan amendment / plan-coverage gap flag
+   - Routing involves cross-repo edits or restructures an authoritative doc
+
+   Zone 1 conclusions get the full Verification Detail Floor (per Step 4) and explicit per-item user choice.
+
+   **Zone 2 — Routine Confirmations (mechanical routing):**
+   Trigger when:
+   - Existing-cluster sub-entry increment AND personas pass on this conclusion
+   - Watch-list increment with no scope challenge from either persona
+   - Memory MEMORY.md fact append where the destination is unambiguous
+   - Skills-level learning routing to an existing playbook section the user has already approved
+
+   Zone 2 conclusions get a 1-line summary + destination by default. User accepts the batch with a single confirmation; can expand individual items on demand.
+
+   **Zone 3 — Auto-routed (administrative):**
+   Trigger when:
+   - Conclusion documents a decision the user already made and approved IN-SESSION (e.g., methodology codification of a choice already locked into a workflow doc / decision.md / draft)
+   - Session-scoped observation that won't fire across sessions (no cross-session enforcement implied)
+   - Routing to a destination the user has already committed to during the session itself
+   - Conclusion is acknowledging a workflow rule the user explicitly stated and approved
+
+   Zone 3 conclusions DO NOT surface in the user's main verification scroll. Surface only as "Auto-routed N items to [destinations summary]. Anything to promote to Zone 1?" — a single yes/no.
+
+   **Classification questions to ask per conclusion:**
+   1. Does it encode a NEW cross-session enforcement (rule / hook / new cluster / plan amendment / CLAUDE.md edit)? → Zone 1 or Zone 2
+   2. Did either persona challenge it? → Zone 1 (override base classification)
+   3. Did Step 5.6 mark it as 2/3 borderline? → Zone 1 (override)
+   4. Does it document a decision already made and approved by the user IN-SESSION? → Zone 3
+   5. Could a future session's behavior change because of this? If NO → Zone 3
+   6. Is the destination unambiguous and the routing mechanical? → Zone 2
+
+   **Zone-1 cap rule:** if Zone 1 contains MORE THAN 5 items, surface to user at top of Step 4 verification view:
+
+   ```
+   ⚠️ Zone 1 cap exceeded: [N] items require your judgment.
+   This is high cognitive load. Options:
+   - (a) Triage all [N] now (estimated: ~[N×2]min)
+   - (b) Triage top-priority items now (you pick how many), shelve the rest as Noted
+   - (c) Treat all as Noted — accept consolidation defaults, no judgment exercised
+   ```
+
+   This prevents the "wall of decisions" failure mode where the user gives up because it's too much to review.
+
+   > **Why (May 2 2026):** A parallel content-lab/diligence wrap-up under v3.7 produced 14 conclusions + 4 persona challenges + 2 borderline calls + 18 Noted items. User reported: *"my brain just fried and I just kind of want to give up."* Diagnosis: the agent itself had cognitively differentiated the conclusions (its own ★Insight: *"the other 10 conclusions are methodology codifications for the new diligence engine, not failure-mode captures — different shape, different routing"*) but had no structural way to surface them differently. v3.7's Verification Detail Floor made every conclusion equally heavy regardless of whether the user's judgment was actually needed. v3.8 zones make the floor's rigor scale with materiality. Tier mismatch, not detail-level mismatch.
+
+7. **If PASSES all gates + significance:** Extract with routing recommendation (including `zone` field per Step 6.5)
 
 WRITE OUTPUT:
 
@@ -1083,6 +1245,8 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 **Gate Status:** ✅ PASSED
 **Classification:** [Code-level / Process-level (behavioral) / Process-level (operational) / Fact / Content-level]
 **Significance:** [✅ Future sessions would: repeat mistake / skip step / lose context] or [❌ Interesting but forgettable → Noted]
+**Zone:** [Zone 1 — Decisions Required / Zone 2 — Routine Confirmation / Zone 3 — Auto-routed]  ← v3.8 (Step 6.5)
+**Zone reason:** [one-line justification — e.g., "persona challenged" / "existing-cluster increment, personas pass" / "documents in-session-approved decision"]
 **Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
 
 **Trigger Conditions:** (for process-level)
