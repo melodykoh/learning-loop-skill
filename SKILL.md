@@ -1077,6 +1077,10 @@ FOR EACH RAW SIGNAL:
    - If origin matches but fix differs → check whether you've actually thought about the fix carefully, or whether you're inventing a parallel fix where W_N's existing fix would work. Default to W_N's fix unless you can articulate why it wouldn't apply.
    - If neither matches → propose new top-level watch-list entry with `Root cause` and `Fix` populated.
 
+   **STOP — Resolution-vs-Increment Check (added May 7, 2026):** Before proposing ANY watch-list increment OR new entry, ask: "Does this conclusion's routing destination structurally resolve the pattern (e.g., adds the rule to a workflow-step list, modifies a playbook, edits CLAUDE.md)?" If YES → DO NOT propose the watch-list increment in addition to the routing. Watch-list entries track incidents-without-fixes; the conclusion IS the fix, not an incident awaiting one. Skip the increment.
+
+   > Why (May 7, 2026): A wrap-up conclusion routed to Operations Playbook Step 5 with a structural fix simultaneously proposed a Cluster 3b watch-list increment. User pushback: *"if we're solving this issue with the routing why do we still increment the watchlist?"* Both consolidation and the persona panel pattern-matched to "Cluster N instance, increment" without checking whether the routing already resolves the pattern. This is a NEW failure category not in the a/c/d/g taxonomy — propose `redundant_increment_with_fix` for the Phase 1 eval taxonomy.
+
    Then continue with the in-session repetition check below.
 
    If a signal represents a mistake that an existing rule should have caught, or
