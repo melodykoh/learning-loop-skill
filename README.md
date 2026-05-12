@@ -175,7 +175,13 @@ v3 added: *"...and the system adapts to its environment rather than fighting it.
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
-| **v3.3** | Mar 3, 2026 | Significance thresholds (Gate 5), "Noted" routing, behavioral/operational split |
+| **v3.9** | May 12, 2026 | Removed false `/ce:compound` orchestration claims; added per-conclusion wedge-test recording (Step 6.6) — makes Judgment Ledger screening auditable |
+| v3.8 | May 2, 2026 | Tiered verification — Zone Classification (Step 6.5) + Zone-1 cap rule; scales floor rigor by zone |
+| v3.7 | Apr 29, 2026 | Verification Detail Floor (Step 4) + Same-Root-Cause Collapse Check (Step 5.6) in CONSOLIDATION_PROMPT |
+| v3.6 | Apr 29, 2026 | Enforcement-Gap Check (Step 5.5) + Skill Version Ship Verification STOP |
+| v3.5 | Apr 28, 2026 | Phase 1 Persona Panel — Trigger-Moment Auditor + Workflow-Step Router in shadow mode |
+| v3.4 | Apr 28, 2026 | Watch-list root-cause routing rewrite (CONSOLIDATION_PROMPT Mods 1-5) — cluster by root cause + fix |
+| v3.3 | Mar 3, 2026 | Significance thresholds (Gate 5), "Noted" routing, behavioral/operational split |
 | v3.2 | Mar 2, 2026 | Content wedge filter for Judgment Ledger |
 | v3.1 | Mar 2, 2026 | Session-scoped wrap-up, orphan surfacing, sharper content routing |
 | v3.0 | Feb 25, 2026 | Explicit invocation, two-mode model, auto-memory coexistence |
@@ -183,7 +189,7 @@ v3 added: *"...and the system adapts to its environment rather than fighting it.
 | v2.0 | Jan 24, 2026 | Type-specific quality gates, orchestration model |
 | v1.0 | Jan 23, 2026 | Proactive monitoring (failed — Claude can't sense context %) |
 
-Post-v3.3 enhancements: ideas cross-reference (Mar 6), skills-level routing (Mar 18), root cause check in consolidation (Apr 2).
+Pre-v3.4 micro-enhancements (not in the table — too granular): ideas cross-reference (Mar 6), skills-level routing (Mar 18), root cause check in consolidation (Apr 2), Step 1b Deferred Methodology Check (Apr 22), Step 5b reverse-check consumers gate (Apr 18), Resolution-vs-Increment STOP in CONSOLIDATION_PROMPT (May 7).
 
 ## Contributing
 

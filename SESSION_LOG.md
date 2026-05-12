@@ -6,6 +6,61 @@
 
 ---
 
+## Session: May 12, 2026 — v3.9 Remove `/ce:compound` Orchestration Claims + Per-Conclusion Wedge-Test Recording
+
+### Context
+
+User noticed two related concerns in the same conversation: (1) `/ce:compound` rarely fires during engineering sessions despite the skill description claiming to "ensure /ce:compound runs when it should," and (2) the Judgment Ledger has been silent in May 2026 (0 entries vs. 11 in April).
+
+### Investigation
+
+Audited `~/.claude/learning-captures/watch-list.md` (86KB, the canonical wrap-up accumulator) plus the lone `consolidation.md` artifact (May 11 env-credential session) plus every dated wrap-up reference in the watch-list (15+ wrap-ups Apr 15 → May 11).
+
+Key findings:
+1. **Zero matches** for `ce.compound | judgment ledger | wedge` across the entire 86KB watch-list. Across 15+ wrap-ups, the consolidation step never recorded a routing decision involving `/ce:compound` or Judgment Ledger — not "considered and rejected," not "passed to," not "wedge test applied." They were simply bypassed.
+2. `/ce:compound` *did* fire on May 11 producing two `docs/solutions/` entries in hanzi-dojo — but invoked directly by the user mid-session during the coding work, not orchestrated by learning-loop wrap-up.
+3. JL entry count: April 11, May 0 (12 days in). Most April entries were user-originated content-shift reflections, NOT wrap-up extractions. Examples: Show Me Your Mech (Apr 30), Country of Geniuses (Apr 30), Gate Template Stress Test (Apr 22), Interpersonal Context Wall (Apr 21).
+
+User reframe (critical):
+> "Historically we had surfaced judgment ledger entries because of reflection from working sessions with AI directly. So I think that's why originally it was designed this way... Some of the stuff that you notice in terms of the ledger entry were directly from me, meaning I have a content idea, let's write it in. They were not originated from learning loop wrap."
+
+This split the diagnosis: the wrap-up was never the *primary* JL capture path — it's a *backstop* for the rare worldview shift that surfaces operationally. The silence is partly signal-accurate to a May work-mix dominated by meta-engineering (skill iteration, persona panel, permissions hardening, x-article protocol codifications).
+
+### Problem
+
+Two distinct mechanism gaps:
+
+1. **`/ce:compound` orchestration claim is a documentation lie.** SKILL.md line 18, 88, the "Code-Level Orchestration" section (~30 lines), and routing tables all claim learning-loop orchestrates `/ce:compound`. In practice, the user invokes `/ce:compound` directly mid-session (peak-fresh context), and learning-loop's role is at most a one-line nudge at wrap-up. Forcing the orchestration claim into the skill creates phantom expectations and bloat.
+
+2. **Wedge-filter decisions are silent.** Even when wrap-up runs and a conclusion could plausibly be content-level, no consolidation records the wedge-test rationale. The user has no visibility into whether the filter correctly screened or never fired — those two failure modes look identical to silence.
+
+### Decision
+
+Workstream C (orchestration cleanup) + Workstream D (wedge-test recording) ship together as v3.9. Workstreams A (scanner recurrence test) and B (watch-list auto-promotion) deferred to separate sessions per the implementation plan at `claude-skills/plans/2026-05-12-learning-loop-mechanism-refinement.md`.
+
+Key design choices made in this conversation:
+
+- **`/ce:compound` stays user-invoked, not built into learning-loop.** Code-level capture wants peak-fresh context; wrap-up timing loses fidelity. Building orchestration into learning-loop would duplicate instinct the user already exercises correctly. Documentation honesty is the cleanest fix.
+- **Judgment Ledger backstop, not primary path.** Wedge test runs at wrap-up as a per-conclusion recorded decision (Pass/Fail/N/A + one-line reason). Primary JL capture stays user-originated from in-session reflection. The skill's framing was overstating wrap-up's role — corrected.
+- **Compact-as-wrap-up trigger dropped.** Investigated whether a hook could intercept `/compact` or `/clear`. Confirmed (per prior investigations) that hooks cannot fire on these commands. Resolution: user behavioral discipline ("run wrap-up before compact/clear") rather than skill infrastructure.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Line 18 (Purpose), line 60 (User Verification list), line 88 (Core Insight), lines 744 + 1742 (routing tables), lines 1548-1580 (replaced "Code-Level Orchestration" section with "Code-Level Capture: User-Invoked, Not Orchestrated"), line 1877 (Key Design Decisions). Net -14 lines (orchestration block was bulkier than honest replacement). |
+| SKILL.md | New Step 6.6 in CONSOLIDATION_PROMPT — Wedge-Test Recording (MANDATORY for Zone 1/Zone 2 conclusions). Output schema: new `Wedge test:` field after `Route to:` line. |
+| SKILL.md | Heading updated from "v3.4" to "v3.9" (had been stale for 6 versions). |
+| README.md | Routing table (line 75), Key Design Decisions (line 128), "What Is /ce:compound?" section (lines 154-160) all reframed to user-invoked language. Version History backfilled with v3.4-v3.9 (had been stale at v3.3). |
+
+### Open Threads
+
+- **Workstream A (scanner recurrence test):** Scanner sub-agent will read watch-list before flagging signals, applying the test *"If a fix were in the right place, would this incident have happened again?"* Novel single-incident signals route to a "Dropped Signals" footer instead of promoting to candidate watch-list entries. Verification requires a synthetic test session with 5 known-categorization signals.
+- **Workstream B (watch-list auto-promotion):** When watch-list accumulation hits a threshold, wrap-up auto-drafts a remediation plan and saves it to the plan-execution-pipeline plans directory. 4 Open Questions blocking: threshold definition, plan landing location, when auto-promotion fires, Fix-field specificity bar.
+- **Repo workflow gap:** README Version History table had silently been stale for 6 versions (v3.3 → v3.4-v3.8 missed) despite the existing doc-companion-check hook. Hook verifies *that* README.md was touched, not *what* part. Discussion underway on whether to extend the hook to check for version-row insertion when commit message starts with `vX.Y:`.
+
+---
+
 ## Session: May 2, 2026 — v3.8 Tiered Verification (Zone Classification + Zone-1 Cap)
 
 ### Context

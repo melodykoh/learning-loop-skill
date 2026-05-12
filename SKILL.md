@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.4
+# learning-loop Skill v3.9
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
