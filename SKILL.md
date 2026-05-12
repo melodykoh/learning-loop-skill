@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.9
+# learning-loop Skill v3.10
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
@@ -161,6 +161,11 @@ Cross-reference against conversation context:
 - If confirmed → incorporate into your signal list
 - If contradicted or unverifiable → discard
 
+SECOND: Read ~/.claude/learning-captures/watch-list.md in full (v3.9 May 12 2026).
+Note the active clusters (W1.*, W4, W7.*, etc.) and the Fix field for each. You will
+use this list to apply the RECURRENCE TEST below before deciding whether any signal
+reaches main output or routes to the Dropped Signals footer.
+
 SCAN FOR THESE RAW SIGNALS:
 1. "Tried X, didn't work because Y" — failed attempts with reasons
 2. "User corrected assumption about Z" — pushback or corrections
@@ -176,11 +181,44 @@ FOR EACH SIGNAL:
 - Include enough context to be useful even after compaction
 - Quote relevant conversation excerpts where possible
 
+APPLY THE RECURRENCE TEST (v3.9 May 12 2026, MANDATORY) before deciding where each
+candidate signal lands:
+
+Test phrasing: *"If a fix were in the right place (per the matching watch-list entry's
+Fix field), would this incident have happened again?"*
+
+Four outcomes:
+
+1. **MATCH — same-type recurrence with precedent.** Signal matches an existing
+   watch-list entry's root cause + fix shape AND incident happened in this session
+   even once. The fix isn't in place yet, so this is evidence the underlying issue
+   persists. → **SURFACE in main signal output**, tagged with the matching cluster
+   ID (e.g., "W1.b incident", "W7.b incident").
+
+2. **MATCH — literally same rule, already codified.** Signal duplicates an already-
+   codified rule (the Fix field shows "shipped" or links to a hook/reference that
+   exists). The correct response depends on whether enforcement was the gap.
+   → If enforcement gap is the root cause, **SURFACE as evidence the codified rule
+   isn't firing.** Otherwise fold as a routine increment into the existing cluster —
+   do NOT create a new signal.
+
+3. **NO MATCH — novel single-incident.** Signal has no matching watch-list entry
+   AND appeared only once in this session. → **DROP to "Dropped Signals" footer**
+   with one-line description for transparency. Do NOT promote to main signal output.
+   Rationale: capture-without-action is debt; we want recurrence evidence before
+   adding to the watch-list.
+
+4. **NO MATCH — multi-incident within this session.** Signal appeared 2+ times in
+   this session even with no prior watch-list precedent. → **SURFACE in main signal
+   output** as a new candidate pattern (one session is enough evidence when
+   multi-incident).
+
 DO NOT:
 - Draw conclusions about what "should" happen
-- Apply quality gates (that's wrap-up's job)
+- Apply quality gates beyond the recurrence test (wrap-up handles quality/significance)
 - Route to destinations (that's wrap-up's job)
-- Filter out signals that seem minor (wrap-up will triage)
+- Filter out signals other than via the recurrence test above (single-incident
+  no-precedent goes to Dropped Signals footer, NOT silently discarded)
 
 WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/scan-NNN.md:
 
@@ -189,18 +227,32 @@ captured: [ISO timestamp]
 session_id: [from path]
 mode: scan
 context_state: [Full / Partial — has compaction happened?]
-signals_found: [total]
+signals_found: [total signals in main output]
+signals_dropped: [count of single-incident no-precedent signals dropped to footer]
 ---
 
 ## Raw Signals
 
 ### 1. [Signal Type]: [Brief Title]
 **Status:** [Observed / UNRESOLVED hypothesis / User-corrected]
+**Recurrence:** [Cluster match: W_N.x | Multi-incident novel | Enforcement-gap on shipped rule]
 **Quote:** "[Relevant quote from conversation]"
 **Detail:** [What happened, what was tried, what was observed]
 
 ### 2. [Signal Type]: [Brief Title]
 ...
+
+## Dropped Signals (single-incident, no precedent)
+
+For transparency. These were observed but did not pass the recurrence test (no
+matching watch-list cluster AND single-incident in this session). If any recur
+in a future session, they'll surface then.
+
+### 1. [Brief description]
+**Quote:** "[Conversation excerpt]"
+**Why dropped:** Single incident, no matching watch-list entry.
+
+### 2. ...
 
 ## Scratch Lines Incorporated
 [List which scratch lines were confirmed and included]

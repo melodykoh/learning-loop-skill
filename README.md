@@ -175,7 +175,8 @@ v3 added: *"...and the system adapts to its environment rather than fighting it.
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
-| **v3.9** | May 12, 2026 | Removed false `/ce:compound` orchestration claims; added per-conclusion wedge-test recording (Step 6.6) — makes Judgment Ledger screening auditable |
+| **v3.10** | May 12, 2026 | SCANNER_PROMPT recurrence test — scanner reads watch-list before flagging signals, drops single-incident-no-precedent signals to a Dropped Signals footer, surfaces same-type recurrences tagged with cluster ID; raises capture bar upstream |
+| v3.9 | May 12, 2026 | Removed false `/ce:compound` orchestration claims; added per-conclusion wedge-test recording (Step 6.6) — makes Judgment Ledger screening auditable |
 | v3.8 | May 2, 2026 | Tiered verification — Zone Classification (Step 6.5) + Zone-1 cap rule; scales floor rigor by zone |
 | v3.7 | Apr 29, 2026 | Verification Detail Floor (Step 4) + Same-Root-Cause Collapse Check (Step 5.6) in CONSOLIDATION_PROMPT |
 | v3.6 | Apr 29, 2026 | Enforcement-Gap Check (Step 5.5) + Skill Version Ship Verification STOP |

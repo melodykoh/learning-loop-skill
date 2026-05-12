@@ -6,6 +6,50 @@
 
 ---
 
+## Session: May 12, 2026 — v3.10 SCANNER_PROMPT Recurrence Test (Workstream A)
+
+### Context
+
+Same-day continuation of the v3.9 ship. Implementation plan at `claude-skills/plans/2026-05-12-learning-loop-mechanism-refinement.md` defined Workstream A as "scanner reads watch-list, applies recurrence test, drops novel single-incident signals to a footer." User's framing of the underlying problem from the 2026-05-12 conversation:
+
+> "Single if it's single incident ever meaning is only happened in the session once and has no precedent of past sessions based on watch list entry, then don't reach scan output, but if it's happened in past sessions based on watch list entry and it happen again today once then it should be surfaced. Because that means that the model plus the harness is still making the same type of mistake. And the judging for this is actually the same as the routing logic, meaning this is the same type of mistake versus this is literally the same mistake — i.e. if a fix were in place in the right place, would this have happened again?"
+
+The motivating problem: wrap-ups had become heavy, the user was punting them, accumulated scans grew, and the cycle compounded. The structural fix is raising the scan-time capture bar so the wrap-up batch is smaller upstream — capture-without-action is debt, not safety.
+
+### Investigation (verification design)
+
+Plan called for a synthetic test session with 5 known-categorization signals. Built fixture at `/tmp/learning-loop-scanner-test-2026-05-12/test-session.md` (14-turn transcript) plus an expected-output spec with 8 acceptance criteria. The 5 signals were designed to exercise the four recurrence-test outcomes:
+- 2 known-recurring signals (matching W1.* and W7.* clusters in current watch-list) → expected to MATCH and surface tagged with cluster IDs
+- 1 multi-incident novel signal (absolute-vs-relative path confusion, 2 incidents same session, no precedent) → expected to surface as candidate pattern
+- 2 single-incident novel signals (aesthetic preference + tool-ordering tip) → expected to drop to Dropped Signals footer
+
+Sub-agent (general-purpose) ran the v3.10 SCANNER_PROMPT verbatim with adapted input/output paths. All 8 acceptance criteria passed on first run. The agent also exceeded the bar in two ways: (a) it matched signal 1 to the most-specific sub-ID (W1.r-pre-send) rather than the generic W1.a, (b) it noted that the Stop hook did NOT fire in the synthetic session — accurate observation, not a hallucination.
+
+### Decision
+
+Ship as v3.10 (same day as v3.9 but separate minor version, matching the v3.6/v3.7 same-day-separate-commit precedent). Workstream B (watch-list auto-promotion) remains blocked on Open Questions Q1-Q4 in the implementation plan.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | SCANNER_PROMPT (around line 152): added SECOND step (read watch-list.md before scanning); added APPLY THE RECURRENCE TEST block with 4 outcomes between FOR EACH SIGNAL and DO NOT; updated DO NOT to allow filtering only via the recurrence test; updated output schema to include `signals_dropped` frontmatter field, `Recurrence:` per-signal field, and "## Dropped Signals" footer section. |
+| SKILL.md | Heading updated from "v3.9" to "v3.10". |
+| README.md | Version History: new v3.10 row. |
+| SESSION_LOG.md | This entry. |
+
+### Verification artifact
+
+`/tmp/learning-loop-scanner-test-2026-05-12/scan-001.md` is the actual sub-agent output, retained for reference. Compared against `expected-output.md` in the same directory: all 8 acceptance criteria passed.
+
+### Behavioral implications
+
+Going forward, scans should produce SHORTER main outputs (only recurring patterns + multi-incident novels) and longer Dropped Signals footers. This is the desired behavior — capture-without-action was the bloat source. Wrap-up batches will correspondingly shrink because raw signals fed into consolidation are pre-filtered for recurrence evidence.
+
+Edge case to monitor: if a genuinely-novel-and-important pattern appears single-incident in the first session it occurs, it'll be dropped to the footer. The user noted this is intentional ("we want recurrence evidence before adding to the watch-list") — the cost of capture-without-action exceeds the cost of waiting one more session for recurrence to confirm the pattern is real.
+
+---
+
 ## Session: May 12, 2026 — v3.9 Remove `/ce:compound` Orchestration Claims + Per-Conclusion Wedge-Test Recording
 
 ### Context
