@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.10
+# learning-loop Skill v3.11
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
@@ -514,6 +514,17 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 
 [Brief summary of cluster audit result + any new entries proposed. Single paragraph or compact table.]
 
+[IF Mod 5 auto-drafted any plans this wrap-up (clusters that met BOTH gates: ≥5 sub-IDs AND no active plan), surface as Zone-3-style single-line notification — NEVER as Zone 1 decision:]
+
+```
+✓ Auto-drafted plans (matured clusters, v3.11 Mod 5):
+  - <Cluster ID> → <plan path> (N Open Qs)
+  - <Cluster ID> → <plan path> (N Open Qs)
+Review when ready; promote to `ready-for-autonomous` after answering any Open Questions.
+```
+
+[/IF]
+
 ---
 
 ### Resolved Hypotheses ([H] total)
@@ -695,31 +706,57 @@ Before routing, run a cluster check on the active watch-list:
 
 Skip this step entirely if active entry count ≤15 AND no fix-cluster ≥3.
 
-**Mod 5 — Threshold-met → auto-draft plan in plan-execution-pipeline schema:**
+**Mod 5 — Threshold-met → child sub-agent auto-drafts plan (v3.4 Apr 28, refined v3.11 May 12 2026):**
 
-When any cluster reaches its escalation threshold (count ≥ 2 or 3 depending on entry), the wrap-up sub-agent generates a draft plan file conforming to `~/Documents/claude-projects/Personal/plan-execution-pipeline/schema/plan-schema.md`. This replaces the prior "route to destination location" pattern with a structured plan-pipeline handoff.
+When a watch-list cluster meets BOTH gates, spawn a child sub-agent to draft a plan in PEP schema:
 
-Plan generation contents:
+1. **Maturation gate (v3.11):** ≥5 sub-IDs in the cluster. Tightened from the original v3.4 thresholds (2 or 3) per the May 12 2026 user directive — recurrence evidence is the threshold, not first-pattern speculation.
+2. **No-active-plan gate (v3.11):** no plan currently exists for this cluster. Verify both:
+   - Grep cluster ID (e.g., `W7.c`) across known plan directories: `~/Documents/claude-projects/claude-skills/plans/`, `~/.claude/plans/`, `~/Documents/claude-projects/Personal/*/plans/`, `~/Documents/claude-projects/Personal/plan-execution-pipeline/plans/`
+   - Check the cluster's Fix field for an explicit plan-path reference (e.g., "see plan at /path/to/X.md")
+
+When BOTH gates pass, spawn a **child sub-agent** with `PLAN_DRAFTER_PROMPT` (see prompt block alongside CONSOLIDATION_PROMPT). The main wrap-up sub-agent does NOT do the drafting work — child sub-agent extraction keeps the main wrap-up context clean (matches the v3.5 persona-panel architecture).
+
+The child sub-agent receives: cluster ID + cluster header + Fix field + all sub-entries + PEP plan schema. It parses Fix for plan location, drafts the plan with each historical incident as a Success Criteria checkbox, handles ambiguous Fix-field areas via `## Open Questions (blocking)` section, writes the file, and reports back.
+
+Plan content schema:
 
 | Plan Field | Source from watch-list cluster |
 |---|---|
 | `## Objective` | Cluster's root cause + fix in one paragraph |
 | `## Success Criteria` | **Every historical incident reframed as a test case checkbox**: "Would this fix have prevented incident W_N.x ([date], [transcript ref])?" Each W_N sub-entry becomes a criterion. The fix must trace through all test cases and demonstrate robustness against all of them. |
 | `## Context` | Aggregated incident notes + transcript references + dates + N-failure count + cognitive/process origins |
+| `## Open Questions (blocking)` (v3.11) | Every plan section that the drafter couldn't fill with high confidence from the Fix field. Blocks transition to `ready-for-autonomous` until user fills them. The drafter must never fabricate file paths or technical specifics not present in the Fix field. |
 | YAML `status` | `draft` |
 | YAML `plan_kind` | `executable` (queues into autonomous pipeline) or `pr-spec` if scoped narrowly |
-| YAML `priority` | Based on cluster size + criticality (W4 retrofit = high; smaller clusters = medium/low) |
-| YAML `priority_rationale` | "[N] failure incidents documented across [M] sessions; rule has demonstrably failed under [framings]" |
+| YAML `priority` | Based on cluster size: ≥10 sub-IDs → high; 5-9 → medium |
+| YAML `priority_rationale` | "Watch-list cluster `<ID>` matured to N sub-IDs; fix unimplemented as of `<date>`" |
 | YAML `created` | Today's date |
-| YAML `project_bucket` | Inferred from incident locations (skill, project, etc.) |
+| YAML `project_bucket` | Inferred from chosen plan directory |
 
-Plan file location: `~/Documents/claude-projects/Personal/plan-execution-pipeline/plans/[YYYY-MM-DD]-[cluster-slug].md` (or repo's plans/ folder if pipeline tooling specifies elsewhere).
+Plan file location (Fix-field auto-routing, v3.11):
+- Fix field mentions `~/.claude/` paths → `~/.claude/plans/`
+- Fix field mentions `~/Documents/claude-projects/claude-skills/` → `~/Documents/claude-projects/claude-skills/plans/`
+- Fix field mentions `~/Documents/claude-projects/Personal/<X>/` → `~/Documents/claude-projects/Personal/<X>/plans/`
+- No file path mentions in Fix → fallback to `~/Documents/claude-projects/claude-skills/plans/` (most common case)
 
-**Why Mod 5 exists (Apr 28 2026 — Melody design directive):** Prior mechanism routed threshold-met items to a "destination location" without producing a plan. The W4 retrofit plan was hand-drafted weeks after sprawl was already visible. Going forward: threshold = automatic plan generation = pipeline queue. This makes the fix author's job tractable — they receive a plan with every historical incident as a test case, not just a vague "go fix the recurring drift."
+Filename: `YYYY-MM-DD-<cluster-id>-<short-slug>.md`.
+
+The main wrap-up sub-agent surfaces drafted plans in Step 4's **Cluster + Watch-List State** section as Zone-3-style single-line notifications — NEVER as Zone 1 decisions (would defeat the cognitive-load-reduction goal). Render shape:
+
+```
+✓ Auto-drafted plans (matured clusters, v3.11):
+  - W7.c → ~/.claude/plans/2026-05-15-w7c-auto-mode-classifier.md (3 Open Qs)
+  - W37 → ~/Documents/claude-projects/claude-skills/plans/2026-05-15-w37-hook-false-positive.md (0 Open Qs)
+Review when ready; promote to `ready-for-autonomous` after answering any Open Questions.
+```
+
+**Why v3.4 → v3.11 refinement (May 12 2026):** Original v3.4 thresholds (count ≥2 or 3) were tuned aggressively to catch sprawl early. In practice, drafting plans on thin evidence created speculative debt. User directive (May 12): *"we want recurrence evidence before adding to the watch-list."* Tightening to ≥5 sub-IDs + no-active-plan aligns Mod 5 with the Workstream A recurrence-test philosophy. Fix-field auto-routing + Open Questions handling were also missing — plans landed in inconsistent locations and over-fabricated specifics from vague Fix fields. Child sub-agent extraction matches the v3.5 persona-panel architecture and keeps wrap-up context lean.
 
 **STOP and surface if:**
-- A cluster hits threshold but plan auto-generation is skipped (default action is to generate, not defer)
-- The auto-drafted plan is missing test cases for incidents present in the watch-list cluster (every sub-ID must become a checkbox)
+- A cluster hits BOTH gates but the PLAN_DRAFTER_PROMPT child sub-agent is not spawned (default action is to draft, not defer)
+- The child sub-agent reports back without writing a file (means the drafter failed or refused to run)
+- The auto-drafted plan is missing test cases for incidents present in the watch-list cluster (every sub-ID must become a Success Criteria checkbox)
 
 #### Step 4c: Capture Phase 1 Eval Data (added v3.5 Apr 28 2026)
 
@@ -1467,6 +1504,109 @@ EXAMPLES from past sessions (illustrative — rule names in some cases have sinc
 - 2026-04-24 C2 (`/schedule` remote vs `CronCreate` local) was routed to feedback memory → could have routed to a "tool selection" section.
 
 WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "workflow_step_router".
+```
+
+### PLAN_DRAFTER_PROMPT (added v3.11 May 12 2026)
+
+Spawned as a child sub-agent from Step 4b Mod 5 when a watch-list cluster meets BOTH gates (≥5 sub-IDs AND no active plan). Drafts a remediation plan conforming to the PEP plan schema, routing the plan file to the directory most-referenced in the cluster's Fix field. Permissive quality bar — ambiguous Fix-field areas surface as Open Questions in the drafted plan rather than fabricated specifics.
+
+```
+You are the watch-list cluster auto-drafter (PLAN_DRAFTER_PROMPT, v3.11).
+
+A cluster in ~/.claude/learning-captures/watch-list.md has matured (≥5 sub-IDs)
+AND has no active plan. Your job is to draft a remediation plan conforming to
+the PEP plan schema.
+
+INPUTS (passed by caller — do NOT read these from disk yourself, use what's
+passed in):
+- Cluster ID (e.g., "W7.c")
+- Cluster header text (description + root cause)
+- Cluster Fix field (verbatim)
+- All sub-entries (W_N.a, W_N.b, ...) with date + observation + evidence
+- PEP plan schema (full content of plan-schema.md)
+
+YOUR JOB:
+
+1. PARSE the Fix field for file path mentions to determine plan location:
+   - Mentions of `~/.claude/` paths → plan goes to ~/.claude/plans/
+   - Mentions of `~/Documents/claude-projects/claude-skills/` paths
+     → ~/Documents/claude-projects/claude-skills/plans/
+   - Mentions of `~/Documents/claude-projects/Personal/<X>/` paths
+     → ~/Documents/claude-projects/Personal/<X>/plans/
+     (create the plans/ directory if it doesn't exist)
+   - No file path mentions → fallback: ~/Documents/claude-projects/claude-skills/plans/
+
+   If multiple repos referenced, choose the most-frequently-mentioned one.
+   Record your routing reasoning in the plan's Context section.
+
+2. DRAFT a plan conforming to the PEP schema:
+
+   YAML frontmatter:
+   - status: draft
+   - plan_kind: executable
+   - priority: derived — ≥10 sub-IDs → high; 5-9 → medium
+   - priority_rationale: "Watch-list cluster <ID> matured to N sub-IDs;
+     fix unimplemented as of YYYY-MM-DD"
+   - robustness_grade: ungraded
+   - created: today's date
+   - last_hardened: —
+   - execution_surface: local-ralph-loop (default; revise if Fix field
+     suggests otherwise)
+   - project_bucket: derive from chosen plan directory
+   - defer_reason: —
+   - unblock_condition: —
+
+   Plan body sections:
+   - Title: "<Cluster ID>: <one-line description of fix>"
+   - ## Objective: paragraph derived from Cluster header (root cause + fix
+     in one paragraph). Quote Fix field verbatim if it states the fix clearly.
+   - ## Success Criteria: EVERY historical incident becomes a checkbox:
+     "[ ] Would this fix have prevented W_N.x (<date>, <one-line context>)?"
+     One row per sub-ID. Test verification: each sub-ID's evidence must be
+     traceable through the proposed fix.
+   - ## Context: aggregated incident notes + dates + N-failure count +
+     cognitive/process origins (from cluster header). Include your plan-
+     location routing reasoning here: "Plan landed in <dir> because Fix
+     field references <paths>."
+   - ## Decision Tree: derive from Fix field if specific. If vague, mark
+     this entire section as Open Question Q-DT.
+   - ## Open Questions (blocking): every field above that you couldn't fill
+     with high confidence from the Fix field becomes a Q here. Be explicit:
+     "Q1: Fix field doesn't name a target file — what specific file/mechanism
+     should the remediation modify?"
+     Block transition to ready-for-autonomous until user fills them.
+   - ## Escalation Protocol: standard PEP shape — user must answer Open
+     Questions before transition to ready-for-autonomous; any Decision Tree
+     branch with verification failure escalates as A/B question.
+
+3. WRITE the plan to the resolved directory with filename:
+   YYYY-MM-DD-<cluster-id>-<short-slug>.md
+   (e.g., 2026-05-15-w7c-auto-mode-classifier.md)
+
+4. REPORT BACK with structured output (single short message):
+   - Cluster ID drafted
+   - Plan path (absolute)
+   - Open Questions count
+   - One-line summary of plan's main work
+
+CRITICAL CONSTRAINTS:
+
+- Use Read and Write tools. Do NOT spawn nested sub-agents (you ARE the
+  child sub-agent).
+- Do NOT edit any file outside the resolved plan path.
+- Do NOT fabricate file paths, function names, or technical specifics
+  not present in the Fix field. Always prefer marking as Open Question
+  over guessing. Hallucinated specifics in a draft plan are worse than
+  honest Open Questions.
+- Do NOT pollute caller context with verbose intermediate output. One
+  structured report-back message is the only output the caller needs.
+- If the Fix field references an existing plan path (e.g., "see plan at
+  /path/to/X.md"), STOP and report back: "Existing plan referenced in
+  Fix field; no draft needed. Path: <referenced path>." The caller
+  should have caught this in the no-active-plan gate, but defend in
+  depth.
+- The output plan must conform to the PEP schema passed to you. Validate
+  against required frontmatter fields before writing.
 ```
 
 ### PHASE_1_DECISION_REPORT_PROMPT (added v3.5 Apr 28 2026)

@@ -6,6 +6,67 @@
 
 ---
 
+## Session: May 12, 2026 — v3.11 Watch-List Auto-Promotion Refined (Workstream B)
+
+### Context
+
+Workstream B from the 2026-05-12 mechanism-refinement plan. Implementation plan at `~/Documents/claude-projects/claude-skills/plans/2026-05-12-learning-loop-mechanism-refinement.md`. Initially scoped as "build watch-list auto-promotion from scratch," but pre-implementation investigation discovered that v3.4 (Apr 28 2026) had already shipped Mod 4 + Mod 5 with substantial scaffolding for auto-draft. Workstream B refined the existing logic rather than building new — same end-state, less code, cleaner architecture.
+
+### Locked decisions (Q1-Q4 from 2026-05-12 conversation)
+
+| Q | Resolution |
+|---|---|
+| Q1 Threshold | Maturation-only — ≥5 sub-IDs AND no active plan (tightened from v3.4's "count ≥2 or 3 depending on entry") |
+| Q2 Plan location | Auto-routed by Fix field — parse Fix for file path mentions, plan lands in the most-referenced repo's `plans/` directory; fallback to `claude-skills/plans/` |
+| Q3 Trigger timing | Inside wrap-up at Mod 5, **but plan-drafting work runs in a separate child sub-agent** so main wrap-up context stays clean. Surfaced as Zone-3-style single-line notification in Step 4's Cluster + Watch-List State section. |
+| Q4 Quality bar | Permissive — always draft when gates pass; ambiguous Fix-field areas surface as `## Open Questions (blocking)` in the drafted plan body. Never fabricate specifics. |
+
+### Investigation findings (v3.4 → v3.11 gap analysis)
+
+| Existing v3.4 Mod 5 | Gap vs Q1-Q4 decisions | v3.11 refinement |
+|---|---|---|
+| Threshold "count ≥2 or 3 depending on entry" | Too aggressive; drafts plans on thin evidence | Raise to ≥5 sub-IDs, uniform across clusters |
+| No existing-plan check | Could draft duplicate plans | Add no-active-plan gate (grep cluster ID + Fix-field plan-path check) |
+| Location: "PEP dir or repo's plans/ folder if specified" | Underspecified; inconsistent in practice | Explicit Fix-field parsing: `~/.claude/` → `~/.claude/plans/`, `claude-skills/` → `claude-skills/plans/`, `Personal/<X>/` → `Personal/<X>/plans/`, fallback to `claude-skills/plans/` |
+| Drafting runs in main wrap-up sub-agent inline | Bloats main wrap-up context | Extract to child sub-agent (PLAN_DRAFTER_PROMPT) |
+| Surface unspecified for successful drafts | User had no visibility on drafted plans | Zone-3-style single-line notification in Step 4 |
+| Permissive: every incident → criterion (good); no ambiguity handling | Drafter would over-fabricate when Fix vague | Add `## Open Questions (blocking)` section; drafter prohibited from fabricating specifics |
+
+### Verification
+
+Synthetic test fixture at `/tmp/learning-loop-scanner-test-2026-05-12/workstream-b/test-watch-list.md` with 4 clusters:
+- T1 (6 sub-IDs, specific Fix referencing `~/.claude/skills/learning-loop/SKILL.md`) → expect auto-draft to `~/.claude/plans/` sandbox
+- T2 (5 sub-IDs, vague Fix) → expect auto-draft to `claude-skills/plans/` sandbox with ≥3 Open Questions
+- T3 (3 sub-IDs) → below threshold, drafter not invoked (gate-only test)
+- T4 (7 sub-IDs, Fix references existing plan path) → expect defensive STOP
+
+A general-purpose sub-agent invoked the v3.11 PLAN_DRAFTER_PROMPT against T1, T2, T4 with sandbox path redirection. All 12 acceptance criteria passed:
+- T1: file written to `output/dot-claude-plans/`, 6 Success Criteria (one per sub-ID), 4 Open Questions (all substantive engineering questions — scope of T1.f, source-of-truth for session-start timestamp, blocking-vs-print behavior, hook-time staleness scope), priority `medium` (correct per 5-9 sub-ID band)
+- T2: file written to `output/claude-skills-plans/`, 5 Success Criteria, 5 Open Questions (Q1 enumerates 5 candidate mechanisms, Q2 enumerates 4 candidate target files — drafter chose enumeration over fabrication), Decision Tree marked as blocking Q-DT
+- T4: STOP returned correctly; existing plan path detected and reported; zero files written
+
+The T1 Open Questions count (4) exceeded my initial acceptance criterion of ≤2. On review, the 4 Qs were all substantive engineering questions, not over-hedging — the Fix field, while specific-looking, did contain real ambiguities (scope of scan-mode, timestamp source, etc.). Revised the criterion to "substantive engineering questions, not hedge-padding"; test passed in design intent.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Mod 5 in Step 4b: rewrote with new gates (≥5 + no-active-plan), Fix-field routing logic, Open Questions handling, and child sub-agent extraction. Kept the historical-incident-as-Success-Criteria pattern from v3.4. |
+| SKILL.md | New `### PLAN_DRAFTER_PROMPT (added v3.11 May 12 2026)` block inserted after WORKFLOW_STEP_ROUTER_PROMPT (~90 lines). Includes input contract, parsing logic, plan template, write rules, report-back schema, and critical constraints (no nested sub-agents, no fabrication, defensive STOP for existing-plan references). |
+| SKILL.md | Step 4 Cluster + Watch-List State template: added Zone-3-style render block for auto-drafted plans. |
+| SKILL.md | Heading bumped to v3.11. |
+| README.md | Version History: new v3.11 row at top. |
+
+### Open thread for future cleanup
+
+Cumulative SKILL.md growth across today's three minor versions: +192 lines (v3.9 baseline 1886 → v3.11 2078). Growth is functional — each version added meaningful capability — but worth a future pass to compress historical "Why" prose blocks where the rationale is now redundant with later context. Not blocking; documenting for awareness.
+
+### Architectural alignment
+
+The four v3.11 decisions form a coherent design: every gate prefers waiting-for-recurrence-evidence over speculative action. Maturation-only waits for evidence (vs aging-based). Permissive-with-Open-Questions converts the plan into a structured ask, not a guess. Auto-routed-by-Fix-field uses Fix-field as evidence of where the work lives. Separate child sub-agent keeps the main wrap-up context clean — matching the v3.5 persona-panel architecture. Together they answer the May 12 user concern *"capture-without-action is debt"*: auto-promotion fires only when evidence is unambiguous, and the resulting plan honestly surfaces what's unknown.
+
+---
+
 ## Session: May 12, 2026 — v3.10 SCANNER_PROMPT Recurrence Test (Workstream A)
 
 ### Context
