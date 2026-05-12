@@ -15,7 +15,7 @@ allowed-tools:
 
 # learning-loop Skill v3.4
 
-**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Ensures `/ce:compound` runs when it should, and nothing valuable is lost to compaction or `/clear`.
+**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
 ---
 
@@ -57,7 +57,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 **Before routing ANY learning to a destination:**
 1. **Present a summary** of captured/consolidated signals to the user
 2. **Explicitly ask for verification** — "Does this accurately reflect what happened?"
-3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, Memory, or running `/ce:compound`
+3. **Wait for user confirmation** before routing to CLAUDE.md, Judgment Ledger, or Memory
 
 > **Why this exists (Jan 29, 2026):** AI-generated captures can contain hallucinations — wrong names, fabricated premises, misremembered details. A capture once got the user's husband's name wrong and claimed constraints that didn't exist.
 
@@ -85,7 +85,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 
 Context compaction and `/clear` destroy details. Files persist. This skill ensures:
 1. **Learnings are captured** before compaction erases them
-2. **The right tools get invoked** (`/ce:compound` for code-level, direct edits for process/content)
+2. **The right tool is named for the right capture type** — process/content capture happens in wrap-up; code-level capture is user-invoked `/ce:compound` mid-session (this skill does NOT orchestrate `/ce:compound`)
 3. **Nothing falls through the cracks** — even when you forget to document
 
 ---
@@ -741,7 +741,7 @@ After user confirms, route each learning to its proper destination:
 
 | Type | Destination | Handler |
 |------|-------------|---------|
-| **Code-level** (confirmed fixes) | `docs/solutions/` | `/ce:compound` (7 agents, schema-validated) |
+| **Code-level** (confirmed fixes) | `docs/solutions/` via user-invoked `/ce:compound` | Wrap-up surfaces nudge only; user invokes `/ce:compound` mid-session |
 | **Process-level (behavioral)** | CLAUDE.md (root or project) | Learning-loop direct (with consolidation discipline) |
 | **Process-level (operational)** | Project operational docs* | Learning-loop direct |
 | **Skills-level** (skill building/authoring/maintenance) | claude-skills repo (CLAUDE.md or playbook) | Learning-loop direct |
@@ -1225,7 +1225,20 @@ FOR EACH RAW SIGNAL:
 
    > **Why (May 2 2026):** A parallel content-lab/diligence wrap-up under v3.7 produced 14 conclusions + 4 persona challenges + 2 borderline calls + 18 Noted items. User reported: *"my brain just fried and I just kind of want to give up."* Diagnosis: the agent itself had cognitively differentiated the conclusions (its own ★Insight: *"the other 10 conclusions are methodology codifications for the new diligence engine, not failure-mode captures — different shape, different routing"*) but had no structural way to surface them differently. v3.7's Verification Detail Floor made every conclusion equally heavy regardless of whether the user's judgment was actually needed. v3.8 zones make the floor's rigor scale with materiality. Tier mismatch, not detail-level mismatch.
 
-7. **If PASSES all gates + significance:** Extract with routing recommendation (including `zone` field per Step 6.5)
+6.6. **Wedge-Test Recording (added v3.9 May 12 2026, MANDATORY):**
+
+   For every Zone-1 and Zone-2 conclusion, apply the content wedge test from `~/Documents/claude-projects/Personal/content-lab/positioning/content_wedges_v2.md` (test: *"Is this insight about where AI capability meets reality — a worldview-level shift, not an operational learning?"*) and record the one-line rationale in the `Wedge test:` field of the output template (see Step 7 output schema).
+
+   Three valid values:
+   - **Pass — <one-line reason>:** Conclusion is a worldview-level shift fitting the content wedge. Surface to user at Step 4 as a Judgment Ledger candidate (NOT auto-routed — user decides whether to draft a ledger entry).
+   - **Fail — <one-line reason>:** Conclusion is operational/process-level, not worldview. Routes per its normal destination; the rationale documents WHY it didn't qualify, making the screen auditable.
+   - **N/A:** Conclusion is code-level (user's `/ce:compound` territory) or a routine watch-list increment — wedge test does not apply.
+
+   **Never omit the field.** Silence is the failure mode we are fixing — across 15+ wrap-ups Apr-May 2026 the wedge test was applied implicitly and silently, producing zero auditable records. The field forces the screen to leave a trace.
+
+   > **Why (May 12 2026):** Apr 2026 had 11 Judgment Ledger entries; May had 0 entries in the first 12 days. Investigation showed wrap-ups had been silently dropping Judgment Ledger consideration without recording rationale — the user had no signal whether the wedge filter had correctly screened or never fired. Per-conclusion recording makes silence auditable. Note: JL is primarily user-originated from in-session reflection, NOT wrap-up extraction — this field is a backstop to catch the rare worldview shift that surfaces operationally, not a primary capture path.
+
+7. **If PASSES all gates + significance:** Extract with routing recommendation (including `zone` field per Step 6.5 and `wedge_test` field per Step 6.6)
 
 WRITE OUTPUT:
 
@@ -1252,6 +1265,7 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 **Zone:** [Zone 1 — Decisions Required / Zone 2 — Routine Confirmation / Zone 3 — Auto-routed]  ← v3.8 (Step 6.5)
 **Zone reason:** [one-line justification — e.g., "persona challenged" / "existing-cluster increment, personas pass" / "documents in-session-approved decision"]
 **Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
+**Wedge test:** [Pass — <reason> / Fail — <reason> / N/A]  ← v3.9 (Step 6.6) — MANDATORY, never omit
 
 **Trigger Conditions:** (for process-level)
 - When: [Observable situation]
@@ -1545,39 +1559,11 @@ echo "[ISO-timestamp] [source] Signal summary | Key detail or corrective action"
 
 ---
 
-## Code-Level Orchestration: When to Prompt for /ce:compound
+## Code-Level Capture: User-Invoked, Not Orchestrated
 
-For **code-level learnings**, learning-loop's job is to prompt for `/ce:compound` while context is still fresh.
+Code-level learnings (codebase-specific bugs, fix-and-confirm moments) belong in `/ce:compound`, which produces schema-validated `docs/solutions/` entries via a 7-agent flow. **Learning-loop does NOT orchestrate `/ce:compound`** — code-level capture wants peak-fresh context, which means invoking `/ce:compound` mid-session right after the fix is confirmed, not at wrap-up.
 
-### The Decision Flow
-
-```
-Code-level fix just confirmed working
-         │
-         ▼
-    Has this context been compacted yet?
-         │
-    ┌────┴────┐
-    │         │
-    NO        YES
-    │         │
-    ▼         ▼
-PROMPT IMMEDIATELY:              TOO LATE for full treatment:
-"Want to run /ce:compound Save signal in scan file
-while details are fresh?"        for wrap-up documentation later
-    │
-    ├── User: "Yes" → Invoke /ce:compound (7 agents, schema-validated)
-    │
-    └── User: "No/Later" → Capture signal, route at wrap-up
-```
-
-### Timing Matters
-
-| Trigger | Action |
-|---------|--------|
-| **Code-level fix just confirmed** | Prompt for `/ce:compound` immediately (context freshest) |
-| **User invokes `/learning-loop scan`** | "Any undocumented code-level fixes? Last chance for `/ce:compound`" |
-| **After compaction** | Too late for multi-agent treatment; capture what you can for wrap-up |
+Wrap-up's role for code-level: if a confirmed code-level fix appears in scan signals but `/ce:compound` was not invoked during the session, surface it in the Zone-1 user-attention block with the prompt: *"Worth a delayed `/ce:compound` while context is still warm?"* — but treat it as a one-line nudge, not orchestration.
 
 ---
 
@@ -1753,7 +1739,7 @@ After writing any new rule to CLAUDE.md:
 
 | Type | Definition | Handler | Destination |
 |------|------------|---------|-------------|
-| **Code-level** | Specific to codebase/framework | `/ce:compound` (multi-agent) | `docs/solutions/` with schema-validated YAML |
+| **Code-level** | Specific to codebase/framework | User-invoked `/ce:compound` mid-session (not learning-loop) | `docs/solutions/` with schema-validated YAML |
 | **Process-level (behavioral)** | Changes decision-making across sessions | Learning-loop direct | CLAUDE.md (root or project) with trigger + warning signs |
 | **Process-level (operational)** | Changes procedure execution in a workflow | Learning-loop direct | Project operational docs* or CLAUDE.md |
 | **Fact** | Pure recall, no behavior change | Learning-loop direct | Memory MEMORY.md |
@@ -1874,7 +1860,7 @@ Session 3: Finally done!
 | **Scans are raw, wrap-up draws conclusions** | Mid-session hypotheses resolved at session end with hindsight |
 | **Smart default, explicit override** | Context clue detection with fallback to asking |
 | **Memory is a routing destination** | Facts route to MEMORY.md; behavioral changes route to CLAUDE.md |
-| **Orchestration over duplication** | Prompts for `/ce:compound` instead of reimplementing code-level documentation |
+| **User-invoked, not orchestrated** | `/ce:compound` is invoked directly by the user mid-session; learning-loop wrap-up surfaces a one-line nudge if a code-level fix was missed, but does not auto-invoke |
 | **Consolidation over accumulation** | CLAUDE.md edits require reading and merging, not just appending |
 | **Persistence over memory** | Scratch lines and scan files survive compaction; mental notes don't |
 | **Resilience over rigidity** | Complements auto-memory, adapts when system behaviors change |
