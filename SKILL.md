@@ -1170,6 +1170,18 @@ FOR EACH RAW SIGNAL:
 
    > Why (May 7, 2026): A wrap-up conclusion routed to Operations Playbook Step 5 with a structural fix simultaneously proposed a Cluster 3b watch-list increment. User pushback: *"if we're solving this issue with the routing why do we still increment the watchlist?"* Both consolidation and the persona panel pattern-matched to "Cluster N instance, increment" without checking whether the routing already resolves the pattern. This is a NEW failure category not in the a/c/d/g taxonomy — propose `redundant_increment_with_fix` for the Phase 1 eval taxonomy.
 
+   **STOP — Test-Case Value Check (added May 14, 2026 — tightening complement to Resolution-vs-Increment):** Before proposing an increment to an EXISTING watch-list sub-entry (the May 7 rule above fires when THIS session's conclusion creates the resolution; this rule fires when the resolution is ALREADY in place from prior work), ask: "Does this incident add a NEW test-case dimension to the entry's proposed fix?" Two passing cases:
+
+   - **(a) New surface the fix would need to handle** — e.g., the existing W1.j sub-entries are about fact-verification surfaces; a new sub-entry covering register-translation surface is a new test-case dimension. INCREMENT is valuable as a test case the eventual fix author must satisfy.
+   - **(b) Fix is structurally in flight, incident covers a not-yet-tested branch** — e.g., the W4 retrofit plan exists but doesn't cover branch X; this incident is the first surface for branch X. INCREMENT is valuable.
+
+   Failing case → DROP the increment:
+   - **Fix is already in place AND firing AND the incident is the same surface as prior sub-entries** (e.g., the Stop hook for completion-claim-without-verification is the structural fix; it fires correctly; counting hook fires is a metric, not a pattern). Sub-entries that add no test-case dimension are metric noise, not pattern signals.
+
+   The discriminator: **"would the fix author learn anything new about how to design the fix from this sub-entry?"** If no → drop.
+
+   > Why (May 14, 2026): Wrap-up proposed W1.r-pre-send increment for a Stop hook re-trip on completion-claim-without-verification. User: *"If the hook fires successfully, why are we incrementing the watchlist? Meaning, what would be the new fix if the watchlist count exceeds the threshold? If there is no new fix, why are we incrementing?"* Stop hook IS the structural fix; it fired; the increment proposed no new fix and added no new test-case dimension to the in-flight W4 retrofit plan. Sub-entries are valuable as test cases, not as incident counters.
+
    Then continue with the in-session repetition check below.
 
    If a signal represents a mistake that an existing rule should have caught, or
@@ -1966,6 +1978,14 @@ Session 3: Finally done!
     5. Present summary → user verifies
     6. Route to destinations → clean up sessions 2 + 3 (session 1 preserved)
 ```
+
+---
+
+## What's New in v3.12 (May 14, 2026)
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **STOP — Test-Case Value Check (CONSOLIDATION_PROMPT step 2)** | Tightening complement to the May 7 Resolution-vs-Increment Check. The May 7 rule fires when THIS session's conclusion creates the resolution; the new rule fires when the resolution is ALREADY in place from prior work and the incident doesn't add a new test-case dimension. Discriminator: **"would the fix author learn anything new about how to design the fix from this sub-entry?"** If no → drop. Sub-entries are valuable as test cases (per Mod 3 schema rationale), not as incident counters. Provenance: May 14 wrap-up — proposed W1.r-pre-send increment for Stop-hook re-trip on completion-claim-without-verification. User: *"If the hook fires successfully, why are we incrementing the watchlist? Meaning, what would be the new fix if the watchlist count exceeds the threshold? If there is no new fix, why are we incrementing?"* Stop hook is the structural fix; firing; no new test-case dimension to the in-flight W4 retrofit plan. Same-session result: C1+5 (W1.s) KEPT because new register-translation surface adds a real test-case dimension; C4 (W1.r-pre-send) DROPPED because the Stop hook is firing and the incident is the same surface as prior 4 instances. |
 
 ---
 
