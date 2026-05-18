@@ -1054,6 +1054,48 @@ After all learnings are routed and capture files cleaned up, check if the curren
     Local-only files (skipped): [paths].
     Proceeding to per-repo commit prompts."
 
+   Pass C — Session-wide sub-repo scan (added May 18, 2026):
+
+   Pass A is anchored on "known repos." Pass B is anchored on "files routed by
+   this skill during Step 5." Both miss a real case: edits made anywhere in
+   the session BEFORE the wrap-up phase that didn't pass through Step 5
+   routing. Pass C is anchored on "git state at session end" — three different
+   triggers, three different blind spots; all needed.
+
+   For the canonical map of sub-repos and their tracking status, see
+   ~/Documents/claude-projects/_meta/REPO_STRUCTURE.md "Per-Sub-Repo Git
+   Tracking Status" section. Pass C uses dynamic discovery to stay robust
+   against drift in that table — but the table is the human-readable
+   architecture context (which repos are PUBLIC, which have remotes, etc.).
+
+   Procedure:
+   1. Enumerate every git repo in the ecosystem:
+      find ~/Documents/claude-projects -maxdepth 5 -name '.git' -type d 2>/dev/null
+      (also include ~/.claude and any other known repo roots — symlinked CLAUDE.md
+      and REPO_STRUCTURE.md targets land in ~/.claude/workspace/)
+   2. For each discovered sub-repo, cd in and run: git status --short
+   3. For each repo with uncommitted changes (modified / deleted / untracked):
+      ├── Show user a per-repo summary (path + file count + 1-line of what
+      │   changed at file level)
+      ├── Check repo visibility BEFORE prompting commit:
+      │   gh repo view <remote> --json visibility -q .visibility
+      │   If PUBLIC → flag explicitly and run PII-policy diff scan per
+      │   ~/.claude/reference/public-repo-pii.md before committing
+      ├── Prompt: "Commit and push [repo-name]? (Y/skip)"
+      └── If Y → standard commit flow (HEREDOC commit message,
+          Co-Authored-By, auto-push fires globally via core.hooksPath)
+   4. Local-only repos (no remote per REPO_STRUCTURE.md) — commit locally with
+      no push expectation; auto-push hook won't fire there.
+
+   Why Pass C exists: substantive edits made during the session but outside
+   Step 5 routing fall through Pass B's filter. Without Pass C, the user has
+   to manually ask "did we commit in those repos?" to surface uncommitted
+   work. Pass C closes that loop without depending on user prompting.
+
+   Reconciliation with Pass A/B: union all three pass results, deduplicate by
+   toplevel path. If Pass C surfaces a repo not in Pass A AND not in Pass B,
+   that's a genuine session-wide-only edit — process per step 6's flow.
+
 7. RECONCILE Pass A drift (runs AFTER all commits in step 6 succeed):
    Compare Pass B's discovered set against Pass A's hardcoded list.
    For each repo Pass B found that is NOT in Pass A, check the
