@@ -379,7 +379,11 @@ If the file exists:
 ls -la ~/.claude/learning-captures/*/scan-*.md ~/.claude/learning-captures/*/scratch.md 2>/dev/null
 ```
 
-List all capture files with timestamps, then present a **triage view**:
+List all capture files with timestamps, then present a **triage view**.
+
+**Archive-dir convention (added May 18, 2026):** Directories under `~/.claude/learning-captures/` whose names start with `_` (e.g., `_archive/`) are **archive locations for preserved reference fixtures**, NOT active sessions. They MUST be excluded from the "Other Sessions Found" listing — they will not contain scan-*.md or scratch.md files, but a careless `ls -la` of the parent dir will surface them as "unknown session dirs" and trigger recurring "what is this?" confusion at every wrap-up. When constructing the triage view, filter out any directory whose basename starts with `_`. The glob above naturally skips them (no matching scan/scratch files inside) — preserve this property; do not switch to a broader directory listing without the `_*` prefix filter. **Why this exists:** cited fixtures (e.g., the v3.7/v3.8 + Step 5.6 design provenance handoff doc at `_archive/handoff-to-learning-loop-iteration.md`) need to persist so SKILL.md citations remain checkable, but they also need to stay outside the active triage scan so they don't generate recurring noise. The `_archive/` dir + `_*` prefix-skip convention is the structural fix.
+
+Triage view shape:
 
 ```
 ## This Session: [session-id]
@@ -681,7 +685,7 @@ The Verification Detail Floor scales rigor with zone (per Step 6.5):
 
 > **Why v3.7 (Apr 29 2026):** Compressed format passed 4/4 consolidation errors through Step 4 unchallenged in a parallel content-lab wrap-up. User: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Verification under those conditions is performative. The Detail Floor was the v3.7 fix.
 
-> **Why v3.8 amendment (May 2 2026):** v3.7 made the floor MANDATORY for ALL conclusions. Result: a single wrap-up with 14 conclusions (3 Zone-1-shape + 10 Zone-3-shape methodology codifications + many Noted) became 14× the cognitive load. User: *"my brain just fried and I just kind of want to give up."* The floor is right; the scope was wrong. v3.8 makes the floor's rigor scale with zone — so the user's attention scales with where their judgment actually matters. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md` (v3.7 evidence) + the May 2 wrap-up output that motivated v3.8 zones.
+> **Why v3.8 amendment (May 2 2026):** v3.7 made the floor MANDATORY for ALL conclusions. Result: a single wrap-up with 14 conclusions (3 Zone-1-shape + 10 Zone-3-shape methodology codifications + many Noted) became 14× the cognitive load. User: *"my brain just fried and I just kind of want to give up."* The floor is right; the scope was wrong. v3.8 makes the floor's rigor scale with zone — so the user's attention scales with where their judgment actually matters. Transcript fixture: `~/.claude/learning-captures/_archive/handoff-to-learning-loop-iteration.md` (v3.7 evidence; archived May 18 2026 from original `2026-04-29-content-lab-post-13-capture-distillation/`) + the May 2 wrap-up output that motivated v3.8 zones.
 
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
@@ -1300,7 +1304,7 @@ FOR EACH RAW SIGNAL:
 
    This is the inverse of the C4-style mechanism-collapse-into-causal-chain check (which warns: don't fabricate causal connection between independent mechanisms). Here the warning is the opposite: **don't fabricate distinctness between two instances of the same mechanism.**
 
-   > **Why (Apr 29, 2026):** A parallel content-lab wrap-up produced separate conclusions C1 ("skill needs dual entry triggers") and C3 ("read file before drafting synthesis prose"). User collapsed both via a diagnostic question — same root cause (continuous always-rule drifting under task momentum), same fix shape (mechanical pre-prose hook). The collapsibility was visible in retrospect. CONSOLIDATION_PROMPT didn't natively run the check. Step 5.6 forces it. Transcript fixture: `~/.claude/learning-captures/2026-04-29-content-lab-post-13-capture-distillation/handoff-to-learning-loop-iteration.md`.
+   > **Why (Apr 29, 2026):** A parallel content-lab wrap-up produced separate conclusions C1 ("skill needs dual entry triggers") and C3 ("read file before drafting synthesis prose"). User collapsed both via a diagnostic question — same root cause (continuous always-rule drifting under task momentum), same fix shape (mechanical pre-prose hook). The collapsibility was visible in retrospect. CONSOLIDATION_PROMPT didn't natively run the check. Step 5.6 forces it. Transcript fixture: `~/.claude/learning-captures/_archive/handoff-to-learning-loop-iteration.md` (archived May 18 2026 from original `2026-04-29-content-lab-post-13-capture-distillation/`).
 
 6. **Apply Significance Threshold (Gate 6):**
    Ask: "If this were lost after this session, would a future session go WRONG?"
