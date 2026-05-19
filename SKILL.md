@@ -985,16 +985,34 @@ See `~/.claude/reference/procedural-rule-routing.md` "Reverse-Check: Consumers A
 - A learning restructured a rule's home but the skills/agents that invoke that rule still route to the old home
 - The distillation output updates the authoritative doc but doesn't mention which consumers need follow-up updates
 
-#### Step 6: Clean Up
+#### Step 6: Clean Up (MANDATORY — verify cleanup fired before declaring wrap-up complete)
 
 After documentation is confirmed, clean up only the **sessions that were consolidated** (this session + any user-approved others):
 
 ```bash
-# Delete consolidated session directories only — NOT sessions the user skipped
-rm -r ~/.claude/learning-captures/[consolidated-session-id]/
+# Delete consolidated session files individually (safer than rm -r; transparent;
+# preserves explicit per-file accountability)
+rm ~/.claude/learning-captures/[consolidated-session-id]/scan-*.md 2>/dev/null
+rm ~/.claude/learning-captures/[consolidated-session-id]/consolidation.md 2>/dev/null
+rm ~/.claude/learning-captures/[consolidated-session-id]/persona-review.json 2>/dev/null
+rm ~/.claude/learning-captures/[consolidated-session-id]/persona-eval.md 2>/dev/null
+rm ~/.claude/learning-captures/[consolidated-session-id]/scratch.md 2>/dev/null
+rmdir ~/.claude/learning-captures/[consolidated-session-id]/
+
+# Verification (MANDATORY — confirms cleanup actually fired)
+ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ CLEANUP FAILED — session dir still exists; re-run Step 6" || echo "✅ Session dir cleaned"
 ```
 
 **Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
+
+**STOP and correct if you're:**
+- About to declare wrap-up complete (Step 11 Report) without running the cleanup verification line above
+- Reading sub-agent's "done" report (Step 3 / Step 3a return) and drafting the user-facing summary WITHOUT executing Step 6 cleanup in the main session
+- Treating "eval entry appended to runs log" (Step 4c) as proof that cleanup happened — Step 4c writes the log, Step 6 removes the dir; both are required and they are NOT the same command
+
+**End-of-wrap-up cleanup gate:** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, Step 6 silently skipped — execute the per-file rm + rmdir block above before proceeding to Step 11. If cleanup verification still fails (e.g., permission error), surface to user verbatim: "Cleanup of [session-id] failed: [error]. Please run manually." Do NOT proceed to summary report without resolving cleanup state.
+
+> **Why this rule exists (May 19, 2026):** Audit of `~/.claude/learning-captures/` surfaced 4 wrap-up-completed orphan session dirs (2026-05-14-learning-loop-mechanism-refinement / 2026-05-18-country-of-geniuses-linkedin-and-cover / 2026-05-19-arlo-vc-boardy-handoff / 2026-05-19-pep-executor-and-interaction-rework) — all had eval entries in `persona-eval-runs.txt` (Step 4c writes work) but their session dirs were never deleted (Step 6 silently skipped). Common pattern in eval log: `deviation_noted=phase2_gatekeeper_implementation_gap`. Failure mode: combined-subagent dispatch returns "done" → main session reads report → main session drafts user-facing summary → Step 6 `rm -r` command never fires. Old `rm -r` form gave no verification feedback (silent success or silent skip indistinguishable). Per-file rm + explicit verification line forces the main session to confirm cleanup actually happened before declaring wrap-up complete. User directive: *"the right move is to use rm to delete individual files."* Same family as W1.r-pre-send (completion-token rendering before per-output-type verification) — workflow rule drifts under end-of-task momentum; verification gate before declaring done is the structural fix.
 
 #### Step 6b: Cross-Reference _ideas/
 
