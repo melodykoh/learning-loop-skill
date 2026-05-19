@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 3.3.0
+version: 3.13.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.11
+# learning-loop Skill v3.13
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
@@ -494,10 +494,12 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 
 ### Zone 2 — Routine Confirmations ([Z2] items, accept-all default)
 
-| # | Conclusion (1-line) | Destination | Personas |
-|---|---------------------|-------------|----------|
-| C5 | "..." | [destination] | ✅✅ |
-| C6 | "..." | [destination] | ✅✅ |
+**(v3.13) The 1-line Conclusion column MUST lead with a concrete incident / name / verbatim quote / specific framing from THIS session.** Destination column carries the cluster ID / plan path. Do NOT put cluster IDs or shorthand jargon in the 1-line — that defeats verification. See Step 4 Verification Detail Floor "Trigger heuristic" + good/bad examples.
+
+| # | Conclusion (1-line, concrete-anchor-first) | Destination | Personas |
+|---|---------------------------------------------|-------------|----------|
+| C5 | "[specific incident/name/quote from this session]" | [cluster ID + file] | ✅✅ |
+| C6 | "[specific incident/name/quote from this session]" | [cluster ID + file] | ✅✅ |
 | ... | ... | ... | ... |
 
 **Default action:** accept the batch.
@@ -509,6 +511,8 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 ### Zone 3 — Auto-routed ([Z3] items, informational)
 
 [Z3] items auto-routed to: [destinations summary, e.g., "workflow doc default rules (×6), MEMORY.md (×2), Noted (×4)"].
+
+**(v3.13) When listing individual Z3 items (e.g., in response to "expand Z3"), apply the same concrete-anchor rule as Z2** — the 1-line leads with the session-specific incident/name/quote, not the destination ID.
 
 **Anything to promote to Zone 1?** Reply **"y"** to accept the auto-routing OR list specific item IDs to promote (e.g., "promote C9, C12 to Zone 1").
 
@@ -654,8 +658,8 @@ The Verification Detail Floor scales rigor with zone (per Step 6.5):
 | Zone | Floor requirement |
 |---|---|
 | **Zone 1** | **MANDATORY full Verification Detail Floor** — per-conclusion narrative block with all 5 fields (what happened, what's wrong, what fix does, why destination, persona challenges) |
-| **Zone 2** | 1-line summary + destination by default. Full floor available on user request ("expand C5, C7"). |
-| **Zone 3** | Destination + 1-line summary only. No floor. User can promote to Zone 1 to see full floor. |
+| **Zone 2** | 1-line summary + destination by default — **the summary MUST lead with a concrete incident/name/quote/specific-framing from THIS session** (v3.13). Full floor available on user request ("expand C5, C7"). |
+| **Zone 3** | Destination + 1-line summary only — **same concrete-anchor rule as Zone 2** (v3.13). No floor. User can promote to Zone 1 to see full floor. |
 
 **Required fields for Zone 1 conclusions:**
 
@@ -682,10 +686,45 @@ The Verification Detail Floor scales rigor with zone (per Step 6.5):
 - Failing to apply zone classification (Step 6.5) before rendering Step 4
 - Skipping the Zone-1 cap check when Zone 1 has >5 items
 - Defaulting to "compressed format because the table is cleaner" for Zone 1 items — Zone 1 always gets the floor
+- **(v3.13) Writing a Zone 2 or Zone 3 1-line summary that leads with a destination cluster ID (`W_N.x`, plan path, reference doc path) or shorthand jargon (e.g., "methodology-doc caveat-writing surface") WITHOUT a concrete anchor from THIS session.** The 1-line must lead with a specific name, quote, incident, or framing the user can recognize from this session's exchange. Cluster ID + destination go at the END as routing metadata, not the START as the summary.
+
+**(v3.13) Trigger heuristic — recognize the failing format BEFORE rendering:**
+
+For each Zone 2 / Zone 3 row, check the 1-line summary text:
+
+| Contains | Missing | Verdict |
+|---|---|---|
+| Cluster ID (`W_N.x`), plan path (`P_N`), or reference-doc path | A specific name / verbatim quote / specific incident phrase from THIS session | **JARGON-ONLY — re-render with concrete anchor, OR auto-expand to full floor** |
+| Specific name / verbatim quote / specific incident phrase from THIS session | (anything else) | OK to render compressed |
+| Neither cluster ID nor specific anchor | — | Under-specified; re-render with concrete anchor |
+
+If the row is jargon-only, the user cannot verify without re-loading the destination cluster's context into their head — which defeats the "shouldn't need to remember anything to verify" floor that motivated v3.7. Either re-render the 1-line with a concrete session anchor leading, or auto-promote that row to full floor for this wrap-up.
+
+**(v3.13) Good vs. bad examples:**
+
+```
+❌ FAILING (cluster-ID-first, jargon-only):
+| C1 | W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface;
+       directionally-opposed pair compressed into single causal chain
+     | `watch-list.md` W1.p cluster + W4 plan P4 author note | ✅✅ |
+
+User reaction: "There is no description for these Zone 2 and Zone 3 things.
+I cannot recall or understand what they're about."
+
+✅ WORKING (concrete-incident-first):
+| C1 | Caveat #3 conflated correctly-excluded execs (Trent Charlton, Oleksandr
+       Fedorov) with Harmonic-miscategorized real founder (Kerry Lu) — adds
+       methodology-doc surface to W1.p
+     | `watch-list.md` W1.p cluster + W4 plan P4 author note | ✅✅ |
+```
+
+The working version leads with the specific incident (the named people + the specific framing that came up in this session); the destination metadata (`W1.p`, `P4`) comes at the end as routing context, not as the summary itself. The user can recognize "Kerry Lu" / "Trent Charlton" because they came up in this session's exchange; they cannot recognize `W1.p.aa` without re-loading the watch-list.
 
 > **Why v3.7 (Apr 29 2026):** Compressed format passed 4/4 consolidation errors through Step 4 unchallenged in a parallel content-lab wrap-up. User: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Verification under those conditions is performative. The Detail Floor was the v3.7 fix.
 
 > **Why v3.8 amendment (May 2 2026):** v3.7 made the floor MANDATORY for ALL conclusions. Result: a single wrap-up with 14 conclusions (3 Zone-1-shape + 10 Zone-3-shape methodology codifications + many Noted) became 14× the cognitive load. User: *"my brain just fried and I just kind of want to give up."* The floor is right; the scope was wrong. v3.8 makes the floor's rigor scale with zone — so the user's attention scales with where their judgment actually matters. Transcript fixture: `~/.claude/learning-captures/_archive/handoff-to-learning-loop-iteration.md` (v3.7 evidence; archived May 18 2026 from original `2026-04-29-content-lab-post-13-capture-distillation/`) + the May 2 wrap-up output that motivated v3.8 zones.
+
+> **Why v3.13 amendment (May 19, 2026):** v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain WHAT the 1-line summary must contain. In the `2026-05-19-arlo-vc-boardy-handoff` wrap-up, consolidation produced 4 conclusions (0 Z1, 3 Z2, 1 Z3) and Step 4 rendered the Z2/Z3 rows with cluster-ID-first phrasing like "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface." User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* Same root cause as v3.7 (verification requires remembering), but at a finer grain — the summary itself was jargon-only. After re-expanding with the full floor (which forced concrete incidents back to the surface), verification worked. The fix is to require the concrete-anchor lead at the 1-line layer too, not only the full-floor layer. Trigger heuristic + good/bad examples make the failure recognizable BEFORE rendering, not only after user pushback.
 
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
@@ -2024,6 +2063,14 @@ Session 3: Finally done!
     5. Present summary → user verifies
     6. Route to destinations → clean up sessions 2 + 3 (session 1 preserved)
 ```
+
+---
+
+## What's New in v3.13 (May 19, 2026)
+
+| Enhancement | Why It Matters |
+|-------------|----------------|
+| **STOP — Concrete-Anchor Rule for Zone 2 / Zone 3 1-line summaries (Step 4 Verification Detail Floor)** | v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain what the 1-line summary leads with. In the `2026-05-19-arlo-vc-boardy-handoff` wrap-up, Z2/Z3 rows rendered as cluster-ID-first jargon (e.g., "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface") that the user could not verify without re-loading destination context. User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* The new STOP requires the 1-line to LEAD with a concrete incident, name, verbatim quote, or specific framing from THIS session; cluster IDs and destination paths go at the END as routing metadata. Same "shouldn't need to remember to verify" floor as v3.7, applied at the 1-line layer. Trigger heuristic lets the agent recognize the failing format BEFORE rendering: row contains cluster ID / plan path BUT no specific name / quote / incident phrase from this session → jargon-only → re-render with concrete anchor or auto-expand to full floor. Good/bad examples included so the contrast is unambiguous. |
 
 ---
 
