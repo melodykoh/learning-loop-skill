@@ -415,7 +415,7 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 
 **Phase mode resolution** — read `~/.claude/learning-captures/phase-1-decision-log.md` if it exists:
 - File missing OR latest decision = `HOLD` OR latest decision absent → **shadow mode** (Phase 1, run + report, do not block)
-- Latest decision = `GO` → **gatekeeper mode** (Phase 2, out of scope for Phase 1 build — placeholder)
+- Latest decision = `GO` → **gatekeeper mode** (Phase 2, out of scope for Phase 1 build — placeholder). **If gatekeeper-mode implementation is absent, fall back to shadow mode (Phase 1 behavior — run personas, report but do not block) — do NOT skip Step 3a entirely. (Added May 19, 2026 after recurrent `step3a_skipped_rationalization` deviation across 6+ wrap-up sessions since 2026-05-12.)**
 - Latest decision = `REVERT` → **skip Step 3a entirely** (proceed to Step 4 unchanged)
 - Latest decision = `ITERATE` → shadow mode, but flag in output that prompts may be in revision
 
@@ -439,6 +439,9 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 **Skip-this-step conditions:**
 - Phase decision = `REVERT` (per phase mode resolution above)
 - Consolidation produced 0 conclusions (no input to review)
+
+**NOT a legitimate skip condition** (added May 19, 2026):
+- `GO` + gatekeeper-mode implementation absent — **falls back to shadow mode per phase-mode-resolution table; do NOT rationalize a skip.** The rationalization pattern ("personas would produce 0 challenges anyway given Zone-2-only consolidation") is a confirmed recurring failure mode (`step3a_skipped_rationalization` flagged across 6+ sessions since 2026-05-12). Reasoning from probable outcome back to skip the protocol is exactly the failure personas exist to catch — trusting consolidation's framing/destination is the failure mode personas were built for. Run personas in shadow mode; log the deviation if implementation gap persists, but do not skip.
 
 **STOP and surface if:**
 - Either persona sub-agent returns malformed JSON (capture verbatim, surface to user, fall through to Step 4 without persona columns)
