@@ -79,7 +79,13 @@ These dimensions become Success Criteria checkboxes for the assertion-audit hook
 
 ### Highest-leverage follow-up
 
-**Invoke `/update-config` from main session** to register the 4 W4 hooks (assertion-audit, forbidden-token-check, regrounding-check, parallelism-check) that landed May 19 but are blocked on subagent-can't-invoke-main-skill architectural constraint. Once registered, Day 0 verifies fire and 14-day trial begins, which starts driving real `incidents_since_codification` counters on G1, G3, G4 (Cluster 1 graduations).
+**Status correction (2026-05-20 same-session):** The "blocked on /update-config" framing here was outdated within hours of writing it. All 4 W4 hooks (assertion-audit, forbidden-token-check, regrounding-check, parallelism-check) were already registered in `~/.claude/settings.json` via a separate PEP execution session before this hygiene pass landed. Telemetry log at `~/.claude/logs/hook-telemetry.log` confirms 8+ firings across the 4 hooks on 2026-05-20, including this session's regrounding-check firings.
+
+**What this means for the hygiene pass output:**
+- Graduation-log G1/G3/G4 `incidents_since_codification` counters effectively start 2026-05-20 (live hook-coverage epoch) — these are the graduations co-covered by W4 discrete-trigger enforcement.
+- 14-day trial is in progress; `trial_end_date = 2026-06-02`. TP/FP classification can begin on the telemetry log entries as wrap-up evidence accumulates.
+
+**Meta-lesson surfaced (Mod 11 candidate for next wrap-up):** Reading a 1-day-old execution log and treating it as current truth is the same W1.u-family mechanism as "old-execution-log-output-as-truth" — narrow surface signal (execution-log says "blocked") accepted as live state without checking actual live state (settings.json + telemetry). Mod 10 (Path-Drift Detection) is the spatial sibling; this is the temporal sibling.
 
 ---
 
