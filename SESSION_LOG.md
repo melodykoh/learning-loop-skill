@@ -6,6 +6,83 @@
 
 ---
 
+## Session: May 20, 2026 — v4.0 Hygiene Pass + Phase 2 Gatekeeper Retirement
+
+### Context
+
+User opened the session asking two questions: (1) should we implement Phase 2 gatekeeper mode based on accumulated eval data, and (2) the watch-list seems to have a lot of granular entries — are some at the wrong layer (should be fixed at source, not watched)?
+
+The two questions turned out to be linked. Phase 1 eval (March-April observation window) had passed cleanly (match=100%, coverage=70%, noise=0%) and Phase 2 was logged GO on May 9. But the gatekeeper implementation stalled 11 days with `phase2_gatekeeper_implementation_gap` logged across 10+ sessions. Analysis surfaced the real bottleneck: **downstream throughput**, not upstream catch-rate. Watch-list audit found 32+ Cluster 1 incidents (5+ weeks) and 8 Cluster 2 incidents (4 weeks) both having known fixes with known destinations, yet **zero rules graduated** to canonical destinations in that window. The watch-list captured incidents correctly but never emptied — entries got de facto fixed but stayed on the list as a one-way archive.
+
+This reframed Phase 2 gatekeeper: amplifying catch-rate while resolution leaks doesn't fix the problem, it just amplifies the visible accumulation. The hygiene pass + tuned capture criterion + graduation ledger addresses the underlying mechanism (signals → shipped rules) at lower workflow cost than gatekeeper mode would.
+
+### Locked decisions
+
+| # | Decision | Rationale |
+|---|---|---|
+| 1 | Phase 2 gatekeeper **retired indefinitely** | Phase 1 eval measured detection, not resolution; resolution layer is the binding constraint. Friction tax not justified when shadow catches 70%+ at zero cost. Re-open trigger documented: failure mode shadow mode demonstrably cannot catch. |
+| 2 | Shadow mode = **permanent active state** | Treat any `GO` entry in decision log as historical context. Phase mode resolution table simplified: file-missing/HOLD/GO/absent → shadow; REVERT → skip; ITERATE → shadow + flag. |
+| 3 | Sub-IDs stay in watch-list as evidence index (vs. moving to plan files) | Cross-cluster pattern visibility + graduation ledger queryability are load-bearing for "did the fix work?" analysis. Format problem (prose paragraphs) ≠ information problem. Solve with tables. |
+| 4 | All 5 hygiene phases run as a two-round loop | Light Phase 0 capture-criterion draft → Phases A-D (hygiene work) → Phase E focused criterion revision with empirical evidence. Avoids the "criterion written abstractly fails reality" trap captured in our own Apr 17 learning. |
+| 5 | Codify-now criterion (Mod 6) overrides recurrence threshold | When mechanism named + destination named + ≥1 incident exists, codify immediately. Threshold-based escalation makes sense when pattern unknown; becomes waste when pattern already named. |
+
+### Investigation findings (hygiene pass output)
+
+| Surface | Finding |
+|---|---|
+| Cluster 2 (W2.a-h) | 8 incidents across 4 weeks all shared mechanism (pre-elicit constraint space) + destination (`pm-partnership.md`). Fix knowable at incident 1; threshold-waiting was waste. → **GRADUATED** to `pm-partnership.md` "Pre-Elicit Design Constraints Before Locking" rule. |
+| W1.u (8 sub-entries) | All shared root cause + fix (W4 hook (b) cross-surface). Surface variants ≠ separate sub-IDs. → Collapsed to 1 entry + surfaces table. |
+| W1.k (4 incidents + W1.k.iv with 2 instances) | Same mechanism. W1.k.iv was a test-case dimension, not a separate incident class. → Folded into parent with chronological incident list. |
+| Cluster 1 status ("5+ weeks stale") | Mis-framed. W4 plan was actually 80% executed on May 19 (8 hook artifacts landed at `~/.claude/hooks/` + `~/.claude/config/`). Blocker is one main-session `/update-config` invocation — subagents can't register hooks. → Plan got status banner; watch-list status reframed to surface real action item. |
+| Path drift | Watch-list referenced W4 plan at `~/Documents/claude-projects/claude-skills/plans/...` (nonexistent); actual location `~/.claude/plans/...`. Invisible 5+ weeks. → Path corrected in watch-list; Mod 10 added to detect at cluster audit. |
+| Zero graduations in 5 weeks | 5 entries (W1.h.x, W1.m, W1.q, W1.v, W6.b) had de facto been codified (rule extensions, absorptions) without ever being marked GRADUATED. Watch-list accumulated as one-way archive. → Built `graduation-log.md` with 6 backfilled entries + Mod 9 atomic-codification requirement. |
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | Frontmatter v3.13.0 → v4.0.0. Changelog block added under H1. |
+| SKILL.md | Step 4b: added Mod 6 (Watch-vs-Codify Decision Criterion), Mod 7 (Granularity Ceiling Rule), Mod 8 (Stalled-Deliverable Separation), Mod 9 (Graduation Ledger Requirement), Mod 10 (Path-Drift Detection). |
+| SKILL.md | Step 3a phase-mode resolution table: shadow mode is permanent active mode; gatekeeper-retirement note added with re-open trigger. |
+| SKILL.md | "NOT a legitimate skip condition" block: reframed without gatekeeper coupling (anti-skip rule independent of retired Phase 2 decision). |
+| README.md | New v4.0 row at top of Version History table. |
+| `~/.claude/learning-captures/watch-list.md` | Cluster 2 marked GRADUATED (8 sub-entries → 1 graduated header). Cluster 1 prose (~200 lines) reformatted to master incident-index table + selective narrative. W1.u sub-entries (8) collapsed to single entry + surfaces table. W1.k.iv folded into parent W1.k as test-case dimension. W6.b marked GRADUATED. Header updated with graduation-log companion reference. Net: 605 → 463 lines. |
+| `~/.claude/learning-captures/graduation-log.md` | **New file** — schema + 6 backfilled entries (G1-G6) covering W1.h.x Architecture Survey extension, W1.m C12 absorption, W1.q Existing Knowledge Check extension, W1.v Reason Upstream extension, W2 Cluster 2 Pre-Elicit Design Constraints rule, W6.b Fresh-Write-vs-Scrub. Each entry has re-open trigger + post-fix monitoring schema. |
+| `~/.claude/reference/pm-partnership.md` | New "Pre-Elicit Design Constraints Before Locking" rule section + codification-dimension sub-rule. Cited 8-incident evidence base. |
+| `~/.claude/learning-captures/phase-1-decision-log.md` | 2026-05-20 reversal entry retiring Phase 2 gatekeeper with full rationale + re-open trigger. |
+| `~/.claude/plans/2026-04-18-w4-discrete-trigger-retrofit-plan.md` | Status banner added with current incident count (32+), execution state (8 artifacts landed May 19), blocker (registration via main-session `/update-config`), action item, execution-log cross-references. |
+| `claude-skills/plans/2026-04-24-learning-loop-persona-panel.md` | Phase 2 Decision Gate marked SUPERSEDED with full rationale and re-open trigger. Historical text preserved. |
+
+### Architectural alignment
+
+The five new Mods (6-10) form a coherent design closing the upstream-downstream gap:
+
+- **Mod 6** raises the bar for *what enters* the watch-list (codify-now vs. watch decision)
+- **Mod 7** enforces *what shape* watch-list entries take (granularity ceiling + mechanism-first naming + tabular format)
+- **Mod 8** distinguishes *what's stalled in learning-loop* from *what's stalled in plan execution* (correct attribution of remediation gaps)
+- **Mod 9** mandates *what happens when codification fires* (atomic update + ledger entry + GRADUATED marker)
+- **Mod 10** detects *when watch-list references decay* (path-drift at cluster audit)
+
+Together they answer the May 20 user concern *"a bunch of super granular entries that are wrong in terms of where the solution needs to exist"*: granularity capped at capture time (Mod 7), wrong-layer entries codified immediately (Mod 6), shipped rules visibly tracked through resolution (Mod 9), stalled deliverables surfaced as plan-status (Mod 8), and broken references caught proactively (Mod 10).
+
+### Test-case dimensions extracted for downstream W4 hook (b) design
+
+Cluster 1 tabularization surfaced 5 explicit test-case dimensions for the assertion-audit hook author (fire-author-actionable):
+
+- **REGISTER-TRANSLATION** (W1.s) — translate internal indexing to user-readable semantic content before send
+- **PRE-DESTRUCTIVE-COMMAND** (W1.t) — pre-execution gate on destructive commands against shared/user state
+- **PRE-DESIGN-ANSWER** (W1.v) — pre-design objective+constraint decomposition
+- **STRUCTURED-MULTI-CELL OUTPUT** (W1.k) — per-cell decomposition for matrix/table/scoring-grid outputs
+- **CROSS-SURFACE SURFACE-SIGNAL-AS-TRUTH** (W1.u) — generative pattern detection across 8 surfaces
+
+These dimensions become Success Criteria checkboxes for the assertion-audit hook's 14-day trial when it ships.
+
+### Highest-leverage follow-up
+
+**Invoke `/update-config` from main session** to register the 4 W4 hooks (assertion-audit, forbidden-token-check, regrounding-check, parallelism-check) that landed May 19 but are blocked on subagent-can't-invoke-main-skill architectural constraint. Once registered, Day 0 verifies fire and 14-day trial begins, which starts driving real `incidents_since_codification` counters on G1, G3, G4 (Cluster 1 graduations).
+
+---
+
 ## Session: May 12, 2026 — v3.11 Watch-List Auto-Promotion Refined (Workstream B)
 
 ### Context

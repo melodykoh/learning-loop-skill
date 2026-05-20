@@ -175,7 +175,8 @@ v3 added: *"...and the system adapts to its environment rather than fighting it.
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
-| **v3.11** | May 12, 2026 | Mod 5 watch-list auto-promotion refined: maturation gate (≥5 sub-IDs) + no-active-plan gate + Fix-field auto-routing + Open Questions handling + child sub-agent extraction. New `PLAN_DRAFTER_PROMPT` block. Plan drafting offloaded to a child sub-agent so main wrap-up context stays clean. |
+| **v4.0** | May 20, 2026 | Watch-list hygiene pass — Mods 6-10 added in Step 4b: Watch-vs-Codify decision criterion (codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident all named); Granularity Ceiling rule (≥3 sub-entries collapse + mechanism-first naming + tabular incident format); Stalled-Deliverable Separation (plan-stale ≠ learning-loop-stale); Graduation Ledger requirement (`graduation-log.md` mandatory counterpart to `watch-list.md`); Path-Drift Detection at cluster audit. Phase 2 gatekeeper officially retired — shadow mode is the permanent active state. |
+| v3.11 | May 12, 2026 | Mod 5 watch-list auto-promotion refined: maturation gate (≥5 sub-IDs) + no-active-plan gate + Fix-field auto-routing + Open Questions handling + child sub-agent extraction. New `PLAN_DRAFTER_PROMPT` block. Plan drafting offloaded to a child sub-agent so main wrap-up context stays clean. |
 | v3.10 | May 12, 2026 | SCANNER_PROMPT recurrence test — scanner reads watch-list before flagging signals, drops single-incident-no-precedent signals to a Dropped Signals footer, surfaces same-type recurrences tagged with cluster ID; raises capture bar upstream |
 | v3.9 | May 12, 2026 | Removed false `/ce:compound` orchestration claims; added per-conclusion wedge-test recording (Step 6.6) — makes Judgment Ledger screening auditable |
 | v3.8 | May 2, 2026 | Tiered verification — Zone Classification (Step 6.5) + Zone-1 cap rule; scales floor rigor by zone |
