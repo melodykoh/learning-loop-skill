@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 3.13.0
+version: 4.0.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,17 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v3.13
+# learning-loop Skill v4.0
+
+**v4.0 changelog (2026-05-20 hygiene pass):**
+- Mod 6: Watch-vs-Codify Decision Criterion (codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident all named)
+- Mod 7: Granularity Ceiling Rule (≥3 sub-entries sharing mechanism + fix → collapse; tabular incident format; mechanism-first naming)
+- Mod 8: Stalled-Deliverable Separation (plan-stale ≠ learning-loop-stale)
+- Mod 9: Graduation Ledger Requirement (`graduation-log.md` is mandatory counterpart to `watch-list.md`)
+- Mod 10: Path-Drift Detection at Cluster Audit (reference paths must resolve)
+- Phase 2 gatekeeper retired — shadow mode is the permanent active state (see `phase-1-decision-log.md` 2026-05-20 entry)
+
+
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
 
@@ -414,10 +424,11 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 **Phase 1 mode:** personas REPORT but do NOT block. Their output appears as additional columns in Step 4's verification view. User reads both views, decides per-row.
 
 **Phase mode resolution** — read `~/.claude/learning-captures/phase-1-decision-log.md` if it exists:
-- File missing OR latest decision = `HOLD` OR latest decision absent → **shadow mode** (Phase 1, run + report, do not block)
-- Latest decision = `GO` → **gatekeeper mode** (Phase 2, out of scope for Phase 1 build — placeholder). **If gatekeeper-mode implementation is absent, fall back to shadow mode (Phase 1 behavior — run personas, report but do not block) — do NOT skip Step 3a entirely. (Added May 19, 2026 after recurrent `step3a_skipped_rationalization` deviation across 6+ wrap-up sessions since 2026-05-12.)**
+- File missing OR latest decision = `HOLD` OR latest decision = `GO` OR latest decision absent → **shadow mode** (run personas + report, do not block — this is the permanent active mode)
 - Latest decision = `REVERT` → **skip Step 3a entirely** (proceed to Step 4 unchanged)
 - Latest decision = `ITERATE` → shadow mode, but flag in output that prompts may be in revision
+
+**Note on retired Phase 2 gatekeeper mode (2026-05-20):** A planned Phase 2 gatekeeper variant (challenges block Step 4 until resolved) was retired after analysis showed the binding constraint on learning-loop effectiveness is downstream throughput (watchlist → codified rule graduation), not upstream catch-rate. Shadow mode catches 70%+ of user corrections at zero workflow friction; gatekeeper mode would amplify catches without addressing the graduation gap. See `~/.claude/learning-captures/phase-1-decision-log.md` 2026-05-20 entry for full rationale. **Treat any `GO` entry in the decision log as historical context — shadow mode is the permanent active mode.**
 
 **Sequence (sequential, not parallel — Router depends on Auditor's output):**
 
@@ -440,8 +451,8 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 - Phase decision = `REVERT` (per phase mode resolution above)
 - Consolidation produced 0 conclusions (no input to review)
 
-**NOT a legitimate skip condition** (added May 19, 2026):
-- `GO` + gatekeeper-mode implementation absent — **falls back to shadow mode per phase-mode-resolution table; do NOT rationalize a skip.** The rationalization pattern ("personas would produce 0 challenges anyway given Zone-2-only consolidation") is a confirmed recurring failure mode (`step3a_skipped_rationalization` flagged across 6+ sessions since 2026-05-12). Reasoning from probable outcome back to skip the protocol is exactly the failure personas exist to catch — trusting consolidation's framing/destination is the failure mode personas were built for. Run personas in shadow mode; log the deviation if implementation gap persists, but do not skip.
+**NOT a legitimate skip condition** (added May 19, 2026; reframed May 20, 2026 after Phase 2 retirement):
+- Personas-would-produce-zero-challenges rationalization — **always run personas in shadow mode regardless of expected output.** The rationalization pattern ("personas would produce 0 challenges anyway given Zone-2-only consolidation") is a confirmed recurring failure mode (`step3a_skipped_rationalization` flagged across 6+ sessions since 2026-05-12). Reasoning from probable outcome back to skip the protocol is exactly the failure personas exist to catch — trusting consolidation's framing/destination is the failure mode personas were built for. This rule is independent of the retired Phase 2 gatekeeper decision; it remains valid for shadow-mode operation.
 
 **STOP and surface if:**
 - Either persona sub-agent returns malformed JSON (capture verbatim, surface to user, fall through to Step 4 without persona columns)
@@ -803,6 +814,68 @@ Review when ready; promote to `ready-for-autonomous` after answering any Open Qu
 - A cluster hits BOTH gates but the PLAN_DRAFTER_PROMPT child sub-agent is not spawned (default action is to draft, not defer)
 - The child sub-agent reports back without writing a file (means the drafter failed or refused to run)
 - The auto-drafted plan is missing test cases for incidents present in the watch-list cluster (every sub-ID must become a Success Criteria checkbox)
+
+**Mod 6 — Watch-vs-Codify Decision Criterion (added v4.0, 2026-05-20 hygiene pass):**
+
+Before adding any signal to the watch-list, apply this decision criterion:
+
+| Condition | Action |
+|---|---|
+| **All three present:** mechanism named (the WHY of the failure) + canonical destination identifiable (specific file + section) + ≥1 prior incident | **CODIFY DIRECTLY.** Write the rule into the destination. Log to `graduation-log.md`. Skip the watch-list entirely. |
+| **Any one missing:** mechanism unclear (multiple competing hypotheses) OR destination unknown OR pattern not yet trusted (need ≥N instances to distinguish from noise) | **WATCH.** Add to watch-list with threshold-based escalation (Mod 5). |
+| **Recurrence of already-codified rule:** matching graduation-log.md entry exists | **INCREMENT `incidents_since_codification`** on the matching graduation entry. If 2+ → re-open trigger (enforcement gap — usually Cluster 1 register-translation pattern). |
+
+**Why (2026-05-20):** Cluster 2 sat at 8 incidents waiting for "more evidence" when the fix was knowable at incident 1 (mechanism = pre-elicit constraints; destination = `pm-partnership.md`). Threshold-based escalation makes sense when the pattern is unknown; it becomes waste when the pattern is already named. The codify-now criterion overrides Mod 5's recurrence threshold (≥5 sub-IDs) when all three conditions are met.
+
+**Mod 7 — Granularity Ceiling Rule (added v4.0, 2026-05-20 hygiene pass):**
+
+Sub-entries within a cluster must not exceed these granularity ceilings:
+
+- **Sub-entry sprawl threshold:** When ≥3 sub-entries share the same root cause + fix shape (only the surface differs), **collapse to 1 entry + "surfaces observed" list/table.** Do NOT create per-surface sub-IDs for the same mechanism.
+- **Mechanism-first naming:** Entry header must name the mechanism (WHY) before the surface (WHAT). Surface variants become facets inside the entry, not separate sub-entries.
+  - ❌ Wrong: `W1.u.i — Visual surface: cover-image misread` (surface-first, encourages per-surface proliferation)
+  - ✅ Right: `W1.u — Surface-signal-as-confident-claim` + table of 8 surfaces (mechanism-first, surfaces are facets)
+- **Tabular incident format:** Sub-entries with ≥3 incidents use a compact table (Sub-ID | First-seen | Surface | Count | Routing | Status), not prose paragraphs. Full narrative reserved for entries with unique detail (consolidated chronologies, graduation traces, mechanism explanations).
+
+**Why (2026-05-20):** W1.u accumulated 8 sub-entries (i-viii), W1.k accumulated 4 (parent + .iv with 2 instances), Cluster 1 prose ballooned to ~200 lines. All of W1.u shared the same mechanism + same fix. The granularity decision should happen at *capture* time (when writing the entry), not at *consolidation* time (when sprawl is already visible).
+
+**Mod 8 — Stalled-Deliverable Separation (added v4.0, 2026-05-20 hygiene pass):**
+
+When a watch-list cluster has an associated plan and the plan has been in active-remediation status for >4 weeks without ship:
+
+1. Move the plan's status into the watch-list entry's Status field (e.g., "Plan executed 2026-05-19; registration blocked on /update-config from main session").
+2. Watch-list keeps only the **incidents-since-fix counter** and the link to the plan file.
+3. Granular sub-IDs preserved but compressed to tabular form (Mod 7).
+4. **Trigger attention on the *plan* (deployment target date?), not on the *watch-list* (which is correctly tracking).**
+
+**Why (2026-05-20):** Cluster 1 had a "5+ weeks active remediation" status, but the actual state was "implementation 80% done, blocked on one main-session command." The watch-list framing made it look like learning-loop hadn't acted; the truth was the plan was executing. The watch-list should reveal that distinction so user action goes to the right surface.
+
+**Mod 9 — Graduation Ledger Requirement (added v4.0, 2026-05-20 hygiene pass):**
+
+**Companion file:** `~/.claude/learning-captures/graduation-log.md` (created 2026-05-20).
+
+Every codification action MUST atomically:
+
+1. Update the canonical destination file with the new rule
+2. Write a graduation-log.md entry with: mechanism, destination, incident count at codification, re-open trigger
+3. Update watch-list entry status to **GRADUATED** (with link to graduation-log.md entry)
+
+A codification that doesn't write to graduation-log.md is **incomplete**. The codification action is the atomic unit; partial codifications are the failure mode this rule prevents.
+
+**Per-wrap-up monitoring (also fires at Step 4c):** After eval data capture, scan that session's incidents against graduation-log.md. If any incident matches a graduated rule's surface, increment `incidents_since_codification` on the matching graduation entry. ≥2 post-fix incidents = re-open trigger (usually Cluster 1 enforcement-gap pattern — rule exists, doesn't fire under task momentum, needs discrete hook).
+
+**Why (2026-05-20):** Zero rules graduated from watch-list to graduation-log in 5 weeks despite multiple Cluster 1 + Cluster 2 fixes shipping at the source (CLAUDE.md, reference docs). The fix shipped; the watch-list never updated. Without a ledger, "did the fix work?" is unanswerable; entries accumulate as a one-way archive.
+
+**Mod 10 — Path-Drift Detection at Cluster Audit (added v4.0, 2026-05-20 hygiene pass):**
+
+During Step 4b's cluster audit, verify referenced paths exist:
+
+- For each cluster with a Fix-field path or plan-path reference, run a one-shot existence check (`test -f` or equivalent).
+- If the path doesn't resolve, surface as a STOP item: the reference is broken and the actual file location should be hunted with `find` before the audit proceeds.
+
+**Why (2026-05-20):** Watch-list Cluster 1 referenced the W4 plan at `~/Documents/claude-projects/claude-skills/plans/2026-04-18-w4-discrete-trigger-retrofit.md`, but the actual file lived at `~/.claude/plans/2026-04-18-w4-discrete-trigger-retrofit-plan.md`. Path drift had been invisible for 5+ weeks. Anyone following the reference would fail.
+
+---
 
 #### Step 4c: Capture Phase 1 Eval Data (added v3.5 Apr 28 2026)
 
