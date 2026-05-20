@@ -1,0 +1,7 @@
+# Security defense-in-depth (created 2026-05-20 — GitHub incident response)
+.env
+.env.*
+*.pem
+*.credentials.json
+id_rsa*
+id_ed25519*
