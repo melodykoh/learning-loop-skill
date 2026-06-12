@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.0.0
+version: 4.1.0
 allowed-tools:
   - Task
   - Read
@@ -13,7 +13,12 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.0
+# learning-loop Skill v4.1
+
+**v4.1 changelog (2026-06-12 — W7.w Step-3/3a Sub-Agent STOP gate):**
+- **Step 3 Sub-Agent Gate (W7.w):** discrete STOP at the consolidation entry — closes the gap where end-of-session momentum rationalized consolidating *in the main conversation* and skipping the sub-agent + persona panel. Counters the 4 rationalizations surfaced in RED-GREEN testing (transcript-not-visible → write a richer scan file; small-consolidation; Mod-6-weaponization; late/tired-and-user-waiting) plus the destination-back-reasoning root cause. The pre-existing Sub-Agent Rule (top of skill) only STOPped for Scan mode; this covers the consolidation entry where both W7.w instances happened.
+- **Step 3a persona-skip STOP banner:** placed BEFORE the "non-blocking / informational" framing so it's read first — closes the partial-skip loophole ("personas are shadow-mode/non-blocking, so skipping changes nothing / it's just ceremony"). Clarifies that "non-blocking" describes the personas' *output*, never whether you run them; only legitimate skips remain `REVERT` and 0 conclusions; logging a skip does not legitimize it.
+- Provenance: watch-list W7.w (2 instances, threshold met 2026-06-10) → graduated G21. Built test-first per `/writing-skills` Iron Law (baseline subagent reproduced the skip; gate added; re-tested to compliance; 3 REFACTOR iterations to close the partial-skip loophole). No new bootstrap/state files added (Skill Version Ship Verification: nothing to bootstrap).
 
 **v4.0 changelog (2026-05-20 hygiene pass):**
 - Mod 6: Watch-vs-Codify Decision Criterion (codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident all named)
@@ -415,13 +420,28 @@ Triage view shape:
 
 #### Step 3: Consolidate with CONSOLIDATION_PROMPT
 
+**🛑 STOP — Sub-Agent Gate at the consolidation entry (W7.w, MANDATORY).** Before anything else at this step: are you about to consolidate the signals *yourself, in this main conversation,* instead of spawning the Step 3 consolidation sub-agent and then running the Step 3a persona panel? **That is the W7.w failure mode — do not.** It is still wrong even if:
+
+- **"Sub-agents can't see the transcript, so consolidating in-context is more accurate / a blind sub-agent reasoning over my paraphrase is lossier."** The hand-off file IS the mechanism. Write this session's signals into `scan-NNN.md` (Step 1) richly enough to stand on their own, then pass that file. A thin hand-off is a reason to write a *better scan file* — never a reason to skip the sub-agent. "I have the live context so I'm more accurate" is exactly the self-trust the persona panel exists to check.
+- **"It's only 2 signals / the consolidation is tiny / personas would produce 0 challenges / personas are non-blocking so skipping changes nothing."** Run them anyway. Size is not a skip condition, and **"non-blocking" means the personas don't *block* progression to Step 4 — it never makes running them optional.** The *only* legitimate skips are Phase decision = `REVERT` or 0 conclusions (see Step 3a). This is the confirmed recurring rationalization `step3a_skipped_rationalization`.
+- **"Mod 6 says don't run heavy machinery when mechanism + destination + incident are already in hand."** Mod 6 governs **watch-vs-codify routing of a conclusion** (Step 4b), not whether to spawn the consolidation/persona sub-agents. No skill rule licenses skipping Step 3/3a. Citing one to justify in-context consolidation is a misread — run the protocol, don't reason around it.
+- **"It's late / the user's waiting / they asked for a quick wrap-up."** End-of-session momentum IS the W7.w trigger. "Quick" means fewer signals, not a skipped protocol; the full pass costs ~2 minutes and protects the highest-correction-rate failure modes at exactly the tired moment they slip.
+
+**Reasoning from a predicted outcome ("the sub-agent/personas would add nothing" / "I'd be more accurate doing it myself") back to skipping the step is the W7.w root cause itself.** You cannot know the output is worthless until you produce it.
+
+**Required next action — no exceptions:** confirm/write the `scan-NNN.md` hand-off → spawn the Step 3 consolidation sub-agent against it → run the Step 3a persona panel. Only then proceed.
+
+> **Why this gate exists (W7.w, threshold met 2026-06-10):** Two instances of skipping Step 3/3a under end-of-session momentum. Instance 1 (`session-a`, 2026-05-19): skipped personas, rationalized "personas would produce 0 challenges." Instance 2 (`session-b`, 2026-06-10): consolidated in-context, rationalized "sub-agents can't see the transcript / it's small" — the proper re-run then caught **two real consolidation errors** the in-context pass missed (a missed cluster match + a duplicate git rule already living in `reason-upstream.md`), direct evidence the skipped step had value. The Sub-Agent Rule at the top of this skill only STOPs for Scan mode; this gate covers the consolidation entry, where both skips actually happened.
+
 Spawn a sub-agent with the consolidation prompt (see below). Pass only the **approved captures** (this session + any user-selected others). This is where raw signals become conclusions.
 
 #### Step 3a: Persona Panel (Shadow Mode — Phase 1, added v3.5 Apr 28 2026)
 
+**🛑 STOP — running the persona panel is MANDATORY in shadow mode (W7.w). Read this BEFORE the "non-blocking" framing below.** You ALWAYS run both personas. The *only* legitimate skips are Phase decision = `REVERT` or 0 conclusions (see Skip-this-step conditions). Personas being **"non-blocking / informational / not a gate"** describes what happens to their *output* — it does not *halt* progression to Step 4 — and it **never** means running them is optional. Skipping because *"it's 2 routine Zone 2 items / they'd produce 0 challenges / the user's waiting / it's just ceremony / it's shadow-mode by design"* is the `step3a_skipped_rationalization` failure mode that W7.w exists to fix — NOT a design-sanctioned shortcut. (Instance 1, `session-a` 2026-05-19: skipped personas on exactly this reasoning; user caught it with one question.)
+
 After consolidation produces its draft, run a two-persona adversarial review BEFORE Step 4 surfaces the proposal to the user. The personas target the dominant failure modes observed across 4 prior wrap-up sessions (12 correction rounds, ~75% concentrated in trigger-framing + destination-routing).
 
-**Phase 1 mode:** personas REPORT but do NOT block. Their output appears as additional columns in Step 4's verification view. User reads both views, decides per-row.
+**Phase 1 mode:** personas REPORT but do NOT block — i.e., their *output* doesn't halt progression to Step 4. **Per the STOP above, this is not permission to skip them: you still always run them.** Their output appears as additional columns in Step 4's verification view. User reads both views, decides per-row.
 
 **Phase mode resolution** — read `~/.claude/learning-captures/phase-1-decision-log.md` if it exists:
 - File missing OR latest decision = `HOLD` OR latest decision = `GO` OR latest decision absent → **shadow mode** (run personas + report, do not block — this is the permanent active mode)
@@ -453,6 +473,7 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 
 **NOT a legitimate skip condition** (added May 19, 2026; reframed May 20, 2026 after Phase 2 retirement):
 - Personas-would-produce-zero-challenges rationalization — **always run personas in shadow mode regardless of expected output.** The rationalization pattern ("personas would produce 0 challenges anyway given Zone-2-only consolidation") is a confirmed recurring failure mode (`step3a_skipped_rationalization` flagged across 6+ sessions since 2026-05-12). Reasoning from probable outcome back to skip the protocol is exactly the failure personas exist to catch — trusting consolidation's framing/destination is the failure mode personas were built for. This rule is independent of the retired Phase 2 gatekeeper decision; it remains valid for shadow-mode operation.
+- **"Personas are shadow-mode / non-blocking / informational, so skipping them changes nothing / it's just ceremony" rationalization** (added v4.1, 2026-06-12, REFACTOR pass). "Non-blocking" describes only that personas do **not block** progression to Step 4 — it does **NOT** make running them optional. Shadow mode is the *permanent active mode* precisely so the panel runs every wrap-up; skipping because it's non-blocking is `step3a_skipped_rationalization` in a new costume. It also **biases the shadow-eval dataset** — the runs you'd skip (routine, low-stakes) are exactly the observations the eval needs, so "these are routine" is a reason to run, not skip. **Logging the skip does not make it legitimate.** The only legitimate skips remain `REVERT` and 0 conclusions.
 
 **STOP and surface if:**
 - Either persona sub-agent returns malformed JSON (capture verbatim, surface to user, fall through to Step 4 without persona columns)
@@ -738,7 +759,7 @@ The working version leads with the specific incident (the named people + the spe
 
 > **Why v3.8 amendment (May 2 2026):** v3.7 made the floor MANDATORY for ALL conclusions. Result: a single wrap-up with 14 conclusions (3 Zone-1-shape + 10 Zone-3-shape methodology codifications + many Noted) became 14× the cognitive load. User: *"my brain just fried and I just kind of want to give up."* The floor is right; the scope was wrong. v3.8 makes the floor's rigor scale with zone — so the user's attention scales with where their judgment actually matters. Transcript fixture: `~/.claude/learning-captures/_archive/handoff-to-learning-loop-iteration.md` (v3.7 evidence; archived May 18 2026 from original `2026-04-29-content-lab-post-13-capture-distillation/`) + the May 2 wrap-up output that motivated v3.8 zones.
 
-> **Why v3.13 amendment (May 19, 2026):** v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain WHAT the 1-line summary must contain. In the `2026-05-19-arlo-vc-boardy-handoff` wrap-up, consolidation produced 4 conclusions (0 Z1, 3 Z2, 1 Z3) and Step 4 rendered the Z2/Z3 rows with cluster-ID-first phrasing like "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface." User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* Same root cause as v3.7 (verification requires remembering), but at a finer grain — the summary itself was jargon-only. After re-expanding with the full floor (which forced concrete incidents back to the surface), verification worked. The fix is to require the concrete-anchor lead at the 1-line layer too, not only the full-floor layer. Trigger heuristic + good/bad examples make the failure recognizable BEFORE rendering, not only after user pushback.
+> **Why v3.13 amendment (May 19, 2026):** v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain WHAT the 1-line summary must contain. In the `2026-05-19-session-a` wrap-up, consolidation produced 4 conclusions (0 Z1, 3 Z2, 1 Z3) and Step 4 rendered the Z2/Z3 rows with cluster-ID-first phrasing like "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface." User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* Same root cause as v3.7 (verification requires remembering), but at a finer grain — the summary itself was jargon-only. After re-expanding with the full floor (which forced concrete incidents back to the surface), verification worked. The fix is to require the concrete-anchor lead at the 1-line layer too, not only the full-floor layer. Trigger heuristic + good/bad examples make the failure recognizable BEFORE rendering, not only after user pushback.
 
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
@@ -1085,7 +1106,7 @@ ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ 
 
 **End-of-wrap-up cleanup gate:** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, Step 6 silently skipped — execute the per-file rm + rmdir block above before proceeding to Step 11. If cleanup verification still fails (e.g., permission error), surface to user verbatim: "Cleanup of [session-id] failed: [error]. Please run manually." Do NOT proceed to summary report without resolving cleanup state.
 
-> **Why this rule exists (May 19, 2026):** Audit of `~/.claude/learning-captures/` surfaced 4 wrap-up-completed orphan session dirs (2026-05-14-learning-loop-mechanism-refinement / 2026-05-18-country-of-geniuses-linkedin-and-cover / 2026-05-19-arlo-vc-boardy-handoff / 2026-05-19-pep-executor-and-interaction-rework) — all had eval entries in `persona-eval-runs.txt` (Step 4c writes work) but their session dirs were never deleted (Step 6 silently skipped). Common pattern in eval log: `deviation_noted=phase2_gatekeeper_implementation_gap`. Failure mode: combined-subagent dispatch returns "done" → main session reads report → main session drafts user-facing summary → Step 6 `rm -r` command never fires. Old `rm -r` form gave no verification feedback (silent success or silent skip indistinguishable). Per-file rm + explicit verification line forces the main session to confirm cleanup actually happened before declaring wrap-up complete. User directive: *"the right move is to use rm to delete individual files."* Same family as W1.r-pre-send (completion-token rendering before per-output-type verification) — workflow rule drifts under end-of-task momentum; verification gate before declaring done is the structural fix.
+> **Why this rule exists (May 19, 2026):** Audit of `~/.claude/learning-captures/` surfaced 4 wrap-up-completed orphan session dirs (2026-05-14-learning-loop-mechanism-refinement / 2026-05-18-country-of-geniuses-linkedin-and-cover / 2026-05-19-session-a / 2026-05-19-pep-executor-and-interaction-rework) — all had eval entries in `persona-eval-runs.txt` (Step 4c writes work) but their session dirs were never deleted (Step 6 silently skipped). Common pattern in eval log: `deviation_noted=phase2_gatekeeper_implementation_gap`. Failure mode: combined-subagent dispatch returns "done" → main session reads report → main session drafts user-facing summary → Step 6 `rm -r` command never fires. Old `rm -r` form gave no verification feedback (silent success or silent skip indistinguishable). Per-file rm + explicit verification line forces the main session to confirm cleanup actually happened before declaring wrap-up complete. User directive: *"the right move is to use rm to delete individual files."* Same family as W1.r-pre-send (completion-token rendering before per-output-type verification) — workflow rule drifts under end-of-task momentum; verification gate before declaring done is the structural fix.
 
 #### Step 6b: Cross-Reference _ideas/
 
@@ -1239,7 +1260,7 @@ After all learnings are routed and capture files cleaned up, check if the curren
    Pass-A-worthy criteria BEFORE prompting the user.
 
    Pass A exists to solve DISCOVERY problems that Pass B alone might miss
-   or make implicit. It is NOT a registry of every project repo Melody
+   or make implicit. It is NOT a registry of every project repo the user
    touches. A standard top-level project repo where files resolve cleanly
    via `git rev-parse --show-toplevel` is already handled by Pass B —
    adding it to Pass A duplicates coverage and bloats the list toward
@@ -2164,7 +2185,7 @@ Session 3: Finally done!
 
 | Enhancement | Why It Matters |
 |-------------|----------------|
-| **STOP — Concrete-Anchor Rule for Zone 2 / Zone 3 1-line summaries (Step 4 Verification Detail Floor)** | v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain what the 1-line summary leads with. In the `2026-05-19-arlo-vc-boardy-handoff` wrap-up, Z2/Z3 rows rendered as cluster-ID-first jargon (e.g., "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface") that the user could not verify without re-loading destination context. User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* The new STOP requires the 1-line to LEAD with a concrete incident, name, verbatim quote, or specific framing from THIS session; cluster IDs and destination paths go at the END as routing metadata. Same "shouldn't need to remember to verify" floor as v3.7, applied at the 1-line layer. Trigger heuristic lets the agent recognize the failing format BEFORE rendering: row contains cluster ID / plan path BUT no specific name / quote / incident phrase from this session → jargon-only → re-render with concrete anchor or auto-expand to full floor. Good/bad examples included so the contrast is unambiguous. |
+| **STOP — Concrete-Anchor Rule for Zone 2 / Zone 3 1-line summaries (Step 4 Verification Detail Floor)** | v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain what the 1-line summary leads with. In the `2026-05-19-session-a` wrap-up, Z2/Z3 rows rendered as cluster-ID-first jargon (e.g., "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface") that the user could not verify without re-loading destination context. User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* The new STOP requires the 1-line to LEAD with a concrete incident, name, verbatim quote, or specific framing from THIS session; cluster IDs and destination paths go at the END as routing metadata. Same "shouldn't need to remember to verify" floor as v3.7, applied at the 1-line layer. Trigger heuristic lets the agent recognize the failing format BEFORE rendering: row contains cluster ID / plan path BUT no specific name / quote / incident phrase from this session → jargon-only → re-render with concrete anchor or auto-expand to full floor. Good/bad examples included so the contrast is unambiguous. |
 
 ---
 
