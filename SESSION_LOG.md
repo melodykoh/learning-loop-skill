@@ -6,6 +6,34 @@
 
 ---
 
+## Session: June 12, 2026 — v4.1 W7.w Step-3/3a Sub-Agent STOP Gate
+
+### Context
+
+Watch-list cluster **W7.w** ("destination-back-reasoning replaces protocol execution") hit its 2-instance threshold on 2026-06-10. The failure: under end-of-session momentum, a wrap-up rationalizes consolidating signals *in the main conversation* and skipping the Step 3 consolidation sub-agent and/or the Step 3a persona panel — reasoning from a predicted outcome ("the sub-agent/personas would add nothing," "I have the live transcript so I'd be more accurate") back to skipping, the inverse of running the protocol because it's the protocol. Two real instances: `session-a` (2026-05-19, skipped personas) and `session-b` (2026-06-10, in-context consolidation — the proper re-run then caught two real errors the skip missed). The pre-existing Sub-Agent Rule at the top of the skill only STOPped for **Scan** mode; nothing fired at the consolidation entry where both skips happened.
+
+### How it was built (test-first per `/writing-skills` Iron Law)
+
+- **RED (1):** First baseline scenario *failed to fail* — the subagent complied without the gate. Root cause was a leading prompt: it pointed the agent at the existing Step 3a counter and labeled the compliant option "follow the skill literally." A non-failing test proves nothing, so the scenario was rewritten.
+- **RED (2):** Neutral, momentum-framed scenario (user asks for a "quick wrap-up," transcript-visibility framed as a correctness advantage, options unlabeled, agent not pointed at Step 3a) → subagent **skipped** (chose in-context consolidation) with verbatim rationalizations, including a new one: weaponizing Mod 6 ("don't run heavy machinery when the answer's in hand") to license the skip.
+- **GREEN:** Added the Step 3 Sub-Agent Gate; same scenario → agent reversed to compliance, wrote the scan hand-off, cited the gate.
+- **REFACTOR (3 iterations):** An adversarial probe exposed a **partial-skip loophole** — honoring the Step 3 gate but skipping *only* the personas as "shadow-mode/non-blocking, so skipping changes nothing." It survived two fixes placed *below* the section's prominent "non-blocking / informational / not a gate" framing; the agent followed the prominent primary framing and even called the skip "the rule's own design." Moving a **STOP banner above** that framing (top-down read order) closed it.
+
+### Locked decisions
+
+| # | Decision | Rationale |
+|---|---|---|
+| 1 | Two gates, not one | The two real instances are distinct surfaces: instance 2 skipped the Step-3 sub-agent; instance 1 skipped the Step-3a personas. A single gate at the consolidation entry misses the partial-skip. |
+| 2 | Step-3a counter goes **above** the "non-blocking" framing | Position beat wording: a counter only fires where it's read in time. "Non-blocking / informational" describes the personas' *output* (doesn't halt Step 4), never whether you run them — but stated first and prominently, it reads as "optional." The STOP banner must precede it. |
+| 3 | Graduate W7.w → G21, but keep the broader anti-pattern open | The evidenced pattern (both instances are Step-3/3a skips) is closed. General root-CLAUDE codification of destination-back-reasoning *outside* Step 3/3a stays deferred pending a non-Step-3a instance. Re-open trigger on G21: 2+ post-fix Step-3/3a skips → escalate prose-gate to a hook. |
+| 4 | No new bootstrap/state files | The change is pure prose gates; the skill's own Skill Version Ship Verification STOP is satisfied trivially (nothing to bootstrap/verify on disk). |
+
+### Note
+
+While verifying for the public-repo PR, caught PII: the new gate text used the user's literal first name; replaced with the skill's existing role-based "the user" framing, and scrubbed one pre-existing first-name reference elsewhere in `SKILL.md` in the same change. Execution spec: `~/.claude/plans/2026-06-12-w7w-step3a-stop-gate.md`; graduation entry G21 in `graduation-log.md`.
+
+---
+
 ## Session: May 20, 2026 — v4.0 Hygiene Pass + Phase 2 Gatekeeper Retirement
 
 ### Context
@@ -460,7 +488,7 @@ Step 6 (Cleanup) says delete consolidated session directories. But Phase 1 puts 
 - Coverage-rate gap (0.5 vs 60% target) is N=1 data — not yet diagnosable. C2's enforcement_gap_dismissal failure category may need a 5th persona OR an extension of an existing persona if it recurs.
 - Watch-list age-based archival mechanism (sub-agent's recommended next-pass approach) — not codified in SKILL.md yet.
 - v3.7 cleanup-vs-eval-persistence structural fix.
-- Project-level settings cleanup (3 files: Personal root, hanzi-dojo, NextView/diligence) — deferred from this wrap-up.
+- Project-level settings cleanup (3 files: Personal root, hanzi-dojo, firm/diligence) — deferred from this wrap-up.
 
 ### Changes Made
 
@@ -980,7 +1008,7 @@ We considered creating `~/.claude/project-patterns/[repo-name].md` files. Reject
 ### Also: Settings Cleanup
 
 The SessionStart hook detected two rogue project-level settings files created by "Always allow" clicks:
-- `NextView/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
+- `firm/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
 - Root `.claude/settings.local.json` — migrated Playwright MCP tools (`browser_navigate`, `browser_wait_for`, `browser_close`), `WebSearch`, and `gh api` to global
 
 Both files deleted after migration. Also added `Write(~/.claude/learning-captures/**)` to global settings for scratch file fallback.
@@ -994,7 +1022,7 @@ Both files deleted after migration. Also added `Write(~/.claude/learning-capture
 | SKILL.md | v2.1 upgrade: Phase 1 scratch logging, Phase 3 scratch awareness, Phase 4 routing split, diagrams/tables updated |
 | SESSION_LOG.md | Added this entry |
 | ~/.claude/settings.json | Added learning-captures Write permission + migrated rules from 2 rogue project files |
-| NextView/.claude/settings.local.json | Deleted (rules migrated to global) |
+| firm/.claude/settings.local.json | Deleted (rules migrated to global) |
 | .claude/settings.local.json | Deleted (rules migrated to global) |
 
 ---
