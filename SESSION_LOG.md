@@ -488,7 +488,7 @@ Step 6 (Cleanup) says delete consolidated session directories. But Phase 1 puts 
 - Coverage-rate gap (0.5 vs 60% target) is N=1 data — not yet diagnosable. C2's enforcement_gap_dismissal failure category may need a 5th persona OR an extension of an existing persona if it recurs.
 - Watch-list age-based archival mechanism (sub-agent's recommended next-pass approach) — not codified in SKILL.md yet.
 - v3.7 cleanup-vs-eval-persistence structural fix.
-- Project-level settings cleanup (3 files: Personal root, hanzi-dojo, NextView/diligence) — deferred from this wrap-up.
+- Project-level settings cleanup (3 files: Personal root, hanzi-dojo, firm/diligence) — deferred from this wrap-up.
 
 ### Changes Made
 
@@ -1008,7 +1008,7 @@ We considered creating `~/.claude/project-patterns/[repo-name].md` files. Reject
 ### Also: Settings Cleanup
 
 The SessionStart hook detected two rogue project-level settings files created by "Always allow" clicks:
-- `NextView/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
+- `firm/.claude/settings.local.json` — migrated `gh repo clone`, `sort`, `pip3`, `pip install`, `source`, `git cherry-pick` to global; discarded one-off loop commands and specific git commit message
 - Root `.claude/settings.local.json` — migrated Playwright MCP tools (`browser_navigate`, `browser_wait_for`, `browser_close`), `WebSearch`, and `gh api` to global
 
 Both files deleted after migration. Also added `Write(~/.claude/learning-captures/**)` to global settings for scratch file fallback.
@@ -1022,7 +1022,7 @@ Both files deleted after migration. Also added `Write(~/.claude/learning-capture
 | SKILL.md | v2.1 upgrade: Phase 1 scratch logging, Phase 3 scratch awareness, Phase 4 routing split, diagrams/tables updated |
 | SESSION_LOG.md | Added this entry |
 | ~/.claude/settings.json | Added learning-captures Write permission + migrated rules from 2 rogue project files |
-| NextView/.claude/settings.local.json | Deleted (rules migrated to global) |
+| firm/.claude/settings.local.json | Deleted (rules migrated to global) |
 | .claude/settings.local.json | Deleted (rules migrated to global) |
 
 ---
