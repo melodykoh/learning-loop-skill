@@ -1177,7 +1177,8 @@ After all learnings are routed and capture files cleaned up, check if the curren
    └── Stage all relevant files (.gitignore handles exclusions)
    └── Commit with descriptive message summarizing session work
    └── Push to remote if one exists (`git remote -v` to check)
-   └── Confirm: "Committed and pushed: [short hash] [message]"
+   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count origin/main...main` → expect `0 0`; if `main` is ahead, `git push origin main`. This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
+   └── Confirm: "Committed and pushed: [short hash] [message]" — only after the `0 0` verify
 
 5. If user skips:
    └── "Skipped. You have uncommitted changes — run `git status` to review later."
