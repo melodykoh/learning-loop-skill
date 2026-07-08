@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.1.0
+version: 4.2.0
 allowed-tools:
   - Task
   - Read
@@ -13,24 +13,13 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.1
+# learning-loop Skill v4.2
 
-**v4.1 changelog (2026-06-12 — W7.w Step-3/3a Sub-Agent STOP gate):**
-- **Step 3 Sub-Agent Gate (W7.w):** discrete STOP at the consolidation entry — closes the gap where end-of-session momentum rationalized consolidating *in the main conversation* and skipping the sub-agent + persona panel. Counters the 4 rationalizations surfaced in RED-GREEN testing (transcript-not-visible → write a richer scan file; small-consolidation; Mod-6-weaponization; late/tired-and-user-waiting) plus the destination-back-reasoning root cause. The pre-existing Sub-Agent Rule (top of skill) only STOPped for Scan mode; this covers the consolidation entry where both W7.w instances happened.
-- **Step 3a persona-skip STOP banner:** placed BEFORE the "non-blocking / informational" framing so it's read first — closes the partial-skip loophole ("personas are shadow-mode/non-blocking, so skipping changes nothing / it's just ceremony"). Clarifies that "non-blocking" describes the personas' *output*, never whether you run them; only legitimate skips remain `REVERT` and 0 conclusions; logging a skip does not legitimize it.
-- Provenance: watch-list W7.w (2 instances, threshold met 2026-06-10) → graduated G21. Built test-first per `/writing-skills` Iron Law (baseline subagent reproduced the skip; gate added; re-tested to compliance; 3 REFACTOR iterations to close the partial-skip loophole). No new bootstrap/state files added (Skill Version Ship Verification: nothing to bootstrap).
+> **Version history:** `references/CHANGELOG.md` (v4.2 = progressive-disclosure restructure, no behavior change; v4.1 = W7.w Step-3/3a Sub-Agent STOP gates; v4.0 = Mods 6-10 hygiene pass + Phase 2 gatekeeper retired).
+>
+> **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
-**v4.0 changelog (2026-05-20 hygiene pass):**
-- Mod 6: Watch-vs-Codify Decision Criterion (codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident all named)
-- Mod 7: Granularity Ceiling Rule (≥3 sub-entries sharing mechanism + fix → collapse; tabular incident format; mechanism-first naming)
-- Mod 8: Stalled-Deliverable Separation (plan-stale ≠ learning-loop-stale)
-- Mod 9: Graduation Ledger Requirement (`graduation-log.md` is mandatory counterpart to `watch-list.md`)
-- Mod 10: Path-Drift Detection at Cluster Audit (reference paths must resolve)
-- Phase 2 gatekeeper retired — shadow mode is the permanent active state (see `phase-1-decision-log.md` 2026-05-20 entry)
-
-
-
-**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce:compound` invocation mid-session (peak-fresh context).
+**Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce-compound` invocation mid-session (peak-fresh context).
 
 ---
 
@@ -100,7 +89,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 
 Context compaction and `/clear` destroy details. Files persist. This skill ensures:
 1. **Learnings are captured** before compaction erases them
-2. **The right tool is named for the right capture type** — process/content capture happens in wrap-up; code-level capture is user-invoked `/ce:compound` mid-session (this skill does NOT orchestrate `/ce:compound`)
+2. **The right tool is named for the right capture type** — process/content capture happens in wrap-up; code-level capture is user-invoked `/ce-compound` mid-session (this skill does NOT orchestrate `/ce-compound`)
 3. **Nothing falls through the cracks** — even when you forget to document
 
 ---
@@ -155,7 +144,7 @@ Claude Code also has a built-in auto-memory feature that intercepts natural-lang
    ```
    Next scan = count + 1, zero-padded (scan-001.md, scan-002.md, etc.)
 
-4. Spawn scanning sub-agent with SCANNER_PROMPT (see below)
+4. Spawn scanning sub-agent with SCANNER_PROMPT (Read `references/prompts/scanner-prompt.md` at dispatch)
 
 5. After capture completes, confirm:
    ```
@@ -166,115 +155,7 @@ Claude Code also has a built-in auto-memory feature that intercepts natural-lang
 
 ### SCANNER_PROMPT (Raw Signal Mode)
 
-```
-You have access to the full conversation context. Your job is to identify
-RAW LEARNING SIGNALS — unresolved observations, not conclusions.
-
-FIRST: Check for scratch file at ~/.claude/learning-captures/[session-id]/scratch.md
-If it exists, read it. Each line is an unverified micro-signal logged in real-time.
-Cross-reference against conversation context:
-- If confirmed → incorporate into your signal list
-- If contradicted or unverifiable → discard
-
-SECOND: Read ~/.claude/learning-captures/watch-list.md in full (v3.9 May 12 2026).
-Note the active clusters (W1.*, W4, W7.*, etc.) and the Fix field for each. You will
-use this list to apply the RECURRENCE TEST below before deciding whether any signal
-reaches main output or routes to the Dropped Signals footer.
-
-SCAN FOR THESE RAW SIGNALS:
-1. "Tried X, didn't work because Y" — failed attempts with reasons
-2. "User corrected assumption about Z" — pushback or corrections
-3. "Hypothesis: root cause might be..." — unresolved hypotheses (mark as UNRESOLVED)
-4. "Direction change: pivoted from A to B" — approach changes with reasons
-5. "Discovery: turns out X works because Y" — findings (may or may not be confirmed)
-6. "Process observation: we should always..." — meta-observations about workflow
-7. "Repeated instruction: user gave the same multi-step instruction seen in a prior session" — skill candidate signal. If the user directed the same workflow pattern across 2+ sessions, flag it as a potential skill to codify. Note what the pattern is and why it recurs.
-
-FOR EACH SIGNAL:
-- Capture the raw observation, not a conclusion
-- Mark hypotheses as UNRESOLVED (wrap-up will resolve them with hindsight)
-- Include enough context to be useful even after compaction
-- Quote relevant conversation excerpts where possible
-
-APPLY THE RECURRENCE TEST (v3.9 May 12 2026, MANDATORY) before deciding where each
-candidate signal lands:
-
-Test phrasing: *"If a fix were in the right place (per the matching watch-list entry's
-Fix field), would this incident have happened again?"*
-
-Four outcomes:
-
-1. **MATCH — same-type recurrence with precedent.** Signal matches an existing
-   watch-list entry's root cause + fix shape AND incident happened in this session
-   even once. The fix isn't in place yet, so this is evidence the underlying issue
-   persists. → **SURFACE in main signal output**, tagged with the matching cluster
-   ID (e.g., "W1.b incident", "W7.b incident").
-
-2. **MATCH — literally same rule, already codified.** Signal duplicates an already-
-   codified rule (the Fix field shows "shipped" or links to a hook/reference that
-   exists). The correct response depends on whether enforcement was the gap.
-   → If enforcement gap is the root cause, **SURFACE as evidence the codified rule
-   isn't firing.** Otherwise fold as a routine increment into the existing cluster —
-   do NOT create a new signal.
-
-3. **NO MATCH — novel single-incident.** Signal has no matching watch-list entry
-   AND appeared only once in this session. → **DROP to "Dropped Signals" footer**
-   with one-line description for transparency. Do NOT promote to main signal output.
-   Rationale: capture-without-action is debt; we want recurrence evidence before
-   adding to the watch-list.
-
-4. **NO MATCH — multi-incident within this session.** Signal appeared 2+ times in
-   this session even with no prior watch-list precedent. → **SURFACE in main signal
-   output** as a new candidate pattern (one session is enough evidence when
-   multi-incident).
-
-DO NOT:
-- Draw conclusions about what "should" happen
-- Apply quality gates beyond the recurrence test (wrap-up handles quality/significance)
-- Route to destinations (that's wrap-up's job)
-- Filter out signals other than via the recurrence test above (single-incident
-  no-precedent goes to Dropped Signals footer, NOT silently discarded)
-
-WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/scan-NNN.md:
-
----
-captured: [ISO timestamp]
-session_id: [from path]
-mode: scan
-context_state: [Full / Partial — has compaction happened?]
-signals_found: [total signals in main output]
-signals_dropped: [count of single-incident no-precedent signals dropped to footer]
----
-
-## Raw Signals
-
-### 1. [Signal Type]: [Brief Title]
-**Status:** [Observed / UNRESOLVED hypothesis / User-corrected]
-**Recurrence:** [Cluster match: W_N.x | Multi-incident novel | Enforcement-gap on shipped rule]
-**Quote:** "[Relevant quote from conversation]"
-**Detail:** [What happened, what was tried, what was observed]
-
-### 2. [Signal Type]: [Brief Title]
-...
-
-## Dropped Signals (single-incident, no precedent)
-
-For transparency. These were observed but did not pass the recurrence test (no
-matching watch-list cluster AND single-incident in this session). If any recur
-in a future session, they'll surface then.
-
-### 1. [Brief description]
-**Quote:** "[Conversation excerpt]"
-**Why dropped:** Single incident, no matching watch-list entry.
-
-### 2. ...
-
-## Scratch Lines Incorporated
-[List which scratch lines were confirmed and included]
-
-## Scratch Lines Discarded
-[List which were contradicted or unverifiable, with reasons]
-```
+**Read `references/prompts/scanner-prompt.md` at dispatch time** and use its content (below the header) as the sub-agent prompt, substituting `[session-id]` and `[NNN]`. Verbatim v4.1 content — includes the mandatory Recurrence Test (v3.9), the seven signal types, scratch-file cross-referencing, and the scan output schema. **STOP if the file is missing — surface to user; do not improvise a scanner prompt.**
 
 ---
 
@@ -367,7 +248,7 @@ If the file exists:
    - **AND** the latest entry in `phase-1-decision-log.md` is NOT a recent decision (< 24 hours old) — prevents re-firing within the same 24-hour window after a decision was just made
 
 3. **If trigger condition met:**
-   a. Spawn Phase 1 Decision Report sub-agent with `PHASE_1_DECISION_REPORT_PROMPT` (see prompt block alongside CONSOLIDATION_PROMPT). Pass it: all `~/.claude/learning-captures/*/persona-eval.md` files, plus the `persona-eval-runs.txt` log.
+   a. Spawn Phase 1 Decision Report sub-agent with `PHASE_1_DECISION_REPORT_PROMPT` (Read `references/prompts/phase-1-decision-report-prompt.md` at dispatch). Pass it: all `~/.claude/learning-captures/*/persona-eval.md` files, plus the `persona-eval-runs.txt` log.
    b. Surface the report to the user — show match rate, coverage rate, noise rate, failure-mode distribution, and the GO/HOLD/ITERATE/REVERT recommendation.
    c. Capture user's decision in `~/.claude/learning-captures/phase-1-decision-log.md`. Append in this format:
 
@@ -433,7 +314,7 @@ Triage view shape:
 
 > **Why this gate exists (W7.w, threshold met 2026-06-10):** Two instances of skipping Step 3/3a under end-of-session momentum. Instance 1 (`session-a`, 2026-05-19): skipped personas, rationalized "personas would produce 0 challenges." Instance 2 (`session-b`, 2026-06-10): consolidated in-context, rationalized "sub-agents can't see the transcript / it's small" — the proper re-run then caught **two real consolidation errors** the in-context pass missed (a missed cluster match + a duplicate git rule already living in `reason-upstream.md`), direct evidence the skipped step had value. The Sub-Agent Rule at the top of this skill only STOPs for Scan mode; this gate covers the consolidation entry, where both skips actually happened.
 
-Spawn a sub-agent with the consolidation prompt (see below). Pass only the **approved captures** (this session + any user-selected others). This is where raw signals become conclusions.
+Spawn a sub-agent with CONSOLIDATION_PROMPT (Read `references/prompts/consolidation-prompt.md` at dispatch). Pass only the **approved captures** (this session + any user-selected others). This is where raw signals become conclusions.
 
 #### Step 3a: Persona Panel (Shadow Mode — Phase 1, added v3.5 Apr 28 2026)
 
@@ -452,9 +333,9 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 
 **Sequence (sequential, not parallel — Router depends on Auditor's output):**
 
-1. **Trigger-Moment Auditor** runs first. Spawn as sub-agent with `TRIGGER_MOMENT_AUDITOR_PROMPT`. Pass: full consolidation output (`consolidation.md`) + current root CLAUDE.md contents. Returns per-conclusion JSON: `{id, named_trigger_moment, framing_assessment, broader_trigger_class_if_applicable, verdict, challenge_reasoning, counter_proposal}`.
+1. **Trigger-Moment Auditor** runs first. Spawn as sub-agent with `TRIGGER_MOMENT_AUDITOR_PROMPT` (Read `references/prompts/trigger-moment-auditor-prompt.md` at dispatch). Pass: full consolidation output (`consolidation.md`) + current root CLAUDE.md contents. Returns per-conclusion JSON: `{id, named_trigger_moment, framing_assessment, broader_trigger_class_if_applicable, verdict, challenge_reasoning, counter_proposal}`.
 
-2. **Workflow-Step Router** runs second. Spawn as sub-agent with `WORKFLOW_STEP_ROUTER_PROMPT`. Pass: same inputs as Auditor PLUS Auditor's JSON output. Returns per-conclusion JSON: `{id, classification, existing_workflow_step_list_at_trigger, recommended_destination_ranked, consolidation_destination_assessment, verdict, challenge_reasoning, re_route_proposal}`.
+2. **Workflow-Step Router** runs second. Spawn as sub-agent with `WORKFLOW_STEP_ROUTER_PROMPT` (Read `references/prompts/workflow-step-router-prompt.md` at dispatch). Pass: same inputs as Auditor PLUS Auditor's JSON output. Returns per-conclusion JSON: `{id, classification, existing_workflow_step_list_at_trigger, recommended_destination_ranked, consolidation_destination_assessment, verdict, challenge_reasoning, re_route_proposal}`.
 
 3. Both outputs written to `~/.claude/learning-captures/[session-id]/persona-review.json` as a single combined file:
 
@@ -793,7 +674,7 @@ When a watch-list cluster meets BOTH gates, spawn a child sub-agent to draft a p
    - Grep cluster ID (e.g., `W7.c`) across known plan directories: `~/Documents/claude-projects/claude-skills/plans/`, `~/.claude/plans/`, `~/Documents/claude-projects/Personal/*/plans/`, `~/Documents/claude-projects/Personal/plan-execution-pipeline/plans/`
    - Check the cluster's Fix field for an explicit plan-path reference (e.g., "see plan at /path/to/X.md")
 
-When BOTH gates pass, spawn a **child sub-agent** with `PLAN_DRAFTER_PROMPT` (see prompt block alongside CONSOLIDATION_PROMPT). The main wrap-up sub-agent does NOT do the drafting work — child sub-agent extraction keeps the main wrap-up context clean (matches the v3.5 persona-panel architecture).
+When BOTH gates pass, spawn a **child sub-agent** with `PLAN_DRAFTER_PROMPT` (Read `references/prompts/plan-drafter-prompt.md` at dispatch). The main wrap-up sub-agent does NOT do the drafting work — child sub-agent extraction keeps the main wrap-up context clean (matches the v3.5 persona-panel architecture).
 
 The child sub-agent receives: cluster ID + cluster header + Fix field + all sub-entries + PEP plan schema. It parses Fix for plan location, drafts the plan with each historical incident as a Success Criteria checkbox, handles ambiguous Fix-field areas via `## Open Questions (blocking)` section, writes the file, and reports back.
 
@@ -970,7 +851,7 @@ After user confirms, route each learning to its proper destination:
 
 | Type | Destination | Handler |
 |------|-------------|---------|
-| **Code-level** (confirmed fixes) | `docs/solutions/` via user-invoked `/ce:compound` | Wrap-up surfaces nudge only; user invokes `/ce:compound` mid-session |
+| **Code-level** (confirmed fixes) | `docs/solutions/` via user-invoked `/ce-compound` | Wrap-up surfaces nudge only; user invokes `/ce-compound` mid-session |
 | **Process-level (behavioral)** | CLAUDE.md (root or project) | Learning-loop direct (with consolidation discipline) |
 | **Process-level (operational)** | Project operational docs* | Learning-loop direct |
 | **Skills-level** (skill building/authoring/maintenance) | claude-skills repo (CLAUDE.md or playbook) | Learning-loop direct |
@@ -1332,578 +1213,20 @@ After all learnings are routed and capture files cleaned up, check if the curren
 
 **Why this exists:** Most local repos were set up for git-based safety (backup + rollback) but may lack .gitignore. Without a session-end prompt, operational doc changes accumulate uncommitted across sessions, losing the backup and history benefits. The .gitignore check ensures each repo only needs one-time setup — after that, commits are clean automatically.
 
-### CONSOLIDATION_PROMPT
+### Sub-Agent Prompt Library (extracted v4.2 — read at dispatch time)
 
-```
-You are consolidating raw learning signals from USER-APPROVED capture files into
-verified conclusions. You have access to the current conversation context AND
-capture files the user selected during triage.
+Each prompt below is verbatim v4.1 content, moved to `references/prompts/` so it loads only when its step dispatches. **At each dispatch step: Read the file, use everything below its header line as the sub-agent prompt, substitute bracketed placeholders.**
 
-READ ALL PROVIDED CAPTURE FILES. These contain raw signals — observations,
-hypotheses, failed attempts — captured mid-session before compaction.
-Only files explicitly approved by the user during triage are included.
-
-YOUR JOB: Resolve raw signals into conclusions with the benefit of hindsight.
-
-FOR EACH RAW SIGNAL:
-
-1. **Resolve hypotheses:** Cross-reference UNRESOLVED hypotheses against what
-   actually happened. Did the hypothesis turn out correct? Was the root cause
-   what we suspected? Mark as CONFIRMED, DISPROVEN, or STILL UNRESOLVED.
-
-2. **Root cause check (in-session repetition AND cross-session via watch-list — Mod 2, Apr 28 2026):**
-
-   **FIRST — read `~/.claude/learning-captures/watch-list.md` end to end.** Every active entry has a `Root cause` column and a `Fix` column. These are the matching anchors.
-
-   For EACH conclusion you draw, ALSO determine:
-   - **Cognitive origin:** What mental move broke down? (e.g., "asserted from field name without verifying," "continuous rule failed to fire mid-task," "didn't read source before proposing.")
-   - **Process origin:** Which workflow step or rule type drifted? (e.g., "session-start check," "pre-assertion verification," "skill-modification flow.")
-   - **Proposed fix:** What mechanism would prevent recurrence? (e.g., "W4 hook (b)," "discrete trigger conversion," "pre-presentation check.")
-
-   THEN — for each conclusion, check against every active watch-list entry:
-   - "Is the cognitive origin the same as entry W_N?"
-   - "Is the proposed fix the same as W_N's fix?"
-   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + transcript reference. Do NOT file a new top-level entry.
-   - If origin matches but fix differs → check whether you've actually thought about the fix carefully, or whether you're inventing a parallel fix where W_N's existing fix would work. Default to W_N's fix unless you can articulate why it wouldn't apply.
-   - If neither matches → propose new top-level watch-list entry with `Root cause` and `Fix` populated.
-
-   **STOP — Resolution-vs-Increment Check (added May 7, 2026):** Before proposing ANY watch-list increment OR new entry, ask: "Does this conclusion's routing destination structurally resolve the pattern (e.g., adds the rule to a workflow-step list, modifies a playbook, edits CLAUDE.md)?" If YES → DO NOT propose the watch-list increment in addition to the routing. Watch-list entries track incidents-without-fixes; the conclusion IS the fix, not an incident awaiting one. Skip the increment.
-
-   > Why (May 7, 2026): A wrap-up conclusion routed to Operations Playbook Step 5 with a structural fix simultaneously proposed a Cluster 3b watch-list increment. User pushback: *"if we're solving this issue with the routing why do we still increment the watchlist?"* Both consolidation and the persona panel pattern-matched to "Cluster N instance, increment" without checking whether the routing already resolves the pattern. This is a NEW failure category not in the a/c/d/g taxonomy — propose `redundant_increment_with_fix` for the Phase 1 eval taxonomy.
-
-   **STOP — Test-Case Value Check (added May 14, 2026 — tightening complement to Resolution-vs-Increment):** Before proposing an increment to an EXISTING watch-list sub-entry (the May 7 rule above fires when THIS session's conclusion creates the resolution; this rule fires when the resolution is ALREADY in place from prior work), ask: "Does this incident add a NEW test-case dimension to the entry's proposed fix?" Two passing cases:
-
-   - **(a) New surface the fix would need to handle** — e.g., the existing W1.j sub-entries are about fact-verification surfaces; a new sub-entry covering register-translation surface is a new test-case dimension. INCREMENT is valuable as a test case the eventual fix author must satisfy.
-   - **(b) Fix is structurally in flight, incident covers a not-yet-tested branch** — e.g., the W4 retrofit plan exists but doesn't cover branch X; this incident is the first surface for branch X. INCREMENT is valuable.
-
-   Failing case → DROP the increment:
-   - **Fix is already in place AND firing AND the incident is the same surface as prior sub-entries** (e.g., the Stop hook for completion-claim-without-verification is the structural fix; it fires correctly; counting hook fires is a metric, not a pattern). Sub-entries that add no test-case dimension are metric noise, not pattern signals.
-
-   The discriminator: **"would the fix author learn anything new about how to design the fix from this sub-entry?"** If no → drop.
-
-   > Why (May 14, 2026): Wrap-up proposed W1.r-pre-send increment for a Stop hook re-trip on completion-claim-without-verification. User: *"If the hook fires successfully, why are we incrementing the watchlist? Meaning, what would be the new fix if the watchlist count exceeds the threshold? If there is no new fix, why are we incrementing?"* Stop hook IS the structural fix; it fired; the increment proposed no new fix and added no new test-case dimension to the in-flight W4 retrofit plan. Sub-entries are valuable as test cases, not as incident counters.
-
-   Then continue with the in-session repetition check below.
-
-   If a signal represents a mistake that an existing rule should have caught, or
-   the same type of error occurred multiple times in the session, STOP before
-   classifying and ask:
-   - "Why did the existing rule fail to prevent this?"
-   - "Is it in the wrong place in the workflow? Missing a trigger? Wrong type of enforcement?"
-   - "Where in the decision flow does this rule need to fire to actually work?"
-   The answer determines the destination — don't default to the topically similar
-   location. A rule that fires at the wrong moment in the workflow is dead code
-   regardless of where it's documented.
-
-3. **Classify the conclusion:**
-   - Code-level: Specific to codebase/framework (fix confirmed working)
-   - Process-level (behavioral): Changes decision-making — applies across sessions
-   - Process-level (operational): Changes procedure execution — specific to a workflow
-   - Skills-level: About skill authoring, structure, maintenance, deployment, or SKILL.md patterns
-   - Fact: Pure recall, no behavior change (names, dates, preferences)
-   - Content-level: Understanding shifted, publishable insight
-
-4. **Apply Quality Gates (on conclusions, not raw signals):**
-
-   UNIVERSAL (all types):
-   □ Reusability - applies beyond this specific instance?
-   □ Non-triviality - required genuine discovery?
-
-   CODE-LEVEL:
-   □ Specificity - exact error messages, symptoms defined?
-   □ Validation - fix confirmed working?
-
-   PROCESS-LEVEL:
-   □ Specificity - observable trigger situation described?
-   □ Validation - experienced consequence of NOT following this?
-
-   CONTENT-LEVEL:
-   □ Specificity - can articulate what understanding shifted?
-   □ Validation - contradicts or refines prior belief?
-   □ Content wedge - fits "where AI capability meets reality" positioning?
-     (If no → reclassify as process-level. Tag ⚠️ if borderline.)
-
-   FACT:
-   □ Accuracy - verified against conversation evidence?
-   □ Persistence - worth remembering across sessions?
-
-5. **If FAILS Gates 1-5:** Note which gate failed, include as "REVIEW NEEDED"
-
-5.5. **Enforcement-Gap Check (added v3.6 Apr 28 2026 — when existing rule covers trigger but failed to fire):**
-
-   If the conclusion identifies that an existing rule (in CLAUDE.md, a reference doc, or a SKILL.md gate) covers this trigger semantically but did NOT fire in this session, **do NOT route to NOTED with reasoning "already codified."** That dismissal makes learning-loop incapable of improving enforcement — it just confirms gaps without proposing fixes.
-
-   Instead, propose a specific ENFORCEMENT MECHANISM upgrade:
-
-   - **Mechanical:** Stop hook / pre-commit hook / pre-push hook / SessionStart hook that fires on the symptom phrase or state
-   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural Rules + Canonical Truth" in root CLAUDE.md)
-   - **Evidence:** add `Evidence:` requirement so the rule produces an artifact that proves it fired
-   - **Trigger:** tighten the trigger phrase to match the failure-mode framing (per Trigger-Moment Auditor)
-   - **Workflow-step ship gate:** add a STOP item to the relevant skill's ship/closeout checklist that mechanically requires the rule's protocol be run before declaring done
-
-   Route the enforcement proposal as a NEW CONCLUSION (with its own gates + destination), not as part of the original signal's NOTED disposition. The original signal can still route to NOTED — but the enforcement upgrade is a separate, actionable conclusion.
-
-   > **Why this exists (Apr 28, 2026):** During the v3.5 Phase 1 Persona Panel ship wrap-up, conclusion C2 (bootstrap accumulator files not created at ship time) was initially routed to ACTION ITEM only with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'), so no codification needed." User pushback: *"When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."* The dismissal pattern is what makes rule-coverage-without-rule-firing a recurring failure mode — learning-loop must propose enforcement upgrades or the gap stays open. Step 5.5 is the structural fix.
-
-5.6. **Same-Root-Cause Collapse Check (added v3.7 Apr 29 2026):**
-
-   Before continuing to significance threshold, for each PAIR of conclusions you've drawn so far, ask:
-
-   1. Do they share the SAME cognitive origin (same mental move broken down)?
-   2. Do they share the SAME process origin (same workflow step or rule type drifted)?
-   3. Do they share the SAME proposed fix?
-
-   If all three YES → **COLLAPSE into one conclusion.** Two instances of the same mechanism are not two conclusions — they're two incidents of one conclusion. Combine the evidence (both incidents become sub-evidence of the unified conclusion); do NOT carry forward as two separate conclusions.
-
-   If 2 of 3 YES → flag as **"borderline same-mechanism, surface to user for verification at Step 4"** rather than auto-collapsing. The user has context the prompt doesn't.
-
-   This is the inverse of the C4-style mechanism-collapse-into-causal-chain check (which warns: don't fabricate causal connection between independent mechanisms). Here the warning is the opposite: **don't fabricate distinctness between two instances of the same mechanism.**
-
-   > **Why (Apr 29, 2026):** A parallel content-lab wrap-up produced separate conclusions C1 ("skill needs dual entry triggers") and C3 ("read file before drafting synthesis prose"). User collapsed both via a diagnostic question — same root cause (continuous always-rule drifting under task momentum), same fix shape (mechanical pre-prose hook). The collapsibility was visible in retrospect. CONSOLIDATION_PROMPT didn't natively run the check. Step 5.6 forces it. Transcript fixture: `~/.claude/learning-captures/_archive/handoff-to-learning-loop-iteration.md` (archived May 18 2026 from original `2026-04-29-content-lab-post-13-capture-distillation/`).
-
-6. **Apply Significance Threshold (Gate 6):**
-   Ask: "If this were lost after this session, would a future session go WRONG?"
-   □ YES — Claude would repeat a mistake, skip a step, or lose needed context → Route to destination
-   □ NO — this is an interesting observation but forgettable → Route to "Noted"
-
-   For process-level conclusions that pass significance, apply the behavioral/operational split:
-   □ Behavioral (changes what Claude decides) → CLAUDE.md (root or project)
-   □ Operational (changes how Claude executes a procedure) → Check: does project have
-     dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
-     if significant, Memory if marginal.
-
-6.5. **Zone Classification (added v3.8 May 2 2026, MANDATORY):**
-
-   For every conclusion that passes gates and significance, classify into ONE of three zones. Each conclusion gets a `zone` field in the output. The zone determines how Step 4 surfaces it for user verification — directly affecting cognitive load.
-
-   **Zone 1 — Decisions Required (user judgment matters):**
-   Trigger any of:
-   - Persona challenged this conclusion (Auditor or Router issued a `challenge` verdict)
-   - Step 5.6 returned 2/3 borderline same-mechanism — surfaced for user verification
-   - Conclusion creates a NEW top-level watch-list cluster (not an increment to existing)
-   - Conclusion proposes a NEW root CLAUDE.md edit
-   - Conclusion proposes a plan amendment / plan-coverage gap flag
-   - Routing involves cross-repo edits or restructures an authoritative doc
-
-   Zone 1 conclusions get the full Verification Detail Floor (per Step 4) and explicit per-item user choice.
-
-   **Zone 2 — Routine Confirmations (mechanical routing):**
-   Trigger when:
-   - Existing-cluster sub-entry increment AND personas pass on this conclusion
-   - Watch-list increment with no scope challenge from either persona
-   - Memory MEMORY.md fact append where the destination is unambiguous
-   - Skills-level learning routing to an existing playbook section the user has already approved
-
-   Zone 2 conclusions get a 1-line summary + destination by default. User accepts the batch with a single confirmation; can expand individual items on demand.
-
-   **Zone 3 — Auto-routed (administrative):**
-   Trigger when:
-   - Conclusion documents a decision the user already made and approved IN-SESSION (e.g., methodology codification of a choice already locked into a workflow doc / decision.md / draft)
-   - Session-scoped observation that won't fire across sessions (no cross-session enforcement implied)
-   - Routing to a destination the user has already committed to during the session itself
-   - Conclusion is acknowledging a workflow rule the user explicitly stated and approved
-
-   Zone 3 conclusions DO NOT surface in the user's main verification scroll. Surface only as "Auto-routed N items to [destinations summary]. Anything to promote to Zone 1?" — a single yes/no.
-
-   **Classification questions to ask per conclusion:**
-   1. Does it encode a NEW cross-session enforcement (rule / hook / new cluster / plan amendment / CLAUDE.md edit)? → Zone 1 or Zone 2
-   2. Did either persona challenge it? → Zone 1 (override base classification)
-   3. Did Step 5.6 mark it as 2/3 borderline? → Zone 1 (override)
-   4. Does it document a decision already made and approved by the user IN-SESSION? → Zone 3
-   5. Could a future session's behavior change because of this? If NO → Zone 3
-   6. Is the destination unambiguous and the routing mechanical? → Zone 2
-
-   **Zone-1 cap rule:** if Zone 1 contains MORE THAN 5 items, surface to user at top of Step 4 verification view:
-
-   ```
-   ⚠️ Zone 1 cap exceeded: [N] items require your judgment.
-   This is high cognitive load. Options:
-   - (a) Triage all [N] now (estimated: ~[N×2]min)
-   - (b) Triage top-priority items now (you pick how many), shelve the rest as Noted
-   - (c) Treat all as Noted — accept consolidation defaults, no judgment exercised
-   ```
-
-   This prevents the "wall of decisions" failure mode where the user gives up because it's too much to review.
-
-   > **Why (May 2 2026):** A parallel content-lab/diligence wrap-up under v3.7 produced 14 conclusions + 4 persona challenges + 2 borderline calls + 18 Noted items. User reported: *"my brain just fried and I just kind of want to give up."* Diagnosis: the agent itself had cognitively differentiated the conclusions (its own ★Insight: *"the other 10 conclusions are methodology codifications for the new diligence engine, not failure-mode captures — different shape, different routing"*) but had no structural way to surface them differently. v3.7's Verification Detail Floor made every conclusion equally heavy regardless of whether the user's judgment was actually needed. v3.8 zones make the floor's rigor scale with materiality. Tier mismatch, not detail-level mismatch.
-
-6.6. **Wedge-Test Recording (added v3.9 May 12 2026, MANDATORY):**
-
-   For every Zone-1 and Zone-2 conclusion, apply the content wedge test from `~/Documents/claude-projects/Personal/content-lab/positioning/content_wedges_v2.md` (test: *"Is this insight about where AI capability meets reality — a worldview-level shift, not an operational learning?"*) and record the one-line rationale in the `Wedge test:` field of the output template (see Step 7 output schema).
-
-   Three valid values:
-   - **Pass — <one-line reason>:** Conclusion is a worldview-level shift fitting the content wedge. Surface to user at Step 4 as a Judgment Ledger candidate (NOT auto-routed — user decides whether to draft a ledger entry).
-   - **Fail — <one-line reason>:** Conclusion is operational/process-level, not worldview. Routes per its normal destination; the rationale documents WHY it didn't qualify, making the screen auditable.
-   - **N/A:** Conclusion is code-level (user's `/ce:compound` territory) or a routine watch-list increment — wedge test does not apply.
-
-   **Never omit the field.** Silence is the failure mode we are fixing — across 15+ wrap-ups Apr-May 2026 the wedge test was applied implicitly and silently, producing zero auditable records. The field forces the screen to leave a trace.
-
-   > **Why (May 12 2026):** Apr 2026 had 11 Judgment Ledger entries; May had 0 entries in the first 12 days. Investigation showed wrap-ups had been silently dropping Judgment Ledger consideration without recording rationale — the user had no signal whether the wedge filter had correctly screened or never fired. Per-conclusion recording makes silence auditable. Note: JL is primarily user-originated from in-session reflection, NOT wrap-up extraction — this field is a backstop to catch the rare worldview shift that surfaces operationally, not a primary capture path.
-
-7. **If PASSES all gates + significance:** Extract with routing recommendation (including `zone` field per Step 6.5 and `wedge_test` field per Step 6.6)
-
-WRITE OUTPUT:
-
----
-consolidated: [ISO timestamp]
-sessions_analyzed: [list of session-ids]
-total_raw_signals: [count across all scans]
-conclusions_drawn: [count]
-hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
----
-
-## Resolved Hypotheses
-
-### [Hypothesis from scan]
-**Resolution:** CONFIRMED / DISPROVEN / STILL UNRESOLVED
-**Evidence:** [What proved/disproved it]
-
-## Conclusions (Passed Quality Gates)
-
-### 1. [Type]: [Brief Title]
-**Gate Status:** ✅ PASSED
-**Classification:** [Code-level / Process-level (behavioral) / Process-level (operational) / Fact / Content-level]
-**Significance:** [✅ Future sessions would: repeat mistake / skip step / lose context] or [❌ Interesting but forgettable → Noted]
-**Zone:** [Zone 1 — Decisions Required / Zone 2 — Routine Confirmation / Zone 3 — Auto-routed]  ← v3.8 (Step 6.5)
-**Zone reason:** [one-line justification — e.g., "persona challenged" / "existing-cluster increment, personas pass" / "documents in-session-approved decision"]
-**Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
-**Wedge test:** [Pass — <reason> / Fail — <reason> / N/A]  ← v3.9 (Step 6.6) — MANDATORY, never omit
-
-**Trigger Conditions:** (for process-level)
-- When: [Observable situation]
-- Do: [What to do]
-- Why: [Consequence avoided]
-
-**Solution Summary:** (for code-level)
-- Error: "[Exact error message]"
-- Fix: [One sentence]
-
-**Fact:** (for facts)
-- [The fact to remember]
-
-**Insight:** (for content-level)
-- Before: [What was believed]
-- After: [What is now understood]
-- Trigger: [When to recall this]
-
-## Noted (Passed Quality Gates, Below Persistence Threshold)
-
-### [N]. [Type]: [Brief Title]
-**Why not persisted:** [What would NOT go wrong if this were forgotten]
-
-## Signals That Failed Gates
-
-### [N]. [Type]: [Brief Title]
-**Failed Gate:** [Which one]
-**Reason:** [Why]
-
-## Summary
-- Raw signals analyzed: [N]
-- Conclusions drawn: [X]
-- Failed gates: [Y]
-- Routing plan: [list by destination]
-```
-
-### TRIGGER_MOMENT_AUDITOR_PROMPT (added v3.5 Apr 28 2026)
-
-```
-You are auditing the consolidation sub-agent's routing proposals for ONE specific failure mode: scope-too-narrow framing where the rule is anchored on the symptom (the specific failure that occurred) rather than the underlying cognitive move.
-
-INPUTS (will be passed to you):
-- The consolidation.md output from Step 3 (full conclusions list)
-- The current ~/Documents/claude-projects/CLAUDE.md contents
-- The current ~/.claude/reference/reason-upstream.md contents (umbrella reference)
-
-YOUR JOB: For each routed conclusion in the consolidation output, audit the rule's framing.
-
-FOR EACH CONCLUSION:
-
-1. Identify the SPECIFIC TRIGGER MOMENT in the user's workflow at which the rule needs to fire. Be concrete: "about to ask user a question", "about to declare done/working/complete", "about to draft prose with external facts", "about to assert a config field's behavior", "about to act on any request that pulls in code/infra/offers/scheduled work."
-
-2. Compare the trigger moment to the rule's proposed name and framing:
-   - Is the rule named after the symptom (the specific failure case that motivated it) — e.g., "Proactive-Offer Filter for /schedule"?
-   - Or is it named after the cognitive move being prevented — e.g., "Reason Upstream Before Acting"?
-   - If symptom-anchored → flag CHALLENGE and propose mechanism framing.
-
-3. Zoom out one level: is there a BROADER TRIGGER CLASS where the same failure mechanism would also fire?
-   - If yes → name the broader class. The narrow rule may be missing cases the broader rule would catch.
-
-4. Consider: would this rule fire for a related-but-distinct failure case in a future session?
-   - If only the exact symptom would trigger it → framing is too narrow → CHALLENGE.
-   - If the cognitive move is named such that adjacent symptoms also trigger it → PASS.
-
-5. Cross-check against existing umbrella rules:
-   - Grep ~/.claude/reference/reason-upstream.md and root CLAUDE.md for keywords that overlap the proposed rule's trigger.
-   - If an existing umbrella rule already covers this trigger → CHALLENGE with re-framing as "extend existing rule's STOP list" rather than "create new rule."
-
-OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
-
-```json
-{
-  "id": "C1",
-  "named_trigger_moment": "<specific phrase>",
-  "framing_assessment": "symptom" | "mechanism",
-  "broader_trigger_class_if_applicable": "<phrase or null>",
-  "verdict": "pass" | "challenge",
-  "challenge_reasoning": "<one sentence if challenge, else null>",
-  "counter_proposal": "<rephrased rule name + trigger if challenge, else null>"
-}
-```
-
-EXAMPLES from past sessions (illustrative — rule names in some cases have since been further consolidated):
-- "Investigate Before Asking" → CHALLENGED → renamed to "Exhaust Capabilities Before Declaring Blocked" (trigger moved from 'about to ask' to 'about to declare blocked'). Later consolidated into "Investigate Before Declaring (blocked trigger)".
-- "Existing Knowledge Check" routing → CHALLENGED → broader trigger "before drafting anything" was right level, not just "before fact-citing". Later consolidated into "Investigate Before Declaring (assertion trigger)".
-- "Proactive-Offer Filter" → CHALLENGED twice in 2026-04-24 session → broadened to "Reason Upstream Before Acting" (trigger moved from /schedule offers specifically to any pre-action moment).
-
-For current rule names, grep ~/Documents/claude-projects/CLAUDE.md and ~/.claude/reference/reason-upstream.md.
-
-WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "trigger_moment_auditor".
-```
-
-### WORKFLOW_STEP_ROUTER_PROMPT (added v3.5 Apr 28 2026)
-
-```
-You are auditing the consolidation sub-agent's destination choices. ONE specific failure mode: filing rules to memory or to topic-similar reference docs when they belong in workflow-step lists where they fire automatically at the trigger point.
-
-INPUTS (will be passed to you):
-- The consolidation.md output from Step 3 (full conclusions list)
-- The current ~/Documents/claude-projects/CLAUDE.md contents
-- The Trigger-Moment Auditor's JSON output (you receive its named_trigger_moment values to align destination selection with the named trigger)
-
-YOUR JOB: For each routed conclusion, classify decision-changer vs. recall-fact and recommend destination.
-
-FOR EACH CONCLUSION:
-
-1. Classify: does this rule CHANGE A DECISION Claude makes, or is it a FACT Claude needs to recall, or is it EXECUTION-TIME BEHAVIOR?
-   - decision-changer → CLAUDE.md (root or project) OR a workflow-step list at the trigger point
-   - recall-fact → memory MEMORY.md
-   - execution-time-behavior → reference doc + 2-3 line trigger pointer in CLAUDE.md
-
-2. If decision-changer: is there an EXISTING workflow-step list at the named trigger point (use the Trigger-Moment Auditor's named_trigger_moment value)?
-   - Examples of workflow-step lists: skills' STOP checklists, project CLAUDE.md "Error Handling" sections, "Pre-publish checklist" sections, "When debugging, check these" lists.
-   - If yes → route there. The rule fires automatically when the workflow step is read.
-   - If no → root or project CLAUDE.md as a new section.
-
-3. If routing to root CLAUDE.md: check the size budget.
-   - Root CLAUDE.md target: <250 lines. Force extraction at ≥230.
-   - At/over budget → force extraction to reference doc, keep 2-3 line trigger only.
-
-4. Compare to consolidation's proposed destination:
-   - aligned → verdict: pass
-   - misaligned → verdict: challenge with re-route recommendation
-
-5. Apply the Memory Routing Decision Test:
-   - "Does this change how Claude should behave?" → if YES, it's NOT a memory entry, it's a CLAUDE.md or workflow-step rule.
-   - If consolidation routed a behavior-changing rule to memory → CHALLENGE with re-route to CLAUDE.md or workflow-step list.
-
-OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
-
-```json
-{
-  "id": "C1",
-  "classification": "decision-changer" | "recall-fact" | "execution-time-behavior",
-  "existing_workflow_step_list_at_trigger": "<path or null>",
-  "recommended_destination_ranked": ["<first choice>", "<fallback>"],
-  "consolidation_destination_assessment": "aligned" | "misaligned",
-  "verdict": "pass" | "challenge",
-  "challenge_reasoning": "<one sentence if challenge, else null>",
-  "re_route_proposal": "<destination + section if challenge, else null>"
-}
-```
-
-EXAMPLES from past sessions (illustrative — rule names in some cases have since been further consolidated):
-- C2 (config field fragility) was routed to fact_*.md memory → user moved to project CLAUDE.md "Error Handling" section.
-- "Existing Knowledge Check" was first routed to a reference subsection → user re-routed to root CLAUDE.md as sibling of "Before Any Code". Later consolidated into "Investigate Before Declaring".
-- 2026-04-24 C2 (`/schedule` remote vs `CronCreate` local) was routed to feedback memory → could have routed to a "tool selection" section.
-
-WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "workflow_step_router".
-```
-
-### PLAN_DRAFTER_PROMPT (added v3.11 May 12 2026)
-
-Spawned as a child sub-agent from Step 4b Mod 5 when a watch-list cluster meets BOTH gates (≥5 sub-IDs AND no active plan). Drafts a remediation plan conforming to the PEP plan schema, routing the plan file to the directory most-referenced in the cluster's Fix field. Permissive quality bar — ambiguous Fix-field areas surface as Open Questions in the drafted plan rather than fabricated specifics.
-
-```
-You are the watch-list cluster auto-drafter (PLAN_DRAFTER_PROMPT, v3.11).
-
-A cluster in ~/.claude/learning-captures/watch-list.md has matured (≥5 sub-IDs)
-AND has no active plan. Your job is to draft a remediation plan conforming to
-the PEP plan schema.
-
-INPUTS (passed by caller — do NOT read these from disk yourself, use what's
-passed in):
-- Cluster ID (e.g., "W7.c")
-- Cluster header text (description + root cause)
-- Cluster Fix field (verbatim)
-- All sub-entries (W_N.a, W_N.b, ...) with date + observation + evidence
-- PEP plan schema (full content of plan-schema.md)
-
-YOUR JOB:
-
-1. PARSE the Fix field for file path mentions to determine plan location:
-   - Mentions of `~/.claude/` paths → plan goes to ~/.claude/plans/
-   - Mentions of `~/Documents/claude-projects/claude-skills/` paths
-     → ~/Documents/claude-projects/claude-skills/plans/
-   - Mentions of `~/Documents/claude-projects/Personal/<X>/` paths
-     → ~/Documents/claude-projects/Personal/<X>/plans/
-     (create the plans/ directory if it doesn't exist)
-   - No file path mentions → fallback: ~/Documents/claude-projects/claude-skills/plans/
-
-   If multiple repos referenced, choose the most-frequently-mentioned one.
-   Record your routing reasoning in the plan's Context section.
-
-2. DRAFT a plan conforming to the PEP schema:
-
-   YAML frontmatter:
-   - status: draft
-   - plan_kind: executable
-   - priority: derived — ≥10 sub-IDs → high; 5-9 → medium
-   - priority_rationale: "Watch-list cluster <ID> matured to N sub-IDs;
-     fix unimplemented as of YYYY-MM-DD"
-   - robustness_grade: ungraded
-   - created: today's date
-   - last_hardened: —
-   - execution_surface: local-ralph-loop (default; revise if Fix field
-     suggests otherwise)
-   - project_bucket: derive from chosen plan directory
-   - defer_reason: —
-   - unblock_condition: —
-
-   Plan body sections:
-   - Title: "<Cluster ID>: <one-line description of fix>"
-   - ## Objective: paragraph derived from Cluster header (root cause + fix
-     in one paragraph). Quote Fix field verbatim if it states the fix clearly.
-   - ## Success Criteria: EVERY historical incident becomes a checkbox:
-     "[ ] Would this fix have prevented W_N.x (<date>, <one-line context>)?"
-     One row per sub-ID. Test verification: each sub-ID's evidence must be
-     traceable through the proposed fix.
-   - ## Context: aggregated incident notes + dates + N-failure count +
-     cognitive/process origins (from cluster header). Include your plan-
-     location routing reasoning here: "Plan landed in <dir> because Fix
-     field references <paths>."
-   - ## Decision Tree: derive from Fix field if specific. If vague, mark
-     this entire section as Open Question Q-DT.
-   - ## Open Questions (blocking): every field above that you couldn't fill
-     with high confidence from the Fix field becomes a Q here. Be explicit:
-     "Q1: Fix field doesn't name a target file — what specific file/mechanism
-     should the remediation modify?"
-     Block transition to ready-for-autonomous until user fills them.
-   - ## Escalation Protocol: standard PEP shape — user must answer Open
-     Questions before transition to ready-for-autonomous; any Decision Tree
-     branch with verification failure escalates as A/B question.
-
-3. WRITE the plan to the resolved directory with filename:
-   YYYY-MM-DD-<cluster-id>-<short-slug>.md
-   (e.g., 2026-05-15-w7c-auto-mode-classifier.md)
-
-4. REPORT BACK with structured output (single short message):
-   - Cluster ID drafted
-   - Plan path (absolute)
-   - Open Questions count
-   - One-line summary of plan's main work
-
-CRITICAL CONSTRAINTS:
-
-- Use Read and Write tools. Do NOT spawn nested sub-agents (you ARE the
-  child sub-agent).
-- Do NOT edit any file outside the resolved plan path.
-- Do NOT fabricate file paths, function names, or technical specifics
-  not present in the Fix field. Always prefer marking as Open Question
-  over guessing. Hallucinated specifics in a draft plan are worse than
-  honest Open Questions.
-- Do NOT pollute caller context with verbose intermediate output. One
-  structured report-back message is the only output the caller needs.
-- If the Fix field references an existing plan path (e.g., "see plan at
-  /path/to/X.md"), STOP and report back: "Existing plan referenced in
-  Fix field; no draft needed. Path: <referenced path>." The caller
-  should have caught this in the no-active-plan gate, but defend in
-  depth.
-- The output plan must conform to the PEP schema passed to you. Validate
-  against required frontmatter fields before writing.
-```
-
-### PHASE_1_DECISION_REPORT_PROMPT (added v3.5 Apr 28 2026)
-
-```
-You are evaluating Phase 1 shadow-mode performance of the persona panel and producing a GO/HOLD/ITERATE/REVERT recommendation.
-
-INPUTS (will be passed to you):
-- All persona-eval.md files at ~/.claude/learning-captures/*/persona-eval.md (the per-wrap-up eval data)
-- The persona-eval-runs.txt log at ~/.claude/learning-captures/persona-eval-runs.txt (one-line entries per shadow run)
-
-YOUR JOB:
-
-1. AGGREGATE METRICS across all shadow runs in the log:
-   - Match rate = (challenges that match user's actual Step 4 corrections) / (challenges issued)
-     - "Match" includes full_match (persona named exact issue) AND partial_match (persona challenged the right conclusion with different specifics).
-   - Coverage rate = (user corrections caught by some persona) / (total user corrections in Step 4)
-     - Counts no_challenge_user_corrected toward the denominator (user corrected but personas missed).
-   - Noise rate = (challenges user did NOT act on, classified as mismatch where user kept consolidation's framing) / (challenges issued)
-
-2. AGGREGATE FAILURE-MODE DISTRIBUTION from the failure_category_observed values:
-   - Category (a) Wrong destination
-   - Category (c) Missed dedup/umbrella
-   - Category (d) Scope too narrow
-   - Category (g) Performative / agreed-without-thinking
-   - Other (premature conclusion, etc.)
-
-3. APPLY DECISION LOGIC:
-
-| Outcome | Action |
-|---|---|
-| Match ≥60% AND Coverage ≥60% AND Noise ≤30% | GO to Phase 2 |
-| 1 of 3 metrics borderline (within 10% of threshold) | HOLD — run 3 more shadow wrap-ups |
-| 2 of 3 below threshold but failure mode consistent | ITERATE prompts |
-| Match rate <40% across the eval window | REVERT — rip out Step 3a |
-
-4. PHASE 2 PERSONA SELECTION (only if GO, per D4):
-   - If category (c) ≥20% incidence → recommend ship Persona 3 (Dedup/Umbrella Checker) in shadow at Phase 2 promotion time
-   - If category (g) ≥20% incidence → recommend ship Persona 4 (Evidence Sufficiency Challenger) in shadow at Phase 2 promotion time
-   - Both above → ship both
-   - Neither above → Phase 2 = promotion-only (Personas 1+2 to gatekeeper, no new personas)
-
-OUTPUT FORMAT (markdown report):
-
-```markdown
-# Phase 1 Persona Panel Decision Report
-
-**Eval window:** <first_run_date> to <latest_run_date> (<N> shadow runs)
-**Generated:** <YYYY-MM-DD HH:MM ET>
-
-## Metrics
-
-| Metric | Value | Target | Status |
-|---|---|---|---|
-| Match rate | X% | ≥60% | ✅ / ⚠️ / ❌ |
-| Coverage rate | X% | ≥60% | ✅ / ⚠️ / ❌ |
-| Noise rate | X% | ≤30% | ✅ / ⚠️ / ❌ |
-
-Detailed calc: match=<num>/<denom>, coverage=<num>/<denom>, noise=<num>/<denom>
-
-## Failure-Mode Distribution
-
-| Category | Count | Share |
+| Prompt | File | Dispatched by |
 |---|---|---|
-| (a) Wrong destination | N | X% |
-| (c) Missed dedup/umbrella | N | X% |
-| (d) Scope too narrow | N | X% |
-| (g) Performative agreement | N | X% |
-| Other | N | X% |
+| SCANNER_PROMPT | `references/prompts/scanner-prompt.md` | Scan mode step 4; Wrap-up Step 1 |
+| CONSOLIDATION_PROMPT | `references/prompts/consolidation-prompt.md` | Wrap-up Step 3 |
+| TRIGGER_MOMENT_AUDITOR_PROMPT | `references/prompts/trigger-moment-auditor-prompt.md` | Wrap-up Step 3a (persona 1, runs first) |
+| WORKFLOW_STEP_ROUTER_PROMPT | `references/prompts/workflow-step-router-prompt.md` | Wrap-up Step 3a (persona 2, receives Auditor output) |
+| PLAN_DRAFTER_PROMPT | `references/prompts/plan-drafter-prompt.md` | Wrap-up Step 4b Mod 5 (child sub-agent, both gates met) |
+| PHASE_1_DECISION_REPORT_PROMPT | `references/prompts/phase-1-decision-report-prompt.md` | Wrap-up Step 1b.5 (eval trigger met) |
 
-## Decision: <GO | HOLD | ITERATE | REVERT>
-
-**Reasoning:** <2-3 sentences explaining which thresholds were met/missed and what pattern emerged>
-
-## Phase 2 Persona Selection (if GO)
-
-- Persona 3 (Dedup/Umbrella): SHIP in shadow / HOLD — based on category (c) at X% (threshold ≥20%)
-- Persona 4 (Evidence Sufficiency): SHIP in shadow / HOLD — based on category (g) at X% (threshold ≥20%)
-
-## Recommended Next Action
-
-<Specific next step the user should take. For HOLD: "run 3 more shadow wrap-ups, re-evaluate." For ITERATE: "review TRIGGER_MOMENT_AUDITOR_PROMPT or WORKFLOW_STEP_ROUTER_PROMPT against the X% mismatched cases." For REVERT: "remove Step 3a from SKILL.md, rerun historian on a richer dataset before redesigning." For GO: "promote Personas 1+2 to gatekeeper mode, ship Phase 2 part B per persona selection above.">
-```
-```
+**STOP — never improvise a replacement if a prompt file is missing.** A missing file means the skill install is broken; surface it to the user. The prompts carry accumulated STOP gates and rationalization counters (e.g., CONSOLIDATION_PROMPT's Resolution-vs-Increment and Test-Case Value checks) — an improvised prompt silently loses them, which is exactly the failure class this skill exists to prevent.
 
 ---
 
@@ -1966,9 +1289,9 @@ echo "[ISO-timestamp] [source] Signal summary | Key detail or corrective action"
 
 ## Code-Level Capture: User-Invoked, Not Orchestrated
 
-Code-level learnings (codebase-specific bugs, fix-and-confirm moments) belong in `/ce:compound`, which produces schema-validated `docs/solutions/` entries via a 7-agent flow. **Learning-loop does NOT orchestrate `/ce:compound`** — code-level capture wants peak-fresh context, which means invoking `/ce:compound` mid-session right after the fix is confirmed, not at wrap-up.
+Code-level learnings (codebase-specific bugs, fix-and-confirm moments) belong in `/ce-compound`, which produces schema-validated `docs/solutions/` entries via a 7-agent flow. **Learning-loop does NOT orchestrate `/ce-compound`** — code-level capture wants peak-fresh context, which means invoking `/ce-compound` mid-session right after the fix is confirmed, not at wrap-up.
 
-Wrap-up's role for code-level: if a confirmed code-level fix appears in scan signals but `/ce:compound` was not invoked during the session, surface it in the Zone-1 user-attention block with the prompt: *"Worth a delayed `/ce:compound` while context is still warm?"* — but treat it as a one-line nudge, not orchestration.
+Wrap-up's role for code-level: if a confirmed code-level fix appears in scan signals but `/ce-compound` was not invoked during the session, surface it in the Zone-1 user-attention block with the prompt: *"Worth a delayed `/ce-compound` while context is still warm?"* — but treat it as a one-line nudge, not orchestration.
 
 ---
 
@@ -2144,7 +1467,7 @@ After writing any new rule to CLAUDE.md:
 
 | Type | Definition | Handler | Destination |
 |------|------------|---------|-------------|
-| **Code-level** | Specific to codebase/framework | User-invoked `/ce:compound` mid-session (not learning-loop) | `docs/solutions/` with schema-validated YAML |
+| **Code-level** | Specific to codebase/framework | User-invoked `/ce-compound` mid-session (not learning-loop) | `docs/solutions/` with schema-validated YAML |
 | **Process-level (behavioral)** | Changes decision-making across sessions | Learning-loop direct | CLAUDE.md (root or project) with trigger + warning signs |
 | **Process-level (operational)** | Changes procedure execution in a workflow | Learning-loop direct | Project operational docs* or CLAUDE.md |
 | **Fact** | Pure recall, no behavior change | Learning-loop direct | Memory MEMORY.md |
@@ -2182,94 +1505,9 @@ Session 3: Finally done!
 
 ---
 
-## What's New in v3.13 (May 19, 2026)
+## Version History
 
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **STOP — Concrete-Anchor Rule for Zone 2 / Zone 3 1-line summaries (Step 4 Verification Detail Floor)** | v3.8 specified "1-line summary + destination" for Zone 2/3 but didn't constrain what the 1-line summary leads with. In the `2026-05-19-session-a` wrap-up, Z2/Z3 rows rendered as cluster-ID-first jargon (e.g., "W1.p new sub-entry `W1.p.aa` — methodology-doc caveat-writing surface") that the user could not verify without re-loading destination context. User pushback: *"There is no description for these Zone 2 and Zone 3 things. I cannot recall or understand what they're about."* The new STOP requires the 1-line to LEAD with a concrete incident, name, verbatim quote, or specific framing from THIS session; cluster IDs and destination paths go at the END as routing metadata. Same "shouldn't need to remember to verify" floor as v3.7, applied at the 1-line layer. Trigger heuristic lets the agent recognize the failing format BEFORE rendering: row contains cluster ID / plan path BUT no specific name / quote / incident phrase from this session → jargon-only → re-render with concrete anchor or auto-expand to full floor. Good/bad examples included so the contrast is unambiguous. |
-
----
-
-## What's New in v3.12 (May 14, 2026)
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **STOP — Test-Case Value Check (CONSOLIDATION_PROMPT step 2)** | Tightening complement to the May 7 Resolution-vs-Increment Check. The May 7 rule fires when THIS session's conclusion creates the resolution; the new rule fires when the resolution is ALREADY in place from prior work and the incident doesn't add a new test-case dimension. Discriminator: **"would the fix author learn anything new about how to design the fix from this sub-entry?"** If no → drop. Sub-entries are valuable as test cases (per Mod 3 schema rationale), not as incident counters. Provenance: May 14 wrap-up — proposed W1.r-pre-send increment for Stop-hook re-trip on completion-claim-without-verification. User: *"If the hook fires successfully, why are we incrementing the watchlist? Meaning, what would be the new fix if the watchlist count exceeds the threshold? If there is no new fix, why are we incrementing?"* Stop hook is the structural fix; firing; no new test-case dimension to the in-flight W4 retrofit plan. Same-session result: C1+5 (W1.s) KEPT because new register-translation surface adds a real test-case dimension; C4 (W1.r-pre-send) DROPPED because the Stop hook is firing and the incident is the same surface as prior 4 instances. |
-
----
-
-## What's New in v3.5 (Apr 28, 2026)
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Step 3a — Persona Panel (Phase 1, shadow mode)** | Step 3 (consolidation) reliably extracts the right *facts* from raw signals but produces the *wrong rule architecture* in routing proposals at a high rate. Across 4 mined sessions (Apr 2 – Apr 18 2026), 12 correction rounds were observed; 75% changed trigger-framing and/or destination, not facts. Step 3a runs two adversarial sub-agent personas (Trigger-Moment Auditor + Workflow-Step Router) BEFORE Step 4 surfaces proposals to the user. Phase 1 is shadow mode — personas REPORT but DO NOT BLOCK. User reads both views in Step 4 verification, decides per-row. |
-| **Step 1b.5 — Phase 1 Persona Panel Evaluation Check** | Self-evaluating decision gate. Fires automatically inside `/learning-loop wrap-up` after ≥3 prior shadow runs OR ≥7 days post-ship, whichever first. Spawns a Phase 1 Decision Report sub-agent that aggregates match/coverage/noise metrics across shadow runs and recommends GO / HOLD / ITERATE / REVERT. Decision applies to NEXT wrap-up's Step 3a behavior, not the current one (per D2 — eval decisions deserve thought, not in-the-moment pressure). Same enforcement principle as Step 1b: bind eval to a workflow step that fires every wrap-up so it cannot rot. |
-| **Step 4c — Capture Phase 1 Eval Data** | After user verification in Step 4, classify each persona challenge against the user's actual decision (full_match / partial_match / mismatch / no_challenge_user_corrected). Write `persona-eval.md` per session + append entry to `persona-eval-runs.txt`. Bootstrap `phase-1-ship-date.txt` on first run. This is the dataset Step 1b.5's evaluation gate operates on. |
-| **Three new prompt blocks alongside CONSOLIDATION_PROMPT** | `TRIGGER_MOMENT_AUDITOR_PROMPT` (audits symptom-vs-mechanism rule framing for each conclusion), `WORKFLOW_STEP_ROUTER_PROMPT` (audits decision-changer-vs-recall-fact destination choices, receives Auditor's named triggers as input), `PHASE_1_DECISION_REPORT_PROMPT` (aggregates shadow-run metrics and outputs the GO/HOLD/ITERATE/REVERT recommendation). |
-| **Storage and presentation separated (per D3)** | Personas write JSON to `persona-review.json` for clean machine-parsing; Step 4 renders into a markdown verification table for user readability. |
-
-**Provenance for v3.5:** Apr 24 2026 — kids-activities `/learning-loop wrap-up` produced 3 sequential narrowings on C3 (Proactive-Offer Filter → Present Options Before Building → Reason Upstream Before Acting). User raised the structural concern: *"a lot of times learning loop is reasonable at summarizing the actual facts that happened in session, but comes to the wrong conclusion and suggests the routing and documentation."* Apr 24-27 — `ce-session-historian` mined 4 prior wrap-up sessions for failure-pattern dataset (12 correction rounds), confirmed dominant failure mix is trigger-framing (33%) + destination (33%) + their compound (25%). Apr 27 — plan hardened with 6 Resolved Decisions (D1-D6). Apr 28 — Phase 1 ship.
-
-**Phase 2 trigger:** Step 1b.5 fires automatically. If GO, promote Personas 1+2 to gatekeeper mode + ship Persona 3 and/or 4 in shadow per failure-mode distribution at ≥20% incidence (per D4). If HOLD, run 3 more shadow wrap-ups. If ITERATE, refine prompts. If REVERT, rip out Step 3a.
-
-**Plan reference:** `~/Documents/claude-projects/claude-skills/plans/2026-04-24-learning-loop-persona-panel.md` — full plan, decision history, evidence base, and Appendix A historian output.
-
-**D5 deviation note:** Plan originally specified v3.4 for Phase 1 ship. Watch-list mods (Mods 1-5) shipped earlier the same day as v3.4, so Phase 1 ships as v3.5. Plan's D5 update logic remains correct (additive minor bump per Phase).
-
-### v3.4 (Apr 28, 2026)
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Mod 1 — Root-cause matching, not observation matching (Step 4 watch-list)** | Watch-list sprawled from 1 → 30 entries in 15 days because the prior matching criterion was surface-text-similarity on observations. The user's actual criterion is "is the FIX the same?" — two superficially different observations sharing a cognitive/process origin and remediation path are the SAME watch-list item. New rule forces the sub-agent to articulate root cause + fix BEFORE deciding fold-vs-new, with explicit bias toward folding. |
-| **Mod 2 — Watch-list matching invoked inside CONSOLIDATION_PROMPT** | Previously, the sub-agent that did all the rich cognitive work (classify, gates, significance, destination) never read watch-list.md or proposed increments. Match happened post-hoc in main-session against single-line descriptions. New rule: the sub-agent reads watch-list end-to-end, articulates cognitive origin + process origin + proposed fix for each conclusion, then matches against existing entries with explicit increment-vs-new justifications. |
-| **Mod 3 — Watch-list schema upgrade (Root cause + Fix + Incidents columns)** | Old schema (`ID \| Observation \| Count \| Threshold \| Escalate to`) made fix-matching a NLP problem on 200-word prose. New schema makes "same fix?" a deterministic check. **Sub-IDs (W_N.a, W_N.b, …) preserve incident-level traceability inside clusters** so the eventual fix author can trace through every test case when crafting the remediation. |
-| **Mod 4 — Cluster audit step (Step 4b) at every wrap-up** | Bounded-cost sprawl detector: skip entirely if active entries ≤15 AND no fix-cluster ≥3 (tighter than original 20/5 thresholds). When triggered, surfaces sprawl alert + offers re-consolidation sub-agent. Catches sprawl while it's small instead of waiting for manual user invocation at 30+ entries. |
-| **Mod 5 — Threshold-met → auto-draft plan in plan-execution-pipeline schema** | The biggest structural change. Previously, threshold-met meant "route to a destination location" — destination was a place, not a plan. The W4 retrofit plan was hand-drafted weeks after sprawl was visible. Going forward: threshold = automatic plan generation, conforming to `~/Documents/claude-projects/Personal/plan-execution-pipeline/schema/plan-schema.md`. **Every historical incident becomes a Success Criteria checkbox** so the fix author receives the full test-case set, not a vague "fix the recurring drift." This makes the fix tractable and the robustness verifiable. |
-
-**Provenance for v3.4:** Apr 27-28 2026 wrap-up session. The Apr 27 consolidation surfaced that 4 of the 30 active watch-list entries shared the same fix (continuous-rule drift via W4 retrofit) and another 3 shared a different fix (stress-test designs before proposing). User pushback: "There is no point incrementing on very specific downstream scenarios, because the solution is not to fix those symptoms, it's to fix the root cause... If the fix is the same, then they should increment the same watch list item as opposed to sprawling to a bunch of different items." Two parallel sub-agents diagnosed the rule (matching criterion was wrong, CONSOLIDATION_PROMPT didn't invoke matching at all, schema lacked structural anchors for fix-comparison). Mods 1-5 are the structural fix.
-
-**Migration note:** The first wrap-up under v3.4 will see the watch-list re-consolidated from 30 → 5 active clusters + 15 standalone, with new schema applied retroactively. After migration, going forward the sub-agent's increment-or-new decisions are governed by the v3.4 root-cause matching rule.
-
-### v3.3
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Significance threshold (Gate 5)** | Gates 1-4 are pass/fail on quality. Gate 5 asks "would a future session go WRONG without this?" — separating interesting observations from consequential learnings. Prevents over-documentation of signals that pass quality gates but aren't worth persisting. |
-| **"Noted" routing option** | Explicit acknowledgment for signals that pass quality gates but fall below the persistence threshold. Shown in wrap-up summary but not routed anywhere. Prevents the false binary of "document everything" vs. "lose it." |
-| **Behavioral vs. operational split** | Process-level learnings now split into behavioral (changes decisions → CLAUDE.md) vs. operational (changes procedures → project operational docs). Prevents CLAUDE.md from accumulating scheduling heuristics and workflow sequences that belong in playbooks or operational docs. |
-| **Repo-adaptive operational routing** | Operational learnings route to playbooks/ if the project has them, otherwise to CLAUDE.md or Memory. The skill is global but adapts to each project's documentation infrastructure instead of assuming playbooks exist. |
-
-### v3.2
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Content wedge filter** | Judgment Ledger entries must now pass the content wedge test ("where AI capability meets reality"). Prevents accumulation of operationally useful but non-publishable entries. Borderline cases tagged `⚠️ wedge-check` for user decision. |
-| **Content-level quality gate** | Added wedge fit checkbox to content-level quality gates in consolidation prompt. Entries that fail get reclassified as process-level. |
-
-### v3.1
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Session-scoped wrap-up** | v3 consolidated ALL accumulated captures regardless of topic. v3.1 defaults to current session only, surfaces other sessions for triage. Prevents cross-polluting unrelated sessions. |
-| **Orphan session surfacing** | Capture directories from sessions that closed without wrap-up are shown during triage — user decides to include, skip, or delete. No more silent accumulation. |
-| **Sharper content-level routing** | v3 routed learnings *about content work* (editorial rules, scheduling) to Judgment Ledger. v3.1 distinguishes "worldview shifted" (→ Judgment Ledger) from "learned a better way to do content work" (→ Project CLAUDE.md). |
-
-### v3.0
-
-| Enhancement | Why It Matters |
-|-------------|----------------|
-| **Explicit `/learning-loop` invocation** | v2's description-based matching was non-deterministic — capture phrases matched intermittently, but "wrap up" never triggered reliably. Explicit invocation is deterministic. |
-| **Two-mode model (Scan / Wrap-up)** | Scans capture raw signals without judgment; wrap-up resolves hypotheses with hindsight |
-| **Smart mode detection** | Minimal friction — context clues route to the right mode, explicit override always available |
-| **Memory as routing destination** | Facts (no behavior change) route to MEMORY.md instead of being lost or forced into CLAUDE.md |
-| **Auto-memory coexistence** | Complementary design — auto-memory handles quick facts, learning-loop handles structured analysis |
-| **User stories documented** | Distinct use cases ("mid-task, save signals" vs "done, consolidate everything") now explicit — prevents future designs from collapsing them |
-
-### Previous Versions
-
-**v2.1:** Real-time micro-logging (Phase 1 scratch files), project-level CLAUDE.md routing
-**v2:** Type-specific quality gates, orchestration model, user-initiated triggers
-**v1:** Proactive monitoring (failed — Claude can't sense context % in Claude Code)
+Moved to `references/CHANGELOG.md` (v4.2 restructure). Newest-first: v4.2 structural extraction, v4.1 W7.w STOP gates, v4.0 Mods 6-10, v3.x lineage back to v1. Per-change reasoning: SESSION_LOG.md.
 
 ---
 
@@ -2281,7 +1519,7 @@ Session 3: Finally done!
 | **Scans are raw, wrap-up draws conclusions** | Mid-session hypotheses resolved at session end with hindsight |
 | **Smart default, explicit override** | Context clue detection with fallback to asking |
 | **Memory is a routing destination** | Facts route to MEMORY.md; behavioral changes route to CLAUDE.md |
-| **User-invoked, not orchestrated** | `/ce:compound` is invoked directly by the user mid-session; learning-loop wrap-up surfaces a one-line nudge if a code-level fix was missed, but does not auto-invoke |
+| **User-invoked, not orchestrated** | `/ce-compound` is invoked directly by the user mid-session; learning-loop wrap-up surfaces a one-line nudge if a code-level fix was missed, but does not auto-invoke |
 | **Consolidation over accumulation** | CLAUDE.md edits require reading and merging, not just appending |
 | **Persistence over memory** | Scratch lines and scan files survive compaction; mental notes don't |
 | **Resilience over rigidity** | Complements auto-memory, adapts when system behaviors change |
