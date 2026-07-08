@@ -2,7 +2,7 @@
 
 A two-mode Claude Code skill that catches what your sessions teach you — failed attempts, user corrections, recurring failure modes, judgment shifts — and writes them to the right files before `/clear` or context compaction destroys the details.
 
-> **Heads up: this is a personal skill, published in case it's useful.** It's shaped by one workflow — a root `~/.claude/CLAUDE.md`, per-project `CLAUDE.md` files, a `MEMORY.md`, a personal Judgment Ledger, and Every's [`/ce:compound`](#what-is-cecompound) for code-level capture. If your setup looks roughly like that, the routing will land where you'd expect. If it doesn't, you'll want to read [SKILL.md](SKILL.md) and adapt the destinations.
+> **Heads up: this is a personal skill, published in case it's useful.** It's shaped by one workflow — a root `~/.claude/CLAUDE.md`, per-project `CLAUDE.md` files, a `MEMORY.md`, a personal Judgment Ledger, and Every's [`/ce-compound`](#what-is-ce-compound) for code-level capture. If your setup looks roughly like that, the routing will land where you'd expect. If it doesn't, you'll want to read [SKILL.md](SKILL.md) and adapt the destinations.
 
 ## The Problem
 
@@ -45,7 +45,7 @@ After quality gates pass, conclusions route by type:
 
 | Type | Destination | Decision test |
 |---|---|---|
-| **Code-level** (bug + fix in a specific codebase) | `docs/solutions/` via user-invoked [`/ce:compound`](#what-is-cecompound) — **not** orchestrated by learning-loop | "Is this tied to a specific codebase/framework?" |
+| **Code-level** (bug + fix in a specific codebase) | `docs/solutions/` via user-invoked [`/ce-compound`](#what-is-ce-compound) — **not** orchestrated by learning-loop | "Is this tied to a specific codebase/framework?" |
 | **Process-level (behavioral)** | Root or project `CLAUDE.md` | "Does this change how Claude decides? Would it apply in a different project?" |
 | **Process-level (operational)** | Project operational docs (playbooks, ops guides) or `CLAUDE.md` | "Does this change a procedure? Tied to this repo's infrastructure?" |
 | **Skills-level** | The skill's own repo | "Is this about skill authoring, structure, or deployment?" |
@@ -161,13 +161,13 @@ Explicit invocation also avoids collision with Claude Code's built-in auto-memor
 
 They're complementary: auto-memory handles quick "remember X" requests; learning-loop handles structured session analysis. `MEMORY.md` is one of learning-loop's routing destinations.
 
-## What Is `/ce:compound`?
+## What Is `/ce-compound`?
 
-`/ce:compound` is the **Compound** skill from Every's [Compound Engineering plugin](https://github.com/EveryInc/compound-engineering-plugin) — a Claude Code plugin that documents recently solved problems via 7 parallel agents into schema-validated `docs/solutions/` entries (error messages, root cause, fix, prevention steps).
+`/ce-compound` is the **Compound** skill from Every's [Compound Engineering plugin](https://github.com/EveryInc/compound-engineering-plugin) — a Claude Code plugin that documents recently solved problems via 7 parallel agents into schema-validated `docs/solutions/` entries (error messages, root cause, fix, prevention steps).
 
-**Relationship to learning-loop:** code-level capture is **user-invoked, not orchestrated.** When you confirm a code-level fix during a coding session, invoke `/ce:compound` directly — peak-fresh context produces the best documentation. Learning-loop's wrap-up will surface a one-line nudge if a code-level fix appears in scan signals but `/ce:compound` was never invoked (*"Worth a delayed `/ce:compound` while context is still warm?"*) — but it does not auto-invoke the skill.
+**Relationship to learning-loop:** code-level capture is **user-invoked, not orchestrated.** When you confirm a code-level fix during a coding session, invoke `/ce-compound` directly — peak-fresh context produces the best documentation. Learning-loop's wrap-up will surface a one-line nudge if a code-level fix appears in scan signals but `/ce-compound` was never invoked (*"Worth a delayed `/ce-compound` while context is still warm?"*) — but it does not auto-invoke the skill.
 
-> **Note:** Earlier versions referenced `/workflows:compound` — the old name before the skill moved to Every's plugin.
+> **Note:** Earlier versions referenced `/workflows:compound` and later `/ce:compound` — old names from before Every's plugin renamed its commands to the `ce-*` hyphen form. <!-- driftlint:allow -->
 
 ## Key Design Decisions
 
@@ -183,7 +183,7 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 - **Granularity ceiling + graduation ledger (v4.0)** — capture-without-action is debt. Mature clusters auto-draft plans; shipped fixes get atomic graduation entries instead of accumulating as a one-way archive.
 - **Adversarial persona review (shadow)** — Trigger-Moment Auditor + Workflow-Step Router catch symptom-vs-mechanism framing and recall-vs-decision destination errors at zero workflow cost.
 - **Zoned verification (v3.8)** — cognitive load scales with materiality. Zone 1 caps at 5 items per wrap-up.
-- **User-invoked `/ce:compound`** — peak-fresh context beats deferred reconstruction.
+- **User-invoked `/ce-compound`** — peak-fresh context beats deferred reconstruction.
 - **User verification before any write** — AI captures hallucinate. Names, premises, and constraints get fact-checked before persistence.
 - **Git + SESSION_LOG** — git shows *what* changed; SESSION_LOG shows *why*.
 
@@ -203,12 +203,12 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
 | Version | Date | Key changes |
 |---|---|---|
-| **v4.2** | Jul 7, 2026 | Progressive-disclosure restructure — no behavior change. The six sub-agent prompts moved verbatim to `references/prompts/*.md` (read at dispatch time) and version history to `references/CHANGELOG.md`; SKILL.md shrank ~2,300 → ~1,550 lines so every invocation loads the workflow spine + discipline gates without dispatch-time-only content. New STOP: never improvise a replacement if a prompt file is missing. Staleness fix: `/ce:compound` → `/ce-compound` (CE plugin rename). |
+| **v4.2** | Jul 7, 2026 | Progressive-disclosure restructure — no behavior change. The six sub-agent prompts moved verbatim to `references/prompts/*.md` (read at dispatch time) and version history to `references/CHANGELOG.md`; SKILL.md shrank ~2,300 → ~1,550 lines so every invocation loads the workflow spine + discipline gates without dispatch-time-only content. New STOP: never improvise a replacement if a prompt file is missing. Staleness fix: `/ce:compound` → `/ce-compound` (CE plugin rename). <!-- driftlint:allow --> |
 | v4.1 | Jun 12, 2026 | W7.w Step-3/3a Sub-Agent STOP gate. Two gates added to Wrap-up Mode: a **Step 3 Sub-Agent Gate** at the consolidation entry (blocks consolidating in the main conversation instead of spawning the consolidation sub-agent + persona panel), and a **Step 3a persona-skip STOP banner** placed before the "non-blocking / informational" framing (blocks skipping the persona panel as "just ceremony"). Closes the destination-back-reasoning enforcement gap (consolidating/skipping under end-of-session momentum). Built test-first per `/writing-skills`. |
 | v4.0 | May 20, 2026 | Watch-list hygiene pass — Mods 6–10: codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident are all named; granularity ceiling rule (collapse ≥3 sub-entries sharing fix); stalled-deliverable separation (plan-stale ≠ learning-loop-stale); graduation ledger mandatory counterpart to watch-list; path-drift detection at cluster audit. Phase 2 persona gatekeeper officially retired — shadow mode is the permanent active state. |
 | v3.11 | May 12, 2026 | Watch-list auto-promotion refined: maturation gate (≥5 sub-IDs) + no-active-plan gate + Fix-field auto-routing + Open Questions handling. Plan drafting offloaded to a child sub-agent (PLAN_DRAFTER_PROMPT) so main wrap-up context stays clean. |
 | v3.10 | May 12, 2026 | SCANNER_PROMPT recurrence test — scanner reads watch-list before flagging, drops single-incident-no-precedent signals to a Dropped Signals footer, surfaces same-type recurrences tagged with cluster ID. Raises capture bar upstream. |
-| v3.9 | May 12, 2026 | Removed false `/ce:compound` orchestration claims; added per-conclusion wedge-test recording (makes Judgment Ledger screening auditable). |
+| v3.9 | May 12, 2026 | Removed false `/ce:compound` orchestration claims <!-- driftlint:allow -->; added per-conclusion wedge-test recording (makes Judgment Ledger screening auditable). |
 | v3.8 | May 2, 2026 | Tiered verification — Zone Classification + Zone-1 cap rule; scales floor rigor by zone. |
 | v3.7 | Apr 29, 2026 | Verification Detail Floor + Same-Root-Cause Collapse Check in CONSOLIDATION_PROMPT. |
 | v3.6 | Apr 29, 2026 | Enforcement-Gap Check + Skill Version Ship Verification STOP. |
