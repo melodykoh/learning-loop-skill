@@ -6,6 +6,38 @@
 
 ---
 
+## Session: July 7, 2026 — v4.2 Progressive-Disclosure Restructure
+
+### Context
+
+Part of a full skill-system refactor (all 17 custom skills audited for overlap, drift, and bloat). learning-loop's SKILL.md was the largest at 2,297 lines — every invocation loaded ~1,000 lines of content only needed at specific dispatch moments (the six sub-agent prompt blocks) or never at runtime (version-history tables). Anthropic's skill-authoring guidance (superpowers `/writing-skills`, read before editing per root CLAUDE.md mandate): heavy reference moves to separate files; principles and discipline gates stay inline.
+
+### Problem
+
+Two costs: (1) context — the full 2,297 lines entered context on every scan/wrap-up, though scan mode needs only 1 of 6 prompts and no wrap-up needs all 6; (2) maintainability — prompt edits and workflow edits were interleaved in one file. Separately, 12 references to `/ce:compound` had gone stale (the compound-engineering plugin renamed its commands to `ce-*`; the old form no longer resolves).
+
+### Decision
+
+Extract exactly the dispatch-time and never-at-runtime content; keep ALL discipline armor inline. The six prompts (SCANNER, CONSOLIDATION, TRIGGER_MOMENT_AUDITOR, WORKFLOW_STEP_ROUTER, PLAN_DRAFTER, PHASE_1_DECISION_REPORT) moved verbatim to `references/prompts/*.md`; each dispatch step now says "Read <file> at dispatch." Version history moved to `references/CHANGELOG.md`. STOP gates, rationalization tables (W7.w counters), zone system, routing tables, and every "Why this exists" block stayed in SKILL.md — they are what makes the skill resist rationalization and must load every invocation. New STOP added: a missing prompt file is a broken install — surface it, never improvise a replacement prompt (an improvised prompt would silently lose the accumulated STOP gates inside the real one).
+
+### Verification
+
+- All six extracted prompt bodies checked byte-identical against `git show HEAD:SKILL.md` (script comparison; only intentional change: `/ce:compound` → `/ce-compound` inside CONSOLIDATION_PROMPT). 
+- No dangling "see below" / "see prompt block" references remain (grep = 0).
+- Skill re-registered in the live session after the edit (harness reloaded it from disk).
+- Skill Version Ship Verification (v3.6 rule): the version's added artifacts are the 7 reference files — all verified present on disk. No runtime bootstrap files added.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | 2,297 → ~1,550 lines; prompts + changelog replaced with dispatch-time pointers + Sub-Agent Prompt Library table + missing-file STOP; `/ce:compound` → `/ce-compound` (12×); version → 4.2.0 |
+| references/prompts/*.md (6 new) | Verbatim prompt extractions with usage headers |
+| references/CHANGELOG.md (new) | Full version history v1 → v4.2 |
+| README.md | v4.2 row; File Map updated for references/ |
+
+---
+
 ## Session: June 12, 2026 — v4.1 W7.w Step-3/3a Sub-Agent STOP Gate
 
 ### Context

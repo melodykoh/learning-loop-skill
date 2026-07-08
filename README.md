@@ -191,7 +191,9 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
 | File | Purpose |
 |---|---|
-| `SKILL.md` | The skill logic — invoked by Claude Code. Contains the SCANNER_PROMPT, CONSOLIDATION_PROMPT, persona prompts, and full wrap-up step sequence. |
+| `SKILL.md` | The skill logic — invoked by Claude Code. Contains the full wrap-up step sequence, STOP gates, and routing tables. |
+| `references/prompts/` | The six sub-agent dispatch prompts (SCANNER, CONSOLIDATION, TRIGGER_MOMENT_AUDITOR, WORKFLOW_STEP_ROUTER, PLAN_DRAFTER, PHASE_1_DECISION_REPORT) — extracted v4.2; SKILL.md reads each at dispatch time. |
+| `references/CHANGELOG.md` | Full version history (moved out of SKILL.md in v4.2). |
 | `SESSION_LOG.md` | Reverse-chronological reasoning trail. Why each version exists, what was tried, what was discovered. |
 | `README.md` | This file. |
 | `CLAUDE.md` | Development conventions for modifying the skill. |
@@ -201,7 +203,8 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 
 | Version | Date | Key changes |
 |---|---|---|
-| **v4.1** | Jun 12, 2026 | W7.w Step-3/3a Sub-Agent STOP gate. Two gates added to Wrap-up Mode: a **Step 3 Sub-Agent Gate** at the consolidation entry (blocks consolidating in the main conversation instead of spawning the consolidation sub-agent + persona panel), and a **Step 3a persona-skip STOP banner** placed before the "non-blocking / informational" framing (blocks skipping the persona panel as "just ceremony"). Closes the destination-back-reasoning enforcement gap (consolidating/skipping under end-of-session momentum). Built test-first per `/writing-skills`. |
+| **v4.2** | Jul 7, 2026 | Progressive-disclosure restructure — no behavior change. The six sub-agent prompts moved verbatim to `references/prompts/*.md` (read at dispatch time) and version history to `references/CHANGELOG.md`; SKILL.md shrank ~2,300 → ~1,550 lines so every invocation loads the workflow spine + discipline gates without dispatch-time-only content. New STOP: never improvise a replacement if a prompt file is missing. Staleness fix: `/ce:compound` → `/ce-compound` (CE plugin rename). |
+| v4.1 | Jun 12, 2026 | W7.w Step-3/3a Sub-Agent STOP gate. Two gates added to Wrap-up Mode: a **Step 3 Sub-Agent Gate** at the consolidation entry (blocks consolidating in the main conversation instead of spawning the consolidation sub-agent + persona panel), and a **Step 3a persona-skip STOP banner** placed before the "non-blocking / informational" framing (blocks skipping the persona panel as "just ceremony"). Closes the destination-back-reasoning enforcement gap (consolidating/skipping under end-of-session momentum). Built test-first per `/writing-skills`. |
 | v4.0 | May 20, 2026 | Watch-list hygiene pass — Mods 6–10: codify-now overrides recurrence threshold when mechanism + destination + ≥1 incident are all named; granularity ceiling rule (collapse ≥3 sub-entries sharing fix); stalled-deliverable separation (plan-stale ≠ learning-loop-stale); graduation ledger mandatory counterpart to watch-list; path-drift detection at cluster audit. Phase 2 persona gatekeeper officially retired — shadow mode is the permanent active state. |
 | v3.11 | May 12, 2026 | Watch-list auto-promotion refined: maturation gate (≥5 sub-IDs) + no-active-plan gate + Fix-field auto-routing + Open Questions handling. Plan drafting offloaded to a child sub-agent (PLAN_DRAFTER_PROMPT) so main wrap-up context stays clean. |
 | v3.10 | May 12, 2026 | SCANNER_PROMPT recurrence test — scanner reads watch-list before flagging, drops single-incident-no-precedent signals to a Dropped Signals footer, surfaces same-type recurrences tagged with cluster ID. Raises capture bar upstream. |
