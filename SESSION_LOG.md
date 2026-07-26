@@ -6,6 +6,32 @@
 
 ---
 
+## Session: July 26, 2026 — v4.3 Step 1b.5 Program-Concluded Exit Branch
+
+### Context
+
+Found during a wrap-up, not during skill work. Step 1b.5's Phase-1 eval trigger fires when `count ≥ 3` **OR** `≥7 days since ship`, **AND** the latest `phase-1-decision-log.md` entry isn't <24h old. The step offered exactly three branches: fire, "still accumulating," or skip-if-file-absent.
+
+The problem is structural rather than a bug. **Once the tracked program concludes, all three trigger conditions become permanently true and can never again be false.** Phase 2 was retired on 2026-05-20 with *"shadow mode is the permanent active state"* — a decision that closes the hypothesis the Decision Report exists to inform. Eighty-nine days and eighty-six logged runs later, the step still nominally demanded a Decision Report for a decision that had been closed for sixty-seven days.
+
+### What actually happened
+
+The wrap-up session read the step, computed that the numeric trigger was met, recognised there was no open decision for a report to inform, **skipped it by judgment, and said so out loud.** The announcement is the entire reason this became visible. A silent skip — the more likely behaviour — would have kept the gap invisible indefinitely, and the step would have gone on being routed around by private judgment at every wrap-up.
+
+### Why a coded branch rather than prose
+
+The failure mode here isn't "someone might skip a step." It's that the step *had to be* skipped for the workflow to make sense, with no sanctioned way to do so. That puts the discipline in an impossible position: follow the written step and dispatch a pointless sub-agent, or deviate silently. Prose telling a future session "use judgment here" would formalise the deviation without removing the ambiguity. A branch removes the judgment call entirely — read the decision log, see the program closed, log the suppression, move on.
+
+### Related, filed separately
+
+The skip is also the **first instance of destination-back-reasoning at a mandated step outside Step 3/3a** — the surface v4.1's STOP gates were scoped to. That graduation's own notes said *"if it appears outside Step 3/3a, file fresh,"* so it went to a new watch-list entry (`W7.ag`, N=1, threshold 2) rather than re-opening the existing one on a single instance. Notably the skip was *transparent* and the prediction was almost certainly *correct* — which is exactly what makes it easy to under-weight as a governance gap.
+
+### Generic shape
+
+A count/days-since trigger with no already-resolved exit condition is a skill-authoring pattern, not a learning-loop quirk. Any skill that gates on accumulated runs or elapsed time against a decision that can close has the same latent gap. Worth a cross-skill grep when there's time.
+
+---
+
 ## Session: July 7, 2026 — v4.2 Progressive-Disclosure Restructure
 
 ### Context

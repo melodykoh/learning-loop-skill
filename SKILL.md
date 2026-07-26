@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.2
+# learning-loop Skill v4.3
 
-> **Version history:** `references/CHANGELOG.md` (v4.2 = progressive-disclosure restructure, no behavior change; v4.1 = W7.w Step-3/3a Sub-Agent STOP gates; v4.0 = Mods 6-10 hygiene pass + Phase 2 gatekeeper retired).
+> **Version history:** `references/CHANGELOG.md` (v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change; v4.1 = W7.w Step-3/3a Sub-Agent STOP gates; v4.0 = Mods 6-10 hygiene pass + Phase 2 gatekeeper retired).
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -266,6 +266,16 @@ If the file exists:
 4. **If trigger condition not met but Phase 1 is active:** append a one-line note to the user — `Phase 1 still accumulating data: <N> of 3 runs, <X> days since ship.` Proceed to Step 2.
 
 5. **If `persona-eval-runs.txt` does not exist:** Phase 1 not yet shipped (or already past Phase 1 — gatekeeper or revert). Skip this sub-step entirely.
+
+6. **🛑 PROGRAM-CONCLUDED EXIT — check this BEFORE evaluating the trigger condition in step 2 (added 2026-07-26).** Read the latest entry in `phase-1-decision-log.md`. **If it records the tracked hypothesis/program as closed, retired, or permanently resolved** — e.g. *"Phase 2 gatekeeper retired (shadow mode is permanent)"* — then **suppress the trigger, emit one line, and proceed to Step 2:**
+
+   ```
+   Phase 1 eval: SUPPRESSED — program concluded <YYYY-MM-DD> ("<decision text>"). <N> runs logged; no open decision for a report to inform.
+   ```
+
+   Do **not** dispatch the Decision Report. Do **not** fall through to steps 2–4.
+
+   **Why this branch exists (2026-07-26):** the trigger is `count ≥ 3` **OR** `≥7 days since ship` **AND** the latest decision is not <24h old. Once a program concludes, **all three conditions are permanently true and can never again be false** — the 2026-05-20 entry retired Phase 2 as "shadow mode is permanent," yet 86 runs and 89 days later the step still nominally demands a Decision Report for a decision closed 67 days prior. There was no exit condition, so the burden of not firing fell on **each session's private judgment, silently, every wrap-up.** That is the failure this branch removes: a documented step whose only mitigation was being routed around. *(Caught 2026-07-26 when the dispatching session skipped it by judgment and announced the skip — the announcement is what made the gap visible. Companion watch-list entry tracks destination-back-reasoning at mandated steps outside Step 3/3a, where G21's scoped STOP does not reach.)*
 
 > **Why this step exists (Apr 28, 2026):** The persona panel needs a self-evaluating decision gate at 4 wrap-ups or 7 days post-ship. Without binding the eval trigger to a workflow step that fires every wrap-up, the eval would rot the same way deferred methodology memories do. Step 1b.5 binds the eval to `/learning-loop wrap-up` itself — the same enforcement principle that worked for Step 1b.
 
