@@ -2,6 +2,14 @@
 
 > Extracted from SKILL.md (2026-07-07 v4.2 restructure). Newest first. Full reasoning trail per change: SESSION_LOG.md.
 
+## v4.3 (2026-07-26 — Step 1b.5 program-concluded exit branch)
+
+- **Behaviour change (one branch).** Step 1b.5 gains a 6th branch: **PROGRAM-CONCLUDED EXIT**, checked *before* the trigger condition. If the latest `phase-1-decision-log.md` entry records the tracked hypothesis/program as closed, retired, or permanently resolved, the trigger is suppressed with a one-line log and the Decision Report is not dispatched.
+- **Why:** the trigger is `count ≥ 3` **OR** `≥7 days since ship`, **AND** the latest decision is not <24h old. Once a program concludes, all three conditions are **permanently true and can never again be false.** The 2026-05-20 entry retired Phase 2 ("shadow mode is permanent"), yet 86 logged runs and 89 days later the step still nominally demanded a Decision Report for a decision closed 67 days prior. With no exit condition, the burden of *not* firing fell on each session's private judgment — silently, every wrap-up.
+- **How it surfaced:** a wrap-up session evaluated the step, judged the fire pointless, skipped it by judgment, and **announced the skip.** The announcement is the only reason the gap became visible; a silent skip would have kept it invisible indefinitely.
+- **Companion watch-list entry `W7.ag`** tracks destination-back-reasoning at mandated steps *outside* Step 3/3a, where the existing scoped STOP does not reach — filed fresh per that graduation's own "if it appears outside Step 3/3a, file fresh" instruction rather than folded.
+- **Generic shape, flagged for other skills:** a count/days-since trigger with no already-resolved exit is a skill-authoring gap that can recur anywhere. Worth a cross-skill grep when convenient.
+
 ## v4.2 (2026-07-07 — progressive-disclosure restructure)
 
 - **No behavior changes.** Structural: the six sub-agent prompt blocks (SCANNER, CONSOLIDATION, TRIGGER_MOMENT_AUDITOR, WORKFLOW_STEP_ROUTER, PLAN_DRAFTER, PHASE_1_DECISION_REPORT) moved verbatim to `references/prompts/*.md`, read at dispatch time; version history moved to this file. SKILL.md shrank ~2,300 → ~1,250 lines, so every invocation loads the workflow spine + discipline gates without ~1,000 lines of dispatch-time-only content.
