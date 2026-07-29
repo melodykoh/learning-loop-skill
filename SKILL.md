@@ -972,7 +972,26 @@ See `~/.claude/reference/procedural-rule-routing.md` "Reverse-Check: Consumers A
 
 #### Step 6: Clean Up (MANDATORY — verify cleanup fired before declaring wrap-up complete)
 
-After documentation is confirmed, clean up only the **sessions that were consolidated** (this session + any user-approved others):
+After documentation is confirmed, clean up only the **sessions that were consolidated** (this session + any user-approved others).
+
+#### ⚠️ Step 6a — INBOUND-REFERENCE CHECK, before any `rm` (added 2026-07-28, MANDATORY)
+
+**This step deletes things other files point at.** Before removing anything, grep the durable surfaces for references into the directory you are about to destroy:
+
+```bash
+SID="[consolidated-session-id]"
+grep -n "$SID" ~/.claude/learning-captures/watch-list.md \
+                ~/.claude/learning-captures/graduation-log.md \
+                ~/.claude/plans/*.md 2>/dev/null
+```
+
+**If anything matches, the referenced CONTENT must be lifted out and written into the referring surface before the delete — not re-pointed, not re-derived.** A pointer whose target this step deletes is a guaranteed dangling reference on a fixed timer.
+
+**The general rule (write it into the deferral, not just here): a deferred decision must carry its PAYLOAD on a durable surface, never a path into a volatile store.** The moment you write "revisit this at a future wrap-up, see `<capture-dir>/...`", you have created a note that outlives its own referent.
+
+> **Why (2026-07-28):** the watch-list header carried a note deferring four persona-reviewed source-fidelity guardrails, with the instruction "route or explicitly discard at a future wrap-up; do NOT re-derive." The wrap-up that finally read the note found the capture directory **already deleted by this step**, and the guardrails' content unrecoverable — verified against a full recursive listing including `_archive/`, a case-insensitive grep, and a home-wide find. The deferral surface worked exactly as designed: the note was where the future decision would read it. What failed is that the note held a *pointer*, and this step deletes pointees. Disposition had to be recorded as CLOSED-UNRECOVERABLE — scope unknown.
+>
+> **Scope note:** root CLAUDE.md's `Trace Before Removing` covers this class conceptually, but its trigger is proposal-shaped ("before the words *we should remove X*") — a scripted `rm` inside a mandated skill step never consults it. This is that rule applied at an automated-removal moment; see `~/.claude/reference/trace-before-removing.md`.
 
 ```bash
 # Delete consolidated session files individually (safer than rm -r; transparent;
