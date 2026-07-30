@@ -6,6 +6,51 @@
 
 ---
 
+## Session: July 30, 2026 — v4.4 Sub-agent briefs stop claiming inherited context
+
+### Context
+
+A harness-wide audit found that this skill's two main dispatch prompts asserted a
+capability sub-agents do not have. `scanner-prompt.md` opened with "You have access to
+the full conversation context"; `consolidation-prompt.md` said "the current conversation
+context AND capture files." Both are false: a dispatched agent inherits no transcript, no
+memory, no CLAUDE.md, no skills.
+
+This contradicted the skill's own rationalization table, which already answers the
+objection correctly — **"The hand-off file IS the mechanism"** — and it contradicted the
+repo-wide required-reading rule that a brief must state what the agent is GIVEN.
+
+### Why it mattered more than a wording slip
+
+A brief that claims the agent can see the conversation invites exactly the failure the
+scan/consolidate split exists to prevent: an agent that cannot find something in its
+inputs infers it from what it assumes it can see, and a confident reconstruction is
+indistinguishable from a real observation in the output. The gap only shows up later, as
+a conclusion nobody can trace.
+
+### What changed
+
+Both prompts now state plainly that the agent inherits nothing, name the hand-off file as
+the mechanism (pointing at the rationalization-table phrasing rather than duplicating it),
+and add an explicit instruction: where the hand-off is too thin, **name the gap rather
+than filling it**.
+
+Also in this pass:
+- `allowed-tools` and the Step-2 spawn line renamed `Task` -> `Agent`. The harness renamed
+  the dispatch tool in v2.1.63. Aliases kept matchers and agent definitions working, so
+  only raw string comparisons broke — silently. A repo-wide lint now flags the old name
+  as a dispatch-tool declaration so the next rename surfaces instead of rotting.
+- Added the fan-out fact-sentence near the top: invoking a skill whose documented behavior
+  is sub-agent dispatch IS the request for that dispatch. Cap stated as "none documented"
+  rather than inventing a number, since this skill documents no agent ceiling.
+
+### Note on attribution
+
+The fan-out sentence is attributed to "this skill's owner" rather than by name. This repo
+is public and names no individual anywhere in it; the private copies of the same
+convention carry the named ratification. Caught by a pre-commit visibility check, not by
+intent — worth recording as the reason the wording differs between copies.
+
 ## Session: July 26, 2026 — v4.3 Step 1b.5 Program-Concluded Exit Branch
 
 ### Context
