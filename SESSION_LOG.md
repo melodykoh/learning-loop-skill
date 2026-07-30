@@ -44,6 +44,43 @@ Also in this pass:
   is sub-agent dispatch IS the request for that dispatch. Cap stated as "none documented"
   rather than inventing a number, since this skill documents no agent ceiling.
 
+### Second pass, same day — the Step 6a cleanup guard (three arms)
+
+Step 6a guards an `rm` of a capture directory. Three defects, each fixed:
+
+**Arm A — the referrer search was a hand-written three-item list.** It grepped two capture
+surfaces plus `~/.claude/plans/*.md`, and nothing in any project repo. Simulated against a
+real retained session: seven files of preserved evidence for it lived in a separate project
+repo the guard never looked at, and its only inbound match was a plan file — and plans get
+marked complete and archived, at which point the match vanishes while seven copies still
+point at the directory. The protection was incidental, not structural. Widened to the
+workspace + plans + captures + per-project memory, with **file-existence assertions** and the
+`2>/dev/null` removed: the one error you must never swallow is the one that makes absence look
+proven, because a renamed surface then reads as "no references."
+
+**Arm B — a new, SEPARATE routing-completion check.** The reference grep can only find a
+referrer if some earlier session wrote one, so it comes back cleanest exactly when nothing was
+done with the findings. A directory holding consolidated findings that nothing references is an
+**abandoned run, not a completed one** — it now HALTS and surfaces instead of deleting. This
+also corrects an earlier reading of this step: Step 6a *does* close its founding incident,
+which was a deliberate deferral with a pointer in the watch-list header. What it never closed
+was abandonment.
+
+**Arm C — the end-of-wrap-up gate had two states and needed three.** "Directory still listed"
+was treated as proof that cleanup silently skipped. A deliberate retention was therefore
+indistinguishable from the failure the gate exists to catch, so the only ways to satisfy it
+were to delete the thing you meant to keep or to route around the gate — the same "burden of
+not firing falls on each session's private judgment" defect the Step 1b.5 exit branch removed.
+Third state added: **deliberately retained**, valid and terminal, detected by a `RETAINED:
+<session-id> — <reason> — unblocks when <condition>` record on a durable surface. Writing that
+record is what converts a private decision into a checkable fact.
+
+**Verified against a synthetic abandoned-run directory** (created, tested, removed): the
+existence assertions pass, the widened grep finds no referrers, Arm B HALTS rather than
+deleting, and Arm C correctly reports state 2 with no record and state 3 once one exists.
+A retention record was then written for the one genuinely-retained directory — without it,
+Arm C would have classified it as a silent skip and the next wrap-up would have deleted it.
+
 ### Note on attribution
 
 The fan-out sentence is attributed to "this skill's owner" rather than by name. This repo
