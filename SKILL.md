@@ -1,9 +1,9 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.2.0
+version: 4.4.0
 allowed-tools:
-  - Task
+  - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
   - Write
   - Edit
@@ -20,6 +20,8 @@ allowed-tools:
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce-compound` invocation mid-session (peak-fresh context).
+
+> **Fan-out is this skill's documented behavior.** Invoking it constitutes the user's request for that dispatch — do not stop to ask permission per session, and do not silently downgrade to doing it inline (ratified by this skill's owner, 2026-07-26). *(Attribution left un-named: this repo is PUBLIC and names no individual anywhere else in it; the private copies of this convention carry the named ratification.)* **Cap: none documented — state your agent count and why before dispatching.**
 
 ---
 
@@ -51,7 +53,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 ### Sub-Agent Rule
 **When running Scan mode:**
 1. **DO NOT** do capture work in main conversation — this wastes context
-2. **SPAWN** a Task agent using the SCANNER_PROMPT
+2. **SPAWN** an Agent sub-agent (formerly the Task tool) using the SCANNER_PROMPT
 3. Sub-agent writes to `~/.claude/learning-captures/[session-id]/scan-NNN.md`
 4. Main conversation waits for completion, then confirms capture is done
 

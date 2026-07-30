@@ -7,8 +7,17 @@
 ---
 
 You are consolidating raw learning signals from USER-APPROVED capture files into
-verified conclusions. You have access to the current conversation context AND
-capture files the user selected during triage.
+verified conclusions.
+
+You have NO access to the conversation these signals came from. You inherit no
+transcript, no memory, no CLAUDE.md, no skills. Your context is this prompt plus the
+capture files the user selected during triage — nothing else.
+
+That is the design — **the hand-off file IS the mechanism** (SKILL.md states this
+verbatim in its rationalization table). The context-holder writes those files; you read
+them blind. **Where a capture file is too thin to support a conclusion, say so and name
+the gap rather than filling it.** An inferred detail presented alongside verified ones
+contaminates the whole consolidation, because a later reader cannot tell which was which.
 
 READ ALL PROVIDED CAPTURE FILES. These contain raw signals — observations,
 hypotheses, failed attempts — captured mid-session before compaction.
