@@ -1,9 +1,9 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.2.0
+version: 4.5.0
 allowed-tools:
-  - Task
+  - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
   - Write
   - Edit
@@ -20,6 +20,8 @@ allowed-tools:
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
 **Purpose:** Two-mode learning capture — raw signal scanning mid-session, quality-gated consolidation at session end. Handles process-level and content-level capture; code-level capture is the user's responsibility via direct `/ce-compound` invocation mid-session (peak-fresh context).
+
+> **Fan-out is this skill's documented behavior.** Invoking it constitutes the user's request for that dispatch — do not stop to ask permission per session, and do not silently downgrade to doing it inline (ratified by this skill's owner, 2026-07-26). *(Attribution left un-named: this repo is PUBLIC and names no individual anywhere else in it; the private copies of this convention carry the named ratification.)* **Cap: none documented — state your agent count and why before dispatching.**
 
 ---
 
@@ -51,7 +53,7 @@ When `/learning-loop` is invoked, determine which mode to run:
 ### Sub-Agent Rule
 **When running Scan mode:**
 1. **DO NOT** do capture work in main conversation — this wastes context
-2. **SPAWN** a Task agent using the SCANNER_PROMPT
+2. **SPAWN** an Agent sub-agent (formerly the Task tool) using the SCANNER_PROMPT
 3. Sub-agent writes to `~/.claude/learning-captures/[session-id]/scan-NNN.md`
 4. Main conversation waits for completion, then confirms capture is done
 
@@ -980,12 +982,68 @@ After documentation is confirmed, clean up only the **sessions that were consoli
 
 ```bash
 SID="[consolidated-session-id]"
-grep -n "$SID" ~/.claude/learning-captures/watch-list.md \
-                ~/.claude/learning-captures/graduation-log.md \
-                ~/.claude/plans/*.md 2>/dev/null
+
+# Assert the named surfaces EXIST before trusting a clean result. A renamed or moved
+# watch-list used to be swallowed by `2>/dev/null` and read as "no references" — the one
+# error you must never hide is the one that makes absence look proven.
+for f in ~/.claude/learning-captures/watch-list.md \
+         ~/.claude/learning-captures/graduation-log.md; do
+  [ -f "$f" ] || { echo "❌ HALT: expected surface missing: $f — cannot conclude 'no references'"; exit 1; }
+done
+
+# Search everywhere referrers ACTUALLY live, not a hand-written three-item list.
+grep -rn "$SID" \
+  ~/Documents/claude-projects \
+  ~/.claude/plans \
+  ~/.claude/learning-captures \
+  ~/.claude/projects/*/memory \
+  --include="*.md" --include="*.json"
 ```
 
+⚠️ **Why the path set is this wide (verified 2026-07-30).** The previous version grepped
+exactly three surfaces — `watch-list.md`, `graduation-log.md`, `~/.claude/plans/*.md` — and
+nothing in any workspace repo. Simulated against a real retained session:
+**seven files of preserved evidence for it lived in a separate project repo, which the old
+guard never looked at.** Its only
+inbound match was a plan file — and plans get marked `complete` and archived, at which point
+the match vanishes and the directory becomes deletable while seven copies still point at it.
+**The protection was incidental, not structural.** Same shape as the named
+`ALREADY-TRACKED-CORPUS` limit: a scan that iterates your own working list can validate bad
+content in known files but can never find a bad file.
+
 **If anything matches, the referenced CONTENT must be lifted out and written into the referring surface before the delete — not re-pointed, not re-derived.** A pointer whose target this step deletes is a guaranteed dangling reference on a fixed timer.
+
+#### ⚠️ Step 6a-ii — ROUTING-COMPLETION CHECK: an abandoned run is not a completed one (added 2026-07-30)
+
+**This is a SEPARATE check from the inbound-reference grep above, and it catches the case that
+one structurally cannot.** The reference check only finds a referrer if some earlier session
+*wrote* one. An ABANDONED run writes none — so the grep comes back cleanest exactly when
+nothing was done with the findings. Its protection is strongest when a human already noticed
+and absent when nobody did.
+
+```bash
+# A directory holding consolidated findings whose session id appears on NO durable surface is
+# an ABANDONED run, not a completed one. Do not delete it. Surface it.
+if [ -f ~/.claude/learning-captures/"$SID"/consolidation.md ] || \
+   [ -f ~/.claude/learning-captures/"$SID"/consolidation-final.md ]; then
+  if ! grep -rq "$SID" ~/Documents/claude-projects ~/.claude/plans \
+        ~/.claude/learning-captures/watch-list.md \
+        ~/.claude/learning-captures/graduation-log.md --include="*.md" 2>/dev/null; then
+    echo "❌ HALT — ABANDONED RUN: $SID holds consolidated findings that are referenced NOWHERE."
+    echo "   This is not a finished session awaiting cleanup. Nothing was routed."
+    echo "   Surface the findings to the user and get a routing decision. Do NOT delete."
+    exit 1
+  fi
+fi
+```
+
+> **Why (verified 2026-07-30, and it corrects an earlier read of this step).** Step 6a's
+> founding incident WAS a deliberate deferral whose pointer sat in the watch-list header — so
+> the reference grep *would* have fired for it. **Step 6a does close its founding incident.
+> What it never closed is abandonment.** One real wrap-up ran its first few steps, wrote
+> seven artifacts, and stopped: no routing, no deferral note, no reference anywhere. A guard
+> that asks "does anything point at this?" returns clean, and the evidence is deleted for the
+> precise reason that nobody had acted on it yet.
 
 **The general rule (write it into the deferral, not just here): a deferred decision must carry its PAYLOAD on a durable surface, never a path into a volatile store.** The moment you write "revisit this at a future wrap-up, see `<capture-dir>/...`", you have created a note that outlives its own referent.
 
@@ -1014,7 +1072,23 @@ ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ 
 - Reading sub-agent's "done" report (Step 3 / Step 3a return) and drafting the user-facing summary WITHOUT executing Step 6 cleanup in the main session
 - Treating "eval entry appended to runs log" (Step 4c) as proof that cleanup happened — Step 4c writes the log, Step 6 removes the dir; both are required and they are NOT the same command
 
-**End-of-wrap-up cleanup gate:** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, Step 6 silently skipped — execute the per-file rm + rmdir block above before proceeding to Step 11. If cleanup verification still fails (e.g., permission error), surface to user verbatim: "Cleanup of [session-id] failed: [error]. Please run manually." Do NOT proceed to summary report without resolving cleanup state.
+**End-of-wrap-up cleanup gate — THREE states, not two (third added 2026-07-30):** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, it is exactly one of:
+
+1. **Cleaned** — not listed. Proceed.
+2. **Silently skipped** — listed, and NO retention record exists (see below). This is the failure this gate was built for: execute the per-file rm + rmdir block above before proceeding to Step 11.
+3. **DELIBERATELY RETAINED** — listed, AND a retention record exists on a durable surface naming the reason and the unblock condition. **This is a valid terminal state. Do NOT delete, and do NOT treat it as a skip.** Note it in the Step 11 report and proceed.
+
+```bash
+# Distinguish state 2 from state 3 — check for a RECORD, not just for the directory.
+grep -rq "RETAINED: $SID" ~/.claude/learning-captures/watch-list.md \
+        ~/.claude/plans --include="*.md" 2>/dev/null \
+  && echo "✅ state 3 — deliberately retained; leave it alone" \
+  || echo "⚠️ state 2 — no retention record found; cleanup was skipped"
+```
+
+A retention record is one line on a durable surface: `RETAINED: <session-id> — <reason> — unblocks when <condition>`. Writing it is what converts "I decided to keep this" from a private judgment into a checkable fact.
+
+> **Why the third state (2026-07-30).** With only two states, a reasoned retention — evidence deliberately kept because a routing decision is still open — is **indistinguishable from the failure the gate exists to catch**, so the gate can only be satisfied by deleting the thing you meant to keep, or by routing around the gate. That is the same "the burden of not firing falls on each session's private judgment" defect that the Step 1b.5 program-concluded exit branch was added to remove. A gate with no branch for the legitimate case teaches sessions to ignore it. If cleanup verification still fails (e.g., permission error), surface to user verbatim: "Cleanup of [session-id] failed: [error]. Please run manually." Do NOT proceed to summary report without resolving cleanup state.
 
 > **Why this rule exists (May 19, 2026):** Audit of `~/.claude/learning-captures/` surfaced 4 wrap-up-completed orphan session dirs (2026-05-14-learning-loop-mechanism-refinement / 2026-05-18-country-of-geniuses-linkedin-and-cover / 2026-05-19-session-a / 2026-05-19-pep-executor-and-interaction-rework) — all had eval entries in `persona-eval-runs.txt` (Step 4c writes work) but their session dirs were never deleted (Step 6 silently skipped). Common pattern in eval log: `deviation_noted=phase2_gatekeeper_implementation_gap`. Failure mode: combined-subagent dispatch returns "done" → main session reads report → main session drafts user-facing summary → Step 6 `rm -r` command never fires. Old `rm -r` form gave no verification feedback (silent success or silent skip indistinguishable). Per-file rm + explicit verification line forces the main session to confirm cleanup actually happened before declaring wrap-up complete. User directive: *"the right move is to use rm to delete individual files."* Same family as W1.r-pre-send (completion-token rendering before per-output-type verification) — workflow rule drifts under end-of-task momentum; verification gate before declaring done is the structural fix.
 

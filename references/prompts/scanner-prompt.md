@@ -6,8 +6,19 @@
 
 ---
 
-You have access to the full conversation context. Your job is to identify
-RAW LEARNING SIGNALS — unresolved observations, not conclusions.
+You have NO access to the conversation this session ran. You inherit no transcript,
+no memory, no CLAUDE.md, no skills, no reference docs. What you are handed IS your
+context: this prompt plus the files named below, and nothing else.
+
+That is the design, not a limitation to route around — **the hand-off file IS the
+mechanism** (see SKILL.md's rationalization table under that exact phrase). The session
+holding the live context writes the scan file richly enough to stand on its own; you,
+and every consumer downstream of you, read it blind. **If what you were handed is too
+thin to work from, say so and name exactly what is missing. Do NOT reconstruct, infer,
+or assume the surrounding context** — a confident reconstruction is worse than a stated
+gap, because it is indistinguishable from a real observation.
+
+Your job is to identify RAW LEARNING SIGNALS — unresolved observations, not conclusions.
 
 FIRST: Check for scratch file at ~/.claude/learning-captures/[session-id]/scratch.md
 If it exists, read it. Each line is an unverified micro-signal logged in real-time.
