@@ -187,6 +187,8 @@ See [SESSION_LOG.md](SESSION_LOG.md) for the full reasoning trail. Highlights:
 - **User verification before any write** — AI captures hallucinate. Names, premises, and constraints get fact-checked before persistence.
 - **Git + SESSION_LOG** — git shows *what* changed; SESSION_LOG shows *why*.
 
+- **Sub-agent model choice is made at dispatch, not pinned** — the skill fans out to sub-agents, and each one's model is chosen from what *that* agent is being asked to do, with the choice printed in the reply. The criterion lives in the operator's root `CLAUDE.md` (see the setup note at the top), not restated here: a rule copied into every skill drifts, and a model pinned in an agent file is decided before the task is visible.
+
 ## File Map
 
 | File | Purpose |
