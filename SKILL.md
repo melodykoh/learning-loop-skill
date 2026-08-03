@@ -25,6 +25,11 @@ allowed-tools:
 
 ---
 
+> **Model choice per dispatch:** choose each sub-agent's model from what *that* sub-agent
+> is being asked to do, and **print each choice + a one-line why in the visible reply**.
+> Criterion and rationale: root `CLAUDE.md` → **Model-tiering**. Never pin a model in an
+> agent file — it is decided at dispatch, where the task is visible.
+
 ## Mode Detection
 
 When `/learning-loop` is invoked, determine which mode to run:

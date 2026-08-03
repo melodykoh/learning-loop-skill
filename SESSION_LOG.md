@@ -6,6 +6,48 @@
 
 ---
 
+## Session: August 1, 2026 — model choice moves to the dispatch step
+
+### Context
+
+A harness-wide survey read 227 sub-agent dispatches from seven days of session transcripts
+and split them by origin. Ad-hoc dispatches — where the main session decides for itself —
+stated an explicit model 59% of the time. Dispatches driven by a skill's own prompt
+template stated one 21% of the time. Nearly threefold.
+
+### What that means
+
+The standing rule (choose a best-fit model per task, print the choice and why) was not being
+ignored. It was being **displaced**. While a skill runs, the session executes that skill's
+procedure, and every skill's procedure was silent on model — so no choice got made and
+everything inherited the session's tier.
+
+### The fix, and the two rejected alternatives
+
+A four-line pointer at the dispatch step, identical in every dispatching skill. It carries
+the action and points for the criterion.
+
+Rejected: a per-skill tier table ("readability lens -> cheaper model"). It is a model pin
+relocated one file over — decided at authoring time, blind to the task — it goes stale in
+every file at once when model capabilities move, and it cannot be linted, because its
+correctness is a judgment no script can evaluate.
+
+Rejected: restating the criterion inside each skill. That recreates one level down exactly
+the drift the pointer exists to prevent.
+
+The pointer anchors on the rule NAME rather than a section number, because numbers churn and
+that label has already survived a full rewrite of its own clause.
+
+### Enforcement
+
+A lint class asserts both that a dispatching skill carries the pointer AND that the pointer's
+target still exists — fourteen pointers to one rule is a coupling, and an unchecked coupling
+goes stale in silence, since a pointer to a renamed rule greps clean while meaning nothing.
+Verified in both directions rather than observed-not-complaining: it flags skills missing the
+pointer, and it warns when the target is renamed.
+
+---
+
 ## Session: July 30, 2026 — v4.4 Sub-agent briefs stop claiming inherited context
 
 ### Context
