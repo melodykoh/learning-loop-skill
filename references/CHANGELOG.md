@@ -1,5 +1,8 @@
 # learning-loop Version History
 
+> ⚠️ **SUPERSEDED — do not add entries here. The live version history is `README.md` § Version History.**
+> This file stopped at v4.3 while releases continued: v4.4, v4.5 and v4.6 each updated README's table and never touched this file. Kept for the pre-v4.4 reasoning trail only. *(Discovered 2026-08-11, when a plan authored against SKILL.md's title line proposed shipping "v4.4" — a number already taken two releases earlier.)*
+
 > Extracted from SKILL.md (2026-07-07 v4.2 restructure). Newest first. Full reasoning trail per change: SESSION_LOG.md.
 
 ## v4.3 (2026-07-26 — Step 1b.5 program-concluded exit branch)

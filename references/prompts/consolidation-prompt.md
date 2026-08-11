@@ -152,46 +152,50 @@ FOR EACH RAW SIGNAL:
      dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
      if significant, Memory if marginal.
 
-6.5. **Zone Classification (added v3.8 May 2 2026, MANDATORY):**
+6.5. **Zone Classification (added v3.8 May 2 2026; re-keyed onto WHO-CAN-ANSWER in v4.6, 2026-08-11, MANDATORY):**
 
-   For every conclusion that passes gates and significance, classify into ONE of three zones. Each conclusion gets a `zone` field in the output. The zone determines how Step 4 surfaces it for user verification — directly affecting cognitive load.
+   **Purpose: the user is handed only what they are positioned to judge.** Every conclusion that passes gates and significance gets a `zone` field. The zone decides how Step 4 surfaces it — so a misfiled item is not merely mis-sorted, it is *presented* wrong: *"this widens an authoritative doc, approve?"* instead of *"here is a choice only you can make."*
 
-   **Zone 1 — Decisions Required (user judgment matters):**
+   **Sort on WHO CAN ANSWER. Apply this question to every conclusion, in these words:**
+
+   > **If the user says "you decide," can I?**
+
+   - **No — answering needs something only they have** → Zone 1
+   - **Yes, and they should still know** → Zone 2
+   - **Yes** → Zone 3
+
+   **Edit risk is not a zone criterion, and is the specific wrong axis this replaced.** *"Widens an authoritative doc," "proposes a root CLAUDE.md edit," "restructures a PR-gated rule," "touches two reference docs," "trips a re-open trigger"* all describe the EDIT. None of them names a question the user is better placed than you to answer. A conclusion is not theirs because acting on it is consequential; it is theirs because they hold something you don't.
+
+   **Zone 1 — Decisions Required (only the user can answer):**
    Trigger any of:
-   - Persona challenged this conclusion (Auditor or Router issued a `challenge` verdict)
-   - Step 5.6 returned 2/3 borderline same-mechanism — surfaced for user verification
-   - Conclusion creates a NEW top-level watch-list cluster (not an increment to existing)
-   - Conclusion proposes a NEW root CLAUDE.md edit
-   - Conclusion proposes a plan amendment / plan-coverage gap flag
-   - Routing involves cross-repo edits or restructures an authoritative doc
+   - **Publishability under their name** — would be published, sent, or attributed to them (Judgment Ledger candidacy, external-facing copy, a claim in their voice).
+   - **Scope crossing onto a shared or external surface** — the conclusion's REACH now extends past where the incident happened: it will govern a partner, a vendor, another person's work, or projects beyond this one. ⚠️ **This is about the rule's reach, not about which file you edit.** Editing a shared, PR-gated or stewarded doc is *edit risk* and stays out; a rule that will now shape how **other people or other projects** operate is *scope*, and only the user can set it.
+   - **Irreversible, or intolerable if wrong** — cannot be undone by a later edit, or the cost of being wrong is one they would want to price themselves.
+   - **A genuine preference with no defensible default** — the right answer turns on how they want to work, not on what is true.
 
-   Zone 1 conclusions get the full Verification Detail Floor (per Step 4) and explicit per-item user choice.
+   Zone 1 conclusions get the full Verification Detail Floor (per Step 4) and an explicit per-item choice. Each carries the options, the tradeoff, and the consequence of each **including doing nothing** — required form, already enforced by a global Stop-hook classifier. Meet it; do not restate it.
 
-   **Zone 2 — Routine Confirmations (mechanical routing):**
-   Trigger when:
-   - Existing-cluster sub-entry increment AND personas pass on this conclusion
-   - Watch-list increment with no scope challenge from either persona
-   - Memory MEMORY.md fact append where the destination is unambiguous
-   - Skills-level learning routing to an existing playbook section the user has already approved
+   **Zone 2 — Notify and Confirm (they should know; nothing to decide):**
+   Trigger any of:
+   - **Changes what they should expect from the model or the harness** — a guardrail that turns out not to cover a class it appeared to, a capability that is not what it looked like, a changed mechanism behind the work output.
+   - **Changes how they experience the workflow** — a step that will now fire differently, a surface that will now carry something new.
+   - **A factual increment they were present for and can spot-check** — routine watch-list / ledger / memory writes where the destination is unambiguous but the facts came from this session.
 
-   Zone 2 conclusions get a 1-line summary + destination by default. User accepts the batch with a single confirmation; can expand individual items on demand.
+   **An item with no action attached still belongs here when it clears the expectation-change bar.** Having no ask is a reason to make it one line — never a reason to drop it to Zone 3.
 
-   **Zone 3 — Auto-routed (administrative):**
-   Trigger when:
-   - Conclusion documents a decision the user already made and approved IN-SESSION (e.g., methodology codification of a choice already locked into a workflow doc / decision.md / draft)
-   - Session-scoped observation that won't fire across sessions (no cross-session enforcement implied)
-   - Routing to a destination the user has already committed to during the session itself
-   - Conclusion is acknowledging a workflow rule the user explicitly stated and approved
+   Zone 2 conclusions get a 1-line summary + destination. Batch-accept, non-blocking; the user can override later.
 
-   Zone 3 conclusions DO NOT surface in the user's main verification scroll. Surface only as "Auto-routed N items to [destinations summary]. Anything to promote to Zone 1?" — a single yes/no.
+   **Zone 3 — Decided (mechanism calls: logged, not surfaced):**
+   Trigger when the question is answerable from the repo, the rules, or the evidence in front of you:
+   - Can this trigger fire? Does the destination already carry the rule? Where does the clause go? Is this the same mechanism as an existing entry? Which of two framings is more accurate?
+   - Conclusion documents a decision the user already made and approved IN-SESSION.
+   - Session-scoped observation that won't fire across sessions (no cross-session enforcement implied).
 
-   **Classification questions to ask per conclusion:**
-   1. Does it encode a NEW cross-session enforcement (rule / hook / new cluster / plan amendment / CLAUDE.md edit)? → Zone 1 or Zone 2
-   2. Did either persona challenge it? → Zone 1 (override base classification)
-   3. Did Step 5.6 mark it as 2/3 borderline? → Zone 1 (override)
-   4. Does it document a decision already made and approved by the user IN-SESSION? → Zone 3
-   5. Could a future session's behavior change because of this? If NO → Zone 3
-   6. Is the destination unambiguous and the routing mechanical? → Zone 2
+   Zone 3 conclusions are recorded in the routing record, not in the message. Surface only as "Auto-routed N items to [destinations summary]. Anything to promote?" — a single yes/no that preserves the promote lever.
+
+   **Adjudicate internal signals; do not forward them.** A persona `challenge` verdict and a Step-5.6 2-of-3 borderline are **inputs to your judgment, not zone assignments.** Both ask a mechanism question — *is this framing right? is this the same mechanism?* — which is yours to answer. Resolve it, record the resolution and its reason in the conclusion, then zone the RESULT by the question above. It reaches Zone 1 only if what survives adjudication is itself something only the user can answer. Because this is you ruling on your own work, the resolution is always stated, never silent: a challenge you overruled appears as a Zone 2 line naming the challenge and your reason.
+
+   **Escalation-for-cover is the failure this replaces.** Surfacing an item you could have decided does not share the judgment — it transfers the liability, and it spends attention that the genuinely-theirs items then have to compete with. The test is the whole check: if they could hand it straight back, it was cover.
 
    **Zone-1 cap rule:** if Zone 1 contains MORE THAN 5 items, surface to user at top of Step 4 verification view:
 
@@ -206,6 +210,8 @@ FOR EACH RAW SIGNAL:
    This prevents the "wall of decisions" failure mode where the user gives up because it's too much to review.
 
    > **Why (May 2 2026):** A parallel content-lab/diligence wrap-up under v3.7 produced 14 conclusions + 4 persona challenges + 2 borderline calls + 18 Noted items. User reported: *"my brain just fried and I just kind of want to give up."* Diagnosis: the agent itself had cognitively differentiated the conclusions (its own ★Insight: *"the other 10 conclusions are methodology codifications for the new diligence engine, not failure-mode captures — different shape, different routing"*) but had no structural way to surface them differently. v3.7's Verification Detail Floor made every conclusion equally heavy regardless of whether the user's judgment was actually needed. v3.8 zones make the floor's rigor scale with materiality. Tier mismatch, not detail-level mismatch.
+
+   > **Why the re-key (2026-08-11):** v3.8 built the right three tiers and keyed them on the wrong variable. All six original Zone-1 triggers described the EDIT or this skill's own internal process — *persona challenged · Step 5.6 borderline · new top-level cluster · root CLAUDE.md edit · plan amendment · cross-repo edit* — and not one asked whether the user could answer. A 16-conclusion wrap-up (2026-08-07) put five items in Zone 1 with reasons like *"widens an authoritative reference doc"* and *"Step 5.6 returned 2 of 3."* **Two of the five did contain something genuinely the user's; in neither case was that the reason it was flagged** — one's real content was a Judgment Ledger candidacy recorded in a *different field* (6.6, wedge test), the other's was a destination scope that crossed from one project into all of them. So the sort found the right items for the wrong reasons, which means it presented them wrong: *approve this edit?* rather than *here is a choice only you can make.* The user's verdict on the result: *"i am not the best judge in figuring out whether persona counters are right"* — correct, and nothing they were positioned to judge had been handed to them. The user's criteria, verbatim, are the spec this section now implements: *"if i am not going to be a better judge than claude (i.e. mechanism type decisions) then claude should handle. but if a decision impacts how i experience how CC works, or that the risk involved is irreversible or potentially intolerable, then i should be made aware with all the backgrounds to help me make a judgement call"* — and, separately, on notification without action: *"if a change impacts my experience working with CC or what i should expect, or the underlying mechanics changed that i should be aware of because it changes my expectations on the model and the work output, then i should be notified/made aware."* The zone *machinery* and *presentation* were already right for these three buckets and are unchanged; only the sorting axis moved.
 
 6.6. **Wedge-Test Recording (added v3.9 May 12 2026, MANDATORY):**
 
@@ -244,8 +250,9 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 **Gate Status:** ✅ PASSED
 **Classification:** [Code-level / Process-level (behavioral) / Process-level (operational) / Fact / Content-level]
 **Significance:** [✅ Future sessions would: repeat mistake / skip step / lose context] or [❌ Interesting but forgettable → Noted]
-**Zone:** [Zone 1 — Decisions Required / Zone 2 — Routine Confirmation / Zone 3 — Auto-routed]  ← v3.8 (Step 6.5)
-**Zone reason:** [one-line justification — e.g., "persona challenged" / "existing-cluster increment, personas pass" / "documents in-session-approved decision"]
+**If the user says "you decide," can I?** [YES / NO — answer this BEFORE assigning the zone; the zone is derived from it, never asserted independently]  ← v4.6 (Step 6.5)
+**Zone:** [Zone 1 — Decisions Required (answer was NO) / Zone 2 — Notify and Confirm (YES, and they should know) / Zone 3 — Decided (YES)]
+**Zone reason:** [**Zone 1:** name what the USER HOLDS that you don't — publishability under their name / scope crossing onto a shared or external surface / irreversible-or-intolerable-if-wrong / a preference with no defensible default. ⚠️ **A reason that describes the EDIT — "widens an authoritative doc," "proposes a root CLAUDE.md edit," "persona challenged," "Step 5.6 returned 2 of 3" — means the question above was actually YES. Adjudicate it and re-zone.** **Zone 2:** name which expectation of theirs changes, or which facts they can spot-check. **Zone 3:** name the mechanism question and the answer you gave it.]
 **Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
 **Wedge test:** [Pass — <reason> / Fail — <reason> / N/A]  ← v3.9 (Step 6.6) — MANDATORY, never omit
 
