@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.5.0
+version: 4.6.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.3
+# learning-loop Skill v4.6
 
-> **Version history:** `references/CHANGELOG.md` (v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change; v4.1 = W7.w Step-3/3a Sub-Agent STOP gates; v4.0 = Mods 6-10 hygiene pass + Phase 2 gatekeeper retired).
+> **Version history:** the live table is `README.md` § Version History. (v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -379,9 +379,15 @@ After consolidation produces its draft, run a two-persona adversarial review BEF
 
 #### Step 4: Present for User Verification
 
-**v3.8 zoned presentation (May 2 2026):** The verification view is structured by **zone** (per Step 6.5 classification), NOT by content-type-flat-sections. This scales the user's cognitive load with materiality — Zone 1 items get full attention; Zone 2 batch-confirm; Zone 3 auto-routed. Apply persona-challenge promotion BEFORE rendering: any conclusion with a persona challenge is promoted to Zone 1 regardless of base classification.
+**v3.8 zoned presentation (May 2 2026; criteria re-keyed v4.6 2026-08-11):** The verification view is structured by **zone**, NOT by content-type-flat-sections. This scales the user's cognitive load with materiality — Zone 1 items get full attention; Zone 2 batch-confirm; Zone 3 auto-routed.
 
-**Zone-1 cap check:** before rendering, count Zone 1 items. If COUNT > 5, surface the cap warning at top of the view (per Step 6.5).
+> ⚠️ **The zone CRITERIA are not in this file.** They live at step 6.5 of `references/prompts/consolidation-prompt.md`, which the consolidation sub-agent reads at dispatch. This file governs how a zoned item is *rendered*; that file governs how it is *sorted*. **An edit here cannot change any zone assignment** — the classifier never reads SKILL.md.
+
+**Zones sort on WHO CAN ANSWER, not on how risky the edit is.** Zone 1 = only the user can answer (publishability under their name · scope crossing onto a shared or external surface (the rule's REACH widens onto other people or other projects — not merely that a shared file gets edited) · irreversible-or-intolerable-if-wrong · a genuine preference with no defensible default). Zone 2 = they should know, nothing to decide. Zone 3 = mechanism calls you made, logged in the routing record. Full criteria and provenance at consolidation-prompt step 6.5.
+
+**Persona challenges are adjudicated, not forwarded.** A `challenge` verdict asks a mechanism question — *is this framing right? is this the right destination?* — which is yours to answer. Resolve it before rendering, then zone the RESULT. **State every resolution**: an overruled challenge renders as a Zone 2 line naming the challenge and your reason, so ruling on your own work is never silent. It reaches Zone 1 only if what survives adjudication is itself something only the user can answer. *(Replaces the v3.8 auto-promote, which sent every challenge to Zone 1 regardless — that rule is what left the panel's output with no adjudicator.)*
+
+**Zone-1 cap check:** before rendering, count Zone 1 items. If COUNT > 5, surface the cap warning at top of the view (per consolidation-prompt step 6.5). **Treat a large Zone 1 as a sorting smell first** — under WHO-CAN-ANSWER criteria most sessions produce very few. Re-run the sorting question on each before showing a wall of decisions.
 
 Present the consolidated summary in zone order:
 
@@ -417,7 +423,8 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
   - **[Workflow-Step Router]** ⚠️ challenge: [one-sentence reasoning]
     - Original destination: "[from consolidation]"
     - Re-route to: [destination + section]
-- **Zone reason:** [why this is Zone 1 — e.g., "persona challenged" / "new top-level cluster" / "borderline 2/3 same-mechanism" / "root CLAUDE.md edit"]
+- **Why only you can answer this:** [the ONE thing you hold that I don't — publishability under your name / scope crossing onto a shared or external surface (the rule's REACH widens onto other people or other projects — not merely that a shared file gets edited) / irreversible-or-intolerable-if-wrong / a preference with no defensible default. **Name it in those terms.** If the honest answer is "it edits an authoritative doc" or "a persona challenged it," this is not a Zone 1 item — adjudicate it and re-zone.]
+- **Options, tradeoff, consequence:** [what you are choosing between; what each costs relative to the other; what happens if you do nothing]
 
 **Your choice for [C-id]:** (a) accept consolidation, (b) accept persona counter-proposal, (c) write your own
 
@@ -425,7 +432,9 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 
 ---
 
-### Zone 2 — Routine Confirmations ([Z2] items, accept-all default)
+### Zone 2 — Notify and Confirm ([Z2] items, accept-all default)
+
+Two kinds share this tier: things that **change what you should expect** from the model, the harness, or the workflow (no action required — you are being told, not asked), and routine factual writes you were present for and can spot-check.
 
 **(v3.13) The 1-line Conclusion column MUST lead with a concrete incident / name / verbatim quote / specific framing from THIS session.** Destination column carries the cluster ID / plan path. Do NOT put cluster IDs or shorthand jargon in the 1-line — that defeats verification. See Step 4 Verification Detail Floor "Trigger heuristic" + good/bad examples.
 
@@ -441,7 +450,7 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 
 ---
 
-### Zone 3 — Auto-routed ([Z3] items, informational)
+### Zone 3 — Decided ([Z3] items, mechanism calls logged not surfaced)
 
 [Z3] items auto-routed to: [destinations summary, e.g., "workflow doc default rules (×6), MEMORY.md (×2), Noted (×4)"].
 
@@ -586,11 +595,11 @@ Please confirm accuracy before I proceed to documentation.
 
 #### Step 4 — Verification Detail Floor (originally added v3.7, scoped v3.8 May 2 2026)
 
-The Verification Detail Floor scales rigor with zone (per Step 6.5):
+The Verification Detail Floor scales rigor with zone (classification criteria: `references/prompts/consolidation-prompt.md` step 6.5):
 
 | Zone | Floor requirement |
 |---|---|
-| **Zone 1** | **MANDATORY full Verification Detail Floor** — per-conclusion narrative block with all 5 fields (what happened, what's wrong, what fix does, why destination, persona challenges) |
+| **Zone 1** | **MANDATORY full Verification Detail Floor** — per-conclusion narrative block with all 7 fields (what happened, what's wrong, what fix does, why destination, persona challenges, why only you can answer, options/tradeoff/consequence) |
 | **Zone 2** | 1-line summary + destination by default — **the summary MUST lead with a concrete incident/name/quote/specific-framing from THIS session** (v3.13). Full floor available on user request ("expand C5, C7"). |
 | **Zone 3** | Destination + 1-line summary only — **same concrete-anchor rule as Zone 2** (v3.13). No floor. User can promote to Zone 1 to see full floor. |
 
@@ -608,15 +617,26 @@ The Verification Detail Floor scales rigor with zone (per Step 6.5):
 - **Why this destination:** [why this cluster/file/section vs alternatives.
   Don't reason from secondary constraints (e.g., "root CLAUDE.md is at line
   budget") when the rule's logic dictates a destination.]
-- **Persona challenges (if any):** [with the same level of specificity — what
-  the persona objected to and what their concrete counter-proposal is]
+- **Persona challenges (if any):** [what the persona objected to, your
+  concrete adjudication, and your reason — challenges are resolved before
+  rendering, never forwarded as the reason this is Zone 1]
+- **Why only you can answer this:** [the ONE thing the user holds that you
+  don't — publishability under their name / scope crossing onto a shared or
+  external surface (the rule's REACH widens onto other people or other
+  projects — NOT merely that a shared or PR-gated file gets edited) /
+  irreversible-or-intolerable-if-wrong / a preference with no defensible
+  default. If the honest answer is "it edits an authoritative doc" or "a
+  persona challenged it," it is not Zone 1 — re-zone it.]
+- **Options, tradeoff, consequence:** [what they are choosing between; what
+  each costs relative to the other; what happens if they do nothing]
 ```
 
 **STOP and correct if you're:**
 - Presenting a Zone 1 conclusion without full Verification Detail Floor (Zone 1 = mandatory floor)
 - Mixing Zone 1 and Zone 2 in the same section of the verification view
 - Surfacing Zone 3 items in the user's main verification scroll (Zone 3 = single-line summary + "anything to promote?" prompt only)
-- Failing to apply zone classification (Step 6.5) before rendering Step 4
+- Failing to apply zone classification (`references/prompts/consolidation-prompt.md` step 6.5) before rendering Step 4
+- **Writing a Zone-1 justification that describes the EDIT rather than what the user holds** — "widens an authoritative doc," "proposes a root CLAUDE.md edit," "a persona challenged it," "Step 5.6 returned 2 of 3." Each is answerable by you. Adjudicate it and re-zone; a Zone 1 slot filled this way costs the user attention that the genuinely-theirs items then compete with.
 - Skipping the Zone-1 cap check when Zone 1 has >5 items
 - Defaulting to "compressed format because the table is cleaner" for Zone 1 items — Zone 1 always gets the floor
 - **(v3.13) Writing a Zone 2 or Zone 3 1-line summary that leads with a destination cluster ID (`W_N.x`, plan path, reference doc path) or shorthand jargon (e.g., "methodology-doc caveat-writing surface") WITHOUT a concrete anchor from THIS session.** The 1-line must lead with a specific name, quote, incident, or framing the user can recognize from this session's exchange. Cluster ID + destination go at the END as routing metadata, not the START as the summary.

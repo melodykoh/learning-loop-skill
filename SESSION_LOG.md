@@ -6,6 +6,102 @@
 
 ---
 
+## Session: August 11, 2026 — v4.6: zone criteria re-keyed onto WHO CAN ANSWER
+
+### Context
+
+A 16-conclusion wrap-up from a work-project session put five items in Zone 1. The user's reaction to being handed them: *"i am not the best judge in figuring out whether persona counters are right or original consolidation."*
+
+That reads as a complaint about volume. It isn't. Zone 1 is *supposed* to be the tier where the user's judgment is needed, so the right question is not "were there too many" but **"was any of it theirs to judge?"**
+
+### The finding
+
+The three-tier structure was right and had been since v3.8. **The criteria were keyed on the wrong variable.** All six Zone-1 triggers described the EDIT or this skill's own internal process:
+
+| Original Zone-1 trigger | What it is |
+|---|---|
+| Persona issued a `challenge` verdict | this skill's internals |
+| Step 5.6 returned 2/3 borderline | this skill's internals |
+| Creates a NEW top-level watch-list cluster | edit risk |
+| Proposes a NEW root CLAUDE.md edit | edit risk |
+| Proposes a plan amendment / coverage gap | edit risk |
+| Cross-repo edit or restructures an authoritative doc | edit risk |
+
+Not one asks whether the user can answer. The classifier did not misfire — it did exactly what it was told, and the reasons it wrote back prove it: *"Widens an authoritative reference doc,"* *"proposes edits to two authoritative reference docs,"* *"Step 5.6 returned 2 of 3."*
+
+**The decisive evidence is that the flag and the need did not overlap.** Two of the five did contain something genuinely the user's, and in neither case was that why it was flagged:
+
+- **C1** was flagged for *"widens a doc."* What actually needed the user was Judgment Ledger candidacy — recorded in a **different field entirely** (6.6, the wedge test), never in the zone reason.
+- **C6** was flagged for *"Step 5.6 returned 2 of 3."* What actually needed the user was a destination scope that crossed from one project onto vendor communications across every project in that workspace — which is exactly what they raised unprompted: *"shouldn't this exist at the root level since i can be working anywhere in the repo and produce vendor docs?"*
+
+So the sort found the right items for the wrong reasons, and an item flagged for the wrong reason is *presented* wrong: **"this widens a doc, approve?"** instead of **"here is a choice only you can make."** They were right that they were not the better judge — and they were never handed the two things they were positioned to judge.
+
+Independent corroboration from the eval log, a different session the same week, recorded `zone1=7 zone2=0 zone3=0` — **7 of 7 conclusions escalated**, over the cap of 5.
+
+### The deeper mechanism (the user's own diagnosis)
+
+This is the org pattern where a junior person or another team gets a plan signed off so responsibility shifts off them: **escalation-for-cover, not escalation-for-judgment.** The behavioural test that separates them — *if they say "you decide," can I?* If yes, it was cover. Companion Judgment Ledger entry, 2026-08-10: "Asking You to Sign Off Is How the Model Transfers Liability."
+
+### The spec, verbatim
+
+> *"if i am not going to be a better judge than claude (i.e. mechanism type decisions) then claude should handle. but if a decision impacts how i experience how CC works, or that the risk involved is irreversible or potentially intolerable, then i should be made aware with all the backgrounds to help me make a judgement call"*
+
+And separately, on notification without action:
+
+> *"if a change impacts my experience working with CC or what i should expect, or the underlying mechanics changed that i should be aware of because it changes my expectations on the model and the work output, then i should be notified/made aware"*
+
+⚠️ **One earlier proposal was explicitly corrected and must not be rebuilt:** *"an item with no ask attached isn't a surfacing item."* Wrong — it would suppress exactly the expectation-change findings they asked for. The rule is **not** *no-ask → suppress*; it is *no-ask → must clear the expectation-change bar.* Zone 2 now says this in as many words.
+
+### What changed
+
+Criteria only. The zone machinery and presentation were already correct for the three buckets and are untouched — Zone 1's full detail floor + per-item choice, Zone 2's one-line batch-accept, Zone 3's logged-with-promote-lever map onto decide / notify / decided with nothing added.
+
+- **Sorting question** — *"If the user says 'you decide,' can I?"* — is a **required output field answered BEFORE the zone**, so the zone is derived rather than asserted. Structural, per the playbook's "omitted element → make it a required slot in the template they already fill."
+- **Zone 1** = only the user can answer: publishability under their name · scope crossing onto a shared/external surface · irreversible-or-intolerable-if-wrong · a preference with no defensible default.
+- **Zone 2** = notify and confirm, explicitly including items with no action attached.
+- **Zone 3** = mechanism calls, logged in the routing record.
+- **Persona challenges and Step-5.6 borderlines are adjudicated, not forwarded.** Both ask mechanism questions, which are ours. Resolve, state the resolution and reason, then zone the result. This replaces v3.8's auto-promote — which is precisely what left the panel's output with no adjudicator. Every resolution is stated, because this is us ruling on our own work.
+- The Zone-1 **cap** now reads a large Zone 1 as a *sorting smell* first.
+
+### Design constraints applied
+
+- **`/writing-skills` "Match the Form to the Failure"** classifies this baseline as *complies, but output has the wrong shape* — not a discipline failure. For shaping failures, prohibition tables measurably backfire (worse than a no-guidance control); the prescribed form is a **positive recipe**. So the plan's intended "escalation-for-cover warning" became a sorting *question*, not a warning.
+- **Playbook A/B/C:** the naive fix — "escalate less" — is Class C, a quantity adverb that inverts at the next model release. Keying on *who can answer* is a Class A work-condition and does not reference any baseline.
+- **The Zone-1 form requirement is not restated.** A global Stop-hook classifier already enforces options + tradeoff + consequence-of-doing-nothing on every decision-request, verified firing. Per playbook layer 4, the skill points at it rather than growing a second copy that drifts.
+
+### Retro-test against the frozen baseline
+
+Pass condition set in advance: exactly C1 (publishability) and C6 (cross-project scope) land in Zone 1, **for the right reason**; if C2/C3/C5 still escalate, the rewrite failed.
+
+| | Baseline (v4.5 criteria) | v4.6 re-sort |
+|---|---|---|
+| Zone 1 | 5 | **2** — C1 (publishability under their name), C6 (reach crosses onto vendor communications in every project in that workspace) |
+| Zone 2 | 9 | 2 — C2, C3 (both change what a guardrail actually covers) |
+| Zone 3 | 2 | 12 |
+
+C2, C3 and C5 all leave Zone 1. **Pass.**
+
+**The test found a real defect, which is the reason to run it.** C3 widens a rule in a project-level `CLAUDE.md` that is PR-gated and is another person's working surface. Read literally, "scope crossing onto a shared surface" promoted it to Zone 1 — edit risk wearing the new label, reintroducing the exact thing this version removes. Trigger tightened: scope is about **the rule's reach onto other people or other projects**, explicitly *not* about which file gets edited.
+
+**Honest limit on this verification:** the re-sort was run by the same session that authored the criteria, so it is self-graded. It is mechanical rather than impressionistic — each item had to be fillable with one of four named triggers — and it ran over a frozen artifact the author could not edit. But an independent sorter would be stronger evidence, and this is not that.
+
+### Ship verification (the skill's own MANDATORY section, applied to itself)
+
+Enumerated rather than assumed, per the v3.5 precedent where three bootstrap files were never created and a downstream step silently took a skip branch for two months.
+
+- New state files: **none.** The added output field lands in the consolidation file Step 3 already creates.
+- Persisted state keyed on the renamed labels: **none** — `persona-eval-runs.txt` logs `zone1=/zone2=/zone3=` as counts on the zone *number*, and the numbering is unchanged.
+- **One artifact was needed and would have been missed by assuming:** those counts now measure a different thing than before, so a trend line across the file would silently compare pre- and post-criteria runs. A `ZONE-CRITERIA BREAK` marker is appended to `persona-eval-runs.txt`.
+
+### Incidental fixes found while working
+
+Both are the same defect shape as the one being fixed — a pointer that greps clean while being semantically stale:
+
+1. **SKILL.md referenced "Step 6.5" four times; no Step 6.5 exists in SKILL.md.** The criteria live in `references/prompts/consolidation-prompt.md`. This is what caused the authoring plan to target the wrong file — an edit to SKILL.md's Step 4 could not have changed a single zone assignment, because the classifier sub-agent never reads SKILL.md. Step 4 now says so explicitly.
+2. **`references/CHANGELOG.md` was abandoned after v4.3** while v4.4 and v4.5 shipped via README's table — yet SKILL.md's header still pointed at it as the version history, and SKILL.md's title still read "v4.3" at `version: 4.5.0`. The plan, authored from that title line, proposed shipping "v4.4" — **a number taken two releases earlier.** CHANGELOG.md is now marked superseded; SKILL.md points at README.
+
+---
+
 ## Session: August 1, 2026 — model choice moves to the dispatch step
 
 ### Context
