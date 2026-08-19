@@ -98,7 +98,7 @@ Also corrected from the re-review: the `--include` trigger is **`--` alone, not 
 
 **One reviewer claim was wrong and is recorded as such:** that `watch-list.md` holds zero retention records. It holds two; they sit inside blockquotes, so they miss `^RETAINED:` but match the unanchored pattern the skill actually uses. The reviewer's *substantive* point — that a second surface exists and was being dropped — was correct and is what the fix addresses.
 
-**Net effect on live data:** two sessions that the pre-fix code would have sent to state 2 (`arlo-wave4-ship-and-postharmonic`, `model-era-harness-hardening`) are now correctly protected as state 3.
+**Net effect on live data:** two sessions that the pre-fix code would have sent to state 2 — both holding retention records that live only under `~/.claude/plans/` — are now correctly protected as state 3.
 
 **Verification:** the three gate blocks were extracted verbatim from SKILL.md and executed under **both bash and zsh** across good / missing-field / no-Zone-fields / absent-file / empty-SID / placeholder-SID / comma-separated-list / foreign / opted-in / record-in-watch-list / record-only-in-plans / no-record / missing-surface. Identical results in both shells, every case. 12 bash blocks parse under both.
 
