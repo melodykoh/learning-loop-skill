@@ -1,7 +1,7 @@
 # SCANNER_PROMPT (Raw Signal Mode)
 
 > Used by: Scan mode step 4, and Wrap-up Step 1 (scan of the current session).
-> Extracted verbatim from SKILL.md v4.1 (2026-07-07 restructure) — content unchanged.
+> Extracted from SKILL.md v4.1 (2026-07-07 restructure). **Amended in v4.8:** four sites that told this agent to quote a conversation it cannot see were re-sourced to the capture files, and an unverifiable scratch line is now kept as `UNCORROBORATED` rather than discarded.
 > Substitute `[session-id]` / `[NNN]` before dispatch. Everything below this line is the sub-agent prompt.
 
 ---
@@ -28,7 +28,7 @@ Cross-reference each line against THE OTHER FILES YOU WERE GIVEN — never again
 - Contradicted by another capture file → discard, and say which file contradicted it
 - Neither corroborated nor contradicted → KEEP IT, marked `UNCORROBORATED`. A scratch
   line you cannot check is still evidence; silently dropping it destroys the only
-  record. Do not treat "I cannot verify this" as "this is false." 
+  record. Do not treat "I cannot verify this" as "this is false."
 
 SECOND: Read ~/.claude/learning-captures/watch-list.md in full (v3.9 May 12 2026).
 Note the active clusters (W1.*, W4, W7.*, etc.) and the Fix field for each. You will
@@ -48,9 +48,8 @@ FOR EACH SIGNAL:
 - Capture the raw observation, not a conclusion
 - Mark hypotheses as UNRESOLVED (wrap-up will resolve them with hindsight)
 - Include enough context to be useful even after compaction
-- Quote verbatim FROM THE CAPTURE FILES YOU WERE GIVEN, with the filename. You have no
-  transcript; there is no conversation for you to quote. If no capture file contains a
-  usable quote, omit the field — never compose one
+- Quote verbatim FROM THE CAPTURE FILES YOU WERE GIVEN, with the filename. If no capture
+  file contains a usable quote, omit the field — never compose one
 
 APPLY THE RECURRENCE TEST (v3.9 May 12 2026, MANDATORY) before deciding where each
 candidate signal lands:

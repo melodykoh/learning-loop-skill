@@ -32,7 +32,9 @@ Symlinks were checked and are **not** a vector: `find … -type f` does not desc
 
 - The destructive rm block was extracted verbatim from SKILL.md and run against isolated fixtures under **both bash and zsh**: an 8-file directory (5 of them files the old list missed) fully cleaned; a directory containing a **subdirectory** left intact with a warning and a CLEANUP FAILED verdict; an unsubstituted placeholder HALTs and touches nothing; a nonexistent directory exits cleanly. Identical in both shells.
 - Step 8: old form returns `0 0` on an unpushed feature branch; new form errors, and returns `0 0` on `main` where an upstream exists.
-- Census of `conversation` across all six prompt files is now zero instructions to use one — every remaining mention asserts its absence.
+- Census across all six prompt files: zero remaining instructions to use a session the agent cannot see.
+
+**This claim was wrong when first written, and the correction is the fourth instance of one failure.** The original census was keyed on the word `conversation` and reported clean. Review then found `consolidation-prompt.md:46` — *"preserving this incident's specific framing + **transcript** reference"* — a live instruction, missed because it used a different word. The broadened sweep (`transcript|conversation|what was said|we discussed|the exchange|…`) is what now backs the claim. Same session, same failure, four times: the `[Conversation excerpt]` undercount (case), the PII sweep that reported 1 hit because `cut -c1-200` cropped the second (truncation), a SID-guard replace that matched 3 of 4 sites and never asked why the count was 3 (exact-string), and this one (vocabulary). **An instrument narrower than the claim made with it produces a clean result every time.**
 
 ## Session: August 19, 2026 — v4.7: failure-class gate before prose, and a fourth state for concurrent ownership
 

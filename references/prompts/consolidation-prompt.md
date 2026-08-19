@@ -43,7 +43,7 @@ FOR EACH RAW SIGNAL:
    THEN — for each conclusion, check against every active watch-list entry:
    - "Is the cognitive origin the same as entry W_N?"
    - "Is the proposed fix the same as W_N's fix?"
-   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + transcript reference. Do NOT file a new top-level entry.
+   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + a reference to the capture file and line it came from (you have no transcript to cite). Do NOT file a new top-level entry.
    - If origin matches but fix differs → check whether you've actually thought about the fix carefully, or whether you're inventing a parallel fix where W_N's existing fix would work. Default to W_N's fix unless you can articulate why it wouldn't apply.
    - If neither matches → propose new top-level watch-list entry with `Root cause` and `Fix` populated.
 

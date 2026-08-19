@@ -755,7 +755,7 @@ Before routing, run a cluster check on the active watch-list:
 
 **Skip ONLY the cluster re-consolidation above (items 1-4)** if active entry count ≤15 AND no fix-cluster ≥3.
 
-⚠️ **The skip stops here. Mods 5-10 below run on EVERY wrap-up.** It previously read "skip this step entirely", which sat above Mods 5-10 and therefore carried away **Mod 9's per-wrap-up graduation monitoring and Mod 10's path-existence check** on any wrap-up under the sprawl threshold — i.e. almost all of them. Path drift has no relationship to cluster volume; a correctness check nested inside a volume gate stops existing precisely when the list looks small and healthy.
+⚠️ **The skip stops here. Mods 5-10 below run on EVERY wrap-up** — in particular Mod 9's graduation monitoring and Mod 10's path-existence check, which cluster volume has no bearing on. (Why this was wrong before: SESSION_LOG v4.8 §4.)
 
 **Mod 5 — Threshold-met → child sub-agent auto-drafts plan (v3.4 Apr 28, refined v3.11 May 12 2026):**
 
@@ -949,8 +949,8 @@ Otherwise, after user verification completes:
 
 ```bash
 SID="[consolidated-session-id]"
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '"'"'$SID'"'"')"; exit 1 ;; esac
+case "$SID" in ""|*"["*|*" "*|*","*|*"/"*|*".."*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '"'"'$SID'"'"')"; exit 1 ;; esac
 
 CONS=~/.claude/learning-captures/"$SID"/consolidation.md
 [ -f "$CONS" ] || CONS=~/.claude/learning-captures/"$SID"/consolidation-final.md
@@ -1263,22 +1263,8 @@ case "$(cd "$DIR" && pwd -P)/" in
   *) echo "❌ HALT — $DIR resolves outside $ROOT; refusing to delete"; exit 1 ;;
 esac
 
-# Delete individually — never `rm -r`. Per-file accountability is the point: each
-# removal is printed, so a skip is visible. (User directive: "the right move is to
-# use rm to delete individual files.")
-#
-# ⚠️ ENUMERATE what is actually present; do NOT hardcode a filename list. A fixed list
-# silently leaves behind whatever a newer step wrote — `auditor-output.json`,
-# `router-output.json`, `consolidation-final.md`, `ROUTED.md`, `HANDOFF-*.md`,
-# `persona-auditor.json` — `rmdir` then fails, the directory survives, and the
-# end-of-wrap-up gate reads it as a SILENT SKIP and re-runs a block that cannot
-# succeed. Verified 2026-08-19: ALL FIVE real session directories on disk contained
-# files the old hardcoded list did not cover.
-#
-# ⚠️ The old form also interpolated the literal `[consolidated-session-id]`, which is a
-# valid bash BRACKET GLOB, not an error — it expanded to any single-character directory
-# named with one of those letters. The guard above makes an unsubstituted placeholder
-# HALT instead.
+# Enumerate what is present — never hardcode a filename list, never `rm -r`. Each
+# removal prints, so a skip is visible. Why both rules: SESSION_LOG v4.8 §2.
 find "$DIR" -mindepth 1 -maxdepth 1 -type f | while IFS= read -r f; do
   [ -n "$f" ] || continue
   echo "  rm $f"; rm -- "$f"
@@ -1298,7 +1284,7 @@ if [ -d "$DIR" ]; then echo "❌ CLEANUP FAILED — $DIR still exists; re-run St
 - Reading sub-agent's "done" report (Step 3 / Step 3a return) and drafting the user-facing summary WITHOUT executing Step 6 cleanup in the main session
 - Treating "eval entry appended to runs log" (Step 4c) as proof that cleanup happened — Step 4c writes the log, Step 6 removes the dir; both are required and they are NOT the same command
 
-**End-of-wrap-up cleanup gate — FOUR states (third added 2026-07-30; fourth added 2026-08-19):** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, it is exactly one of:
+**End-of-wrap-up cleanup gate — FOUR states (third added 2026-07-30; fourth added 2026-08-19):** Before writing the Step 11 Report message to the user, run a final `[ -d ~/.claude/learning-captures/"$SID" ] && echo listed`. **Test the directory; do not `ls | grep` the id** — grep takes it as a regex, and an unsubstituted placeholder is a bracket expression that matches almost any name. If the session dir is still listed, it is exactly one of:
 
 1. **Cleaned** — not listed. Proceed.
 2. **Silently skipped** — listed, and NO retention record exists (see below). This is the failure this gate was built for: execute the per-file rm + rmdir block above before proceeding to Step 11.
@@ -1432,7 +1418,7 @@ After all learnings are routed and capture files cleaned up, check if the curren
    └── Stage all relevant files (.gitignore handles exclusions)
    └── Commit with descriptive message summarizing session work
    └── Push to remote if one exists (`git remote -v` to check)
-   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count @{u}...HEAD` → expect `0 0`; if HEAD is ahead, `git push`. **Resolve the real upstream — do not hardcode `origin/main`.** A literal `origin/main...main` passes without checking anything whenever the work is on a feature branch or the push went to a fork, which is a verification whose negative result cannot occur. If `git rev-parse --abbrev-ref @{u}` fails, there is no upstream and the branch was never pushed anywhere — that is itself the finding, not a pass. This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
+   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count @{u}...HEAD` → expect `0 0`; if HEAD is ahead, `git push`. **Resolve the real upstream — never hardcode `origin/main`.** If `git rev-parse --abbrev-ref @{u}` fails there is no upstream and the branch was never pushed: that is the finding, not a pass. (Why: SESSION_LOG v4.8 §3.) This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
    └── Confirm: "Committed and pushed: [short hash] [message]" — only after the `0 0` verify
 
 5. If user skips:
