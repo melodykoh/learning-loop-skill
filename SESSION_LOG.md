@@ -6,6 +6,96 @@
 
 ---
 
+## Session: August 19, 2026 — v4.7: failure-class gate before prose, and a fourth state for concurrent ownership
+
+### Context
+
+GitHub issue #4 specified two changes identified during a live wrap-up and deliberately *not* applied in that session so they could be planned properly. The issue carried seven open questions. All seven were answerable from evidence in the repo and from testing; none required an owner decision, so none were escalated.
+
+### Problem
+
+**Change 1.** In one session eight rules were eligible to fire and none did; five had shipped seven days earlier. The principal's ordinary questions caught 4 of 8, a cold reader 1, a test 1, and the governing rule 0 of 8. The floor rose from six to eight *during* the review pass, when both reviewers found two more silent rules inside the consolidation document that was counting them. The issue's first framing — *"prose is disqualified as a remedy whenever an existing rule was already eligible and silent"* — was corrected by the principal mid-issue: *"a prose can exist but was at the wrong place so it didn't fire at the right time / ie a routing problem."* Classifying the eight gave **3 placement · 2 shape · 3 no-moment**; five of eight were prose problems with working prose fixes, so a boolean would have destroyed five correct remedies.
+
+**Change 2.** Step 2 triage read a sibling capture directory holding a finished consolidation and a completed persona review with zero inbound references — the documented Step 6a-ii "abandoned run" signature — and surfaced a three-way fold-in / hold / delete decision. It was not abandoned. A concurrent session was mid-flight in it and finished cleanly about an hour later. Both branches were dangerous: delete destroys another session's evidence, and *hold* writes a `RETAINED:` record onto a **shared** surface asserting a hold the other session never agreed to.
+
+### Investigation
+
+Built test-first per `/writing-skills` (the Iron Law covers edits, not just new skills).
+
+**Change 2 — RED reproduced cleanly.** Three independent baseline runs against the incident's exact `ls -la` listing. All three saw the six-minute timestamp and reasoned about it explicitly. All three still classified the directory "abandoned run," all three proposed writing a `RETAINED:` record for a directory they did not own, and all three offered either delete or read-and-route. Two also proposed copying its files out or folding its conclusions into their own wrap-up. **Seeing the disambiguator was not sufficient — there was no state to put it in.** The two different state names the reps produced for one situation is itself the diagnosis: the wording was not deciding anything.
+
+**Change 1 — RED did NOT reproduce, and the first fixture was invalid.** The first attempt wrote *"there was no decision point"* into the fixture, which **is** the no-moment classification; all three reps quoted that phrase verbatim as their justification. Rebuilt with evidence only, then rebuilt again at ten conclusions under explicit end-of-session time pressure. Across two valid fixtures and six independent pre-change runs — **39 routing decisions** — **not one chose "a new paragraph" for a no-moment finding.** Remedy selection was already good at this model tier.
+
+What *was* reproducible: **no run recorded any classification at all** (0 of 39), and runs silently diverged on remedy class for identical input — a defective-check finding drew "clarified existing prose" from one run and a fix to the check itself from others; a near-miss drew a watch-list facet from one run, a "near-miss record, do not increment" from another, and a human-caught record from a third. One run applied a Zone 1 item directly instead of surfacing it. None of that divergence is visible anywhere.
+
+**Two defects were caught in the new code by testing it, not by reading it.**
+
+1. The presence check originally counted conclusions by heading (`^### N. `). Run against five real consolidation files, headings took at least three shapes (`### 1.`, `### C1.`, `#### C1.`) and hypothesis blocks reused them — the regex read **25** conclusions in a file that had **14**, which would have HALTed a correct wrap-up. Re-anchored onto `**Zone:**`, which appears exactly once per conclusion and agreed with `**Route to:**` and `**Wedge test:**` in all five files.
+2. The concurrent-ownership check used `find … 2>/dev/null`. `find` exits 1 and prints nothing to stdout on a permission error, so an **unreadable** directory read as "not in flight" — the dangerous direction, and the exact "one error you must never hide is the one that makes absence look proven" failure Step 6a already documents. Now checks the exit code and treats unclassifiable as in-flight.
+
+
+### GREEN — what the change actually bought
+
+Same ten-conclusion fixture, edited skill, classes supplied as the consolidation sub-agent would emit them (two marked `provisional`), three independent runs.
+
+| Measure | Baseline | With v4.7 |
+|---|---|---|
+| Conclusions carrying a recorded class | **0 of 39** | **30 of 30** |
+| Confirm-or-override stated explicitly | n/a — no class existed | 30 of 30 |
+| `no-moment` findings answered with a paragraph | 0 | 0 (no regression) |
+| Class agreement between runs | unmeasurable | 9 of 10 |
+
+The single most useful result is a **disagreement**, not an agreement. Nine of ten classes were unanimous across all three runs; the tenth split 2–1, and the split is the point. On C1 the supplied class was `placement` — two runs opened root `CLAUDE.md`, found the pointer's trigger **already** covers the case (*“any artifact that presents a number or a data claim to a reader (deck, memo, email, LP update, Slack post)”*), and **overrode `placement` → `no-moment`**, correctly: widening a trigger that already matches ships text already proven not to fire. The third run confirmed `placement` without checking the live wording. That is the blind-sub-agent / sighted-orchestrator split doing exactly the work it was designed for — and it is only possible because there is a class to override. It also means the fixture's own premise was stale against disk, and the gate caught it.
+
+Where runs still differ they now differ **visibly and at a nameable level**: on C6 all three agreed the class was `no-moment`, then two wrote a `HUMAN-CAUGHT:` record and one added a second predicate to C4's classifier — same class, different remedy, adjudicable in one line. In the baseline the same input produced three unlabelled answers and nothing surfaced that they disagreed at all. The `HUMAN-CAUGHT:` route was exercised unprompted by two runs, which is the first evidence that the fourth option is usable rather than decorative — one run also noted, correctly, that no such line exists in `watch-list.md` yet.
+
+**Three live defects were found by GREEN runs grounding against real files, all verified by hand afterwards.** None is in this issue's scope; all are recorded below.
+
+### Decision
+
+**All seven of the issue's open questions, answered from evidence:**
+
+| # | Question | Answer |
+|---|---|---|
+| 1.1 | What stops the gate becoming a ninth silent rule? | A **required field in the consolidation output schema** plus a mechanical presence check that HALTs. `superpowers:writing-skills` independently prescribes this form — *"omits a required element from something they already produce → structural REQUIRED field, not prose reminders"* — and the skill already uses it twice (wedge test v3.9, WHO-CAN-ANSWER v4.6). |
+| 1.2 | Who classifies — sub-agent or orchestrator? | **Both, in that order.** The sub-agent emits the field (it is the forcing function; a missing field fails validation) and marks `(provisional)` where reading blind prevented verification. The orchestrator confirms or overrides at Step 5.0 with the destination open, and must state which. Mirrors how zone assignment already works. |
+| 1.3 | What does `no-moment` route to when no mechanism is cheap? | An explicit `HUMAN-CAUGHT:` record naming the literal question that catches it. Confirmed as a valid routing, not a failure to route — recording that a surface is unmechanized is what makes it countable. |
+| 1.4 | Does this interact with Mod 6? | They **compose on different axes**. Mod 6 decides TIMING (codify now vs watch); the class decides FORM (what a codification may be). Mod 6 runs first. Its "destination identifiable" condition is satisfied by a mechanism's install point. |
+| 2.1 | What is N? | **120 minutes**, mtime-based. Asymmetric miss costs: a false *in-flight* costs one wrap-up of delay and **self-clears** as mtime ages; a false *not-in-flight* is total, unrecoverable loss. Step 4 blocks on the user, so a live run can idle over an hour. |
+| 2.2 | Does the `RETAINED:` mechanism need an owner field? | **Yes** — and a rule: only a session that consolidated a directory may write its retention record. Backward-compatible; the state-2/3 grep matches on the unchanged `RETAINED: <session-id>` prefix, verified against both live records. |
+| 2.3 | Is a lock file worth it? | **No, and this was derived rather than guessed.** A static marker written at Step 1 carries exactly the information the directory's own existence already carries — *a run started here and has not finished* — so it cannot separate live from abandoned. Only recency of activity can. A heartbeated lock could, but that is real engineering for a once-observed failure, and this skill has a documented history of bootstrap steps silently not firing — a marker that never gets written fails in the **dangerous** direction. mtime needs no bootstrap and fails safe. |
+
+**Change 1 ships on a narrowed claim.** Because the premise did not reproduce, the field is justified as **auditability**, not as a correction to observed behaviour, and both SKILL.md and the consolidation prompt say so in their own provenance. A class that is never recorded cannot be counted, and what cannot be counted cannot be seen getting worse — which is exactly how eight silent rules reached a human before they reached the loop.
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| SKILL.md | **Step 5.0 Failure-Class Gate** (new) — mechanical presence check + per-class remedy table + the four `no-moment` routings + Mod 6 composition + stated honest limit. **Mod 6** — composition paragraph. **Step 2** — concurrent-ownership check, in-flight render shape, N-derivation, lock-file rejection. **Step 6a-ii** — ownership precondition before the abandoned-run HALT. **Cleanup gate** — THREE states → FOUR; ownership-first branch; `RETAINED:` owner field + owner rule. **Design Principles** — new row + *Gate-state enumeration* standing check. Version 4.6.0 → 4.7.0. |
+| references/prompts/consolidation-prompt.md | **Step 5.5b Failure-Class Check** (new) with the four values and the blind-reading rule; **`Failure class:`** added to the conclusion output template as MANDATORY. |
+| README.md | v4.7 version-history row incl. the negative result; v4.3 reordered below v4.4 (table was not newest-first). |
+
+### Verified
+
+- Change 2 bash executed against a fixture reproducing the incident: live foreign dir → in-flight; genuinely abandoned foreign dir → still triageable (v4.5 protection intact); own dir freshly written → still proceeds (**without the ownership guard a bare mtime check would halt every wrap-up**); `_`-prefixed dirs skipped (archive convention intact); unreadable dir → in-flight.
+- Cleanup gate: all four states resolve correctly; both **live** `RETAINED:` records in the real watch-list still resolve to state 3.
+- Step 5.0 presence check: passes a fully-classified file across mixed heading shapes, HALTs on a missing field, HALTs on a wrong file, HALTs on a pre-v4.7 historical file (documented as correct).
+- PII scan of the diff (public repo): clean — no names, emails, company or portfolio tokens, no real session ids.
+
+### Found but NOT fixed — out of the issue's scope
+
+**1.** Step 6's per-file `rm` list covers `scan-*.md`, `consolidation.md`, `persona-review.json`, `persona-eval.md`, `scratch.md`. **All five** real session directories on disk contain files it does not cover — `auditor-output.json`, `router-output.json`, `consolidation-final.md` (which Step 6a-ii itself checks for), `ROUTED.md`, `HANDOFF-post-compaction.md`, `persona-auditor.json`. `rmdir` therefore fails, the directory persists, and the cleanup gate reads it as **state 2 (silent skip)** and re-runs a block that cannot succeed. Not fixed here because changing a destructive step's file list contradicts a recorded user directive (*"the right move is to use rm to delete individual files"*) and is the owner's call. Exactly the kind of miss the new gate-state enumeration check is meant to surface.
+
+**2. `references/prompts/scanner-prompt.md` contradicts itself about conversation access — and the contradiction forces fabrication.** Line 9 states *"You have NO access to the conversation this session ran. You inherit no transcript…"* Lines 25, 47 and 104 then instruct the same agent to *"Cross-reference against conversation context"*, *"Quote relevant conversation excerpts where possible"*, and emit a required output field **`**Quote:** "[Relevant quote from conversation]"`**. A mandatory field that cannot be filled from the agent's actual inputs can only be filled by inventing one. v4.4 shipped as *"sub-agent briefs stop claiming inherited context"* — the consolidation prompt was fixed properly (it adds *"where a capture file is too thin to support a conclusion, say so and name the gap rather than filling it"*), the scanner prompt's header was fixed and its body was not. **This is an incomplete graduation, not a new finding.** Surfaced by a GREEN test run grounding a fixture against real files, then verified by hand.
+
+**3. Step 8's push verification hardcodes `origin` and `main`.** Line 1326 runs `git rev-list --left-right --count origin/main...main` and expects `0 0`. Both remote and branch are literals, so a push that landed on a fork, or work on any non-`main` branch, returns a passing result while proving nothing. It is a check whose negative result cannot occur for the case it exists to catch — `shape`, by this version's own taxonomy. (It happens to be correct in this repo, which has one remote.)
+
+**4. Mod 10's path-drift check is gated away by a volume threshold.** Step 4b carries *"Skip this step entirely if active entry count ≤15 AND no fix-cluster ≥3"* **above** Mods 5–10. On the plain reading of "this step", Mod 9's per-wrap-up graduation monitoring and Mod 10's path-existence check do not run on any wrap-up under the sprawl threshold — i.e. almost all of them, and path drift has no relationship to cluster volume. Independently identified by three test runs and confirmed against the file.
+
+All four are recorded rather than fixed because this issue scoped two routing gates. #2 is the most urgent: it is live, it runs on every scan-mode dispatch, and its effect is fabricated quotes in capture files that later become conclusions.
+
+---
+
 ## Session: August 11, 2026 — v4.6: zone criteria re-keyed onto WHO CAN ANSWER
 
 ### Context
