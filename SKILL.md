@@ -1188,8 +1188,11 @@ IN_FLIGHT_MINUTES=120     # keep in step with Step 2; derivation lives there
 # passes the literal string "[the directory being judged]" and then produces a
 # plausible-looking verdict. Every way of getting these wrong fails toward
 # "not ours", i.e. nothing is ever cleaned, silently.
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|*"["*|*" "*|*","*|*"/"*|*".."*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
 case "$CONSOLIDATED" in ""|*"["*|*","*)
   echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
@@ -1244,10 +1247,21 @@ fi
 
 ```bash
 SID="[consolidated-session-id]"
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
-DIR="$HOME/.claude/learning-captures/$SID"
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|*"["*|*" "*|*","*|*"/"*|*".."*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
+ROOT="$HOME/.claude/learning-captures"
+DIR="$ROOT/$SID"
 [ -d "$DIR" ] || { echo "✅ nothing to clean — $DIR does not exist"; exit 0; }
+
+# Belt-and-braces: assert the RESOLVED path really sits inside the captures root,
+# so a future edit to the guard above cannot silently re-open traversal.
+case "$(cd "$DIR" && pwd -P)/" in
+  "$(cd "$ROOT" && pwd -P)"/*) : ;;
+  *) echo "❌ HALT — $DIR resolves outside $ROOT; refusing to delete"; exit 1 ;;
+esac
 
 # Delete individually — never `rm -r`. Per-file accountability is the point: each
 # removal is printed, so a skip is visible. (User directive: "the right move is to
@@ -1301,8 +1315,11 @@ CONSOLIDATED="[space-separated session ids]"
 # passes the literal string "[the directory being judged]" and then produces a
 # plausible-looking verdict. Every way of getting these wrong fails toward
 # "not ours", i.e. nothing is ever cleaned, silently.
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|*"["*|*" "*|*","*|*"/"*|*".."*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
 case "$CONSOLIDATED" in ""|*"["*|*","*)
   echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac

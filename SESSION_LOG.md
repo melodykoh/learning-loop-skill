@@ -22,6 +22,12 @@ Four defects were found during the v4.7 work and deliberately recorded rather th
 
 **4. Mod 9 and Mod 10 were gated by cluster volume.** *"Skip this step entirely if ≤15 active entries AND no fix-cluster ≥3"* sat above Mods 5-10, so the graduation monitoring and the path-existence check stopped running on almost every wrap-up. A correctness check nested inside a volume gate ceases to exist exactly when the list looks small and healthy.
 
+### Path traversal in the new rm block — found by self-testing before review returned
+
+The placeholder guard rejected empty / bracketed / spaced / comma'd values but **not `/` or `..`**, so `SID="../../precious"` resolved to `$HOME/precious` and the enumeration loop would have deleted files there. Verified against a fixture: the target file was reachable and would have been removed. Fixed in two independent layers — the guard now rejects `/` and `..`, and the destructive block additionally asserts the **resolved** path (`cd "$DIR" && pwd -P`) sits inside the captures root, so a future edit to the guard cannot silently re-open it. Re-tested under both shells across `good` / `../../precious` / `../precious` / `a/b` / `..`: only the legitimate id proceeds, and the out-of-tree file survives.
+
+Symlinks were checked and are **not** a vector: `find … -type f` does not descend into a symlinked directory.
+
 ### Verified
 
 - The destructive rm block was extracted verbatim from SKILL.md and run against isolated fixtures under **both bash and zsh**: an 8-file directory (5 of them files the old list missed) fully cleaned; a directory containing a **subdirectory** left intact with a warning and a CLEANUP FAILED verdict; an unsubstituted placeholder HALTs and touches nothing; a nonexistent directory exits cleanly. Identical in both shells.
