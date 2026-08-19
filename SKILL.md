@@ -724,7 +724,7 @@ I cannot recall or understand what they're about."
      | `watch-list.md` W1.p cluster + W4 plan P4 author note | ✅✅ |
 ```
 
-The working version leads with the specific incident (the specific people and framing that came up in this session — describe them by role, never by name; this repo is public); the destination metadata (`W1.p`, `P4`) comes at the end as routing context, not as the summary itself. The user can recognize "Kerry Lu" / "Trent Charlton" because they came up in this session's exchange; they cannot recognize `W1.p.aa` without re-loading the watch-list.
+The working version leads with the specific incident (the specific people and framing that came up in this session — describe them by role, never by name; this repo is public); the destination metadata (`W1.p`, `P4`) comes at the end as routing context, not as the summary itself. The user can recognize the people involved because they came up in this session's exchange; they cannot recognize `W1.p.aa` without re-loading the watch-list.
 
 > **Why v3.7 (Apr 29 2026):** Compressed format passed 4/4 consolidation errors through Step 4 unchallenged in a parallel content-lab wrap-up. User: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Verification under those conditions is performative. The Detail Floor was the v3.7 fix.
 
