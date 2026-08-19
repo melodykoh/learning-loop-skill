@@ -6,6 +6,28 @@
 
 ---
 
+## Session: August 19, 2026 — v4.8.1: dotdir filter (regression from the zsh-safety fix)
+
+### Problem
+
+v4.8 replaced Step 2's `for d in .../*/` glob with `find -mindepth 1 -maxdepth 1 -type d`, because under zsh an unmatched glob is a fatal error that aborts the script before any in-loop guard can run. **The glob skipped dotdirs by default; `find` does not.** Step 2 then reported `.git` as `IN FLIGHT ELSEWHERE` — a live concurrent session.
+
+The filter's own documented intent is to exclude directories that "will not contain scan-*.md or scratch.md files" and would "trigger recurring 'what is this?' confusion at every wrap-up." `.git` is exactly that. The pattern implemented only the `_` half of a category the prose names more broadly.
+
+**Found by a concurrent session's wrap-up, not by mine** — and filed with its payload inline rather than as a pointer, per Step 6a's own rule. My own fixture run missed it because the fixture had no `.git`.
+
+### Blast radius — bounded, and verified before deciding severity
+
+Cosmetic, not dangerous. Step 6 cleanup gates on membership in the consolidated set **and** rejects any `SID` containing `/` or a non-`[A-Za-z0-9._-]` character, so `.git` cannot reach a delete branch by either route.
+
+### Fix
+
+`case "$b" in _*) continue ;; esac` → `case "$b" in _*|.*) continue ;; esac`
+
+### Verified
+
+Test-first per the Iron Law. RED: a fixture with `.git`, `.hidden`, `_archive` and one real session listed `.git` and `.hidden` as sessions. GREEN: only the real session lists. Regression check: an id containing dots but not *leading* with one (`2026.08.19-dotted`) still lists correctly. Against the live captures directory the fix drops `.git` while still correctly flagging two genuinely concurrent sessions. 13 bash blocks parse under bash and zsh.
+
 ## Session: August 19, 2026 — v4.8: prompts stop asking for evidence they cannot have
 
 ### Context

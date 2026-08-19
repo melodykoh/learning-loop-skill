@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.8.0
+version: 4.8.1
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,7 +13,7 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.8
+# learning-loop Skill v4.8.1
 
 > **Version history:** the live table is `README.md` § Version History. (v4.8 = sub-agent prompts stop asking for quotes from a conversation they cannot see, cleanup enumerates instead of hardcoding, Mod 9/10 ungated; v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
@@ -313,7 +313,10 @@ IN_FLIGHT_MINUTES=120
 find ~/.claude/learning-captures -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while IFS= read -r d; do
   [ -n "$d" ] || continue
   b=$(basename "$d")
-  case "$b" in _*) continue ;; esac      # archive / deferred parents, per the convention above
+  # `.*` matters: the old `*/` GLOB skipped dotdirs by default and `find` does not, so the
+  # zsh-safety change below silently started reporting `.git` as a live session. The filter
+  # intent is "dirs that cannot hold scan-*.md/scratch.md" — dotdirs qualify as much as `_`.
+  case "$b" in _*|.*) continue ;; esac   # archive / deferred parents + dotdirs (.git, .hidden)
   [ "$b" = "$THIS_SID" ] && continue     # this session's own dir is never "elsewhere"
   # NEVER let an error read as "no recent files". An unreadable directory is
   # UNCLASSIFIABLE, and unclassifiable must fail toward do-not-touch — the same
