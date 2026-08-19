@@ -307,8 +307,11 @@ IN_FLIGHT_MINUTES=120
 # Run over every OTHER session dir before any of them becomes a row in the table below.
 # Stat the WHOLE directory, not the triage glob: that glob lists only scan-*.md and
 # scratch.md, and in the founding incident the freshest file was the persona review.
-for d in ~/.claude/learning-captures/*/; do
-  [ -d "$d" ] || continue                # unmatched glob iterates literally; skip it
+# Enumerate with `find`, not a glob: under zsh an unmatched `*/` is a FATAL error that
+# aborts the script before any in-loop guard can run, so `[ -d "$d" ] || continue` is a
+# bash-only remedy. This form is inert on an empty directory in both shells.
+find ~/.claude/learning-captures -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while IFS= read -r d; do
+  [ -n "$d" ] || continue
   b=$(basename "$d")
   case "$b" in _*) continue ;; esac      # archive / deferred parents, per the convention above
   [ "$b" = "$THIS_SID" ] && continue     # this session's own dir is never "elsewhere"
@@ -944,7 +947,8 @@ Otherwise, after user verification completes:
 
 ```bash
 SID="[consolidated-session-id]"
-[ -n "$SID" ] || { echo "❌ HALT — SID is empty. Substitute the session id before running."; exit 1; }
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '"'"'$SID'"'"')"; exit 1 ;; esac
 
 CONS=~/.claude/learning-captures/"$SID"/consolidation.md
 [ -f "$CONS" ] || CONS=~/.claude/learning-captures/"$SID"/consolidation-final.md
@@ -1178,7 +1182,14 @@ SID="[the directory being judged]"
 CONSOLIDATED="[space-separated session ids]"
 IN_FLIGHT_MINUTES=120     # keep in step with Step 2; derivation lives there
 
-[ -n "$SID" ] || { echo "❌ HALT — SID is empty. Substitute before running."; exit 1; }
+# ⚠️ Reject an UNSUBSTITUTED placeholder, not merely an empty value: `[ -n "$X" ]`
+# passes the literal string "[the directory being judged]" and then produces a
+# plausible-looking verdict. Every way of getting these wrong fails toward
+# "not ours", i.e. nothing is ever cleaned, silently.
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+case "$CONSOLIDATED" in ""|*"["*|*","*)
+  echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
 
 # ── 1. NOT OURS ─────────────────────────────────────────────────────────────────
@@ -1199,9 +1210,11 @@ fi
 if [ -f ~/.claude/learning-captures/"$SID"/consolidation.md ] || \
    [ -f ~/.claude/learning-captures/"$SID"/consolidation-final.md ]; then
   # ⚠️ --include MUST precede the operands. `grep` here resolves to ugrep, which parses
-  # a trailing --include as a FILENAME when -F/-- are also present: it then returns rc=2
-  # on BOTH match and no-match, so this test stops discriminating. Verified in both ugrep
-  # 7.5.0 and BSD grep: option-before-operands is correct in each.
+  # a trailing --include as a FILENAME whenever `--` is also present (the `--`, not `-F`,
+  # is the trigger) and then returns rc=2 on BOTH match and no-match, so the test stops
+  # discriminating. Option-before-operands is correct in ugrep 7.5.0 and BSD grep alike.
+  # NOTE: ugrep's recursive mode honours .gitignore, so this sweep cannot see an ignored
+  # referrer. Direction here is fail-safe (a missed referrer HALTs as abandoned).
   if ! grep -rqF --include="*.md" -- "$SID" ~/Documents/claude-projects ~/.claude/plans \
         ~/.claude/learning-captures/watch-list.md \
         ~/.claude/learning-captures/graduation-log.md 2>/dev/null; then
@@ -1260,6 +1273,15 @@ ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ 
 SID="[the directory being judged]"
 # Same set as Step 6a-ii: this session PLUS any the user opted in at Step 2.
 CONSOLIDATED="[space-separated session ids]"
+
+# ⚠️ Reject an UNSUBSTITUTED placeholder, not merely an empty value: `[ -n "$X" ]`
+# passes the literal string "[the directory being judged]" and then produces a
+# plausible-looking verdict. Every way of getting these wrong fails toward
+# "not ours", i.e. nothing is ever cleaned, silently.
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+case "$CONSOLIDATED" in ""|*"["*|*","*)
+  echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
 
 if [ "$MINE" = no ]; then
@@ -1267,18 +1289,22 @@ if [ "$MINE" = no ]; then
   exit 0
 fi
 
-# ⚠️ ASSERT the surface exists before trusting a clean grep. A missing or renamed
-# watch-list makes grep exit non-zero, which reads as "no retention record" → state 2,
-# whose documented next action is the rm block. That is the DESTRUCTIVE direction.
-# Reproduced with the grep on this box (ugrep 7.5.0): watch-list absent + the RETAINED
-# record present in ~/.claude/plans still returned rc=2. Same rule as Step 6a.
+# ⚠️ ASSERT EVERY NAMED SURFACE. A surface you cannot search must HALT — it must never
+# degrade quietly to "no retention record", because that branch runs the rm block.
+# BOTH are required and neither is optional: as of 2026-08-19 two live records sit in
+# watch-list.md and FOUR MORE exist ONLY under ~/.claude/plans/, so silently dropping
+# either surface loses real protection for real sessions.
 WL="$HOME/.claude/learning-captures/watch-list.md"
-[ -f "$WL" ] || { echo "❌ HALT — expected surface missing: $WL. Cannot conclude 'no retention record'."; exit 1; }
-PLANS=""; [ -d "$HOME/.claude/plans" ] && PLANS="$HOME/.claude/plans"
+PLANS_DIR="$HOME/.claude/plans"
+[ -f "$WL" ]        || { echo "❌ HALT — retention surface missing: $WL"; exit 1; }
+[ -d "$PLANS_DIR" ] || { echo "❌ HALT — retention surface missing: $PLANS_DIR"; exit 1; }
+[ -n "$(find "$PLANS_DIR" -maxdepth 1 -type f -name '*.md' | head -1)" ] \
+  || { echo "❌ HALT — no .md files under $PLANS_DIR to search"; exit 1; }
 
-# --include before the operands — see the note at Step 6a-ii; a trailing --include
-# makes this return rc=2 on a match too, which lands in the DESTRUCTIVE branch.
-if grep -rqF --include="*.md" -- "RETAINED: $SID" "$WL" ${PLANS:+"$PLANS"}; then
+# NAME THE FILES; do NOT recurse. `grep` here resolves to ugrep, whose recursive mode
+# honours .gitignore — a gitignored retention record would read as "no record", i.e. the
+# destructive direction. An explicit file list is not filtered. (Verified both ways.)
+if grep -qF -- "RETAINED: $SID" "$WL" "$PLANS_DIR"/*.md; then
   echo "✅ state 3 — deliberately retained; leave it alone"
 else
   echo "⚠️ state 2 — no retention record found; cleanup was skipped"

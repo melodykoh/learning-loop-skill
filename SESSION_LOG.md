@@ -86,6 +86,22 @@ Three role-resolved reviewers (code+correctness and security → `general-purpos
 
 **Honest limits still standing.** The unsafe direction of the in-flight test is reachable — Step 4 blocks on the user with no upper bound, so a wrap-up left open overnight ages past the window; `find -type f` also cannot see directory-only activity. Documented in the skill rather than papered over. The Step 5.0 check is still run by prose invitation; nothing forces it.
 
+### Re-review round — the fixes were re-reviewed, and three of them were still wrong
+
+A focused re-review of the fix commit confirmed 5 of 6 criticals genuinely fixed and found **three new ones**, all in the fix itself. Recorded because "I fixed the review findings" is exactly the claim that needs testing.
+
+1. **The empty/placeholder `SID` guard was added at two of three sites, and the omitted one was the destructive one.** In the cleanup gate an empty `SID` makes the membership pattern `*"  "*`, which matches whenever `CONSOLIDATED` is empty or holds a double space → `MINE=yes` → falls through to the retention test → state 2 → `rm`.
+2. **The retention gate asserted the surface holding 2 records and silently dropped the surface holding 6.** `watch-list.md` was asserted; `~/.claude/plans` degraded to empty with no message. **Four live retention records exist ONLY under `~/.claude/plans/RETAINED-learning-captures.md`** — the `_deferred-unprocessed` sessions. CR5's exact failure mode surviving its own fix, one surface over.
+3. **`CONSOLIDATED` was never validated, and every way of getting it wrong failed open with a success-shaped message.** A comma-separated list — a realistic substitution slip against the phrase "space-separated session ids" — reclassifies *every* owned directory as state 4 and reports it as a clean terminal state. That is CR2's silent skip re-entering through the substitution format instead of the comparison operator.
+
+Also corrected from the re-review: the `--include` trigger is **`--` alone, not `-F`** (my comment said both). And **ugrep's recursive mode honours `.gitignore`**, so a gitignored retention record would read as "no record" — the destructive direction; the retention grep now names files explicitly instead of recursing, verified to bypass the filter in both grep implementations. The Step 2 loop's `[ -d "$d" ] || continue` was a **bash-only** remedy — zsh treats an unmatched glob as a fatal error and aborts before any in-loop guard runs — so enumeration moved to `find`, verified inert on an empty directory in both shells.
+
+**One reviewer claim was wrong and is recorded as such:** that `watch-list.md` holds zero retention records. It holds two; they sit inside blockquotes, so they miss `^RETAINED:` but match the unanchored pattern the skill actually uses. The reviewer's *substantive* point — that a second surface exists and was being dropped — was correct and is what the fix addresses.
+
+**Net effect on live data:** two sessions that the pre-fix code would have sent to state 2 (`arlo-wave4-ship-and-postharmonic`, `model-era-harness-hardening`) are now correctly protected as state 3.
+
+**Verification:** the three gate blocks were extracted verbatim from SKILL.md and executed under **both bash and zsh** across good / missing-field / no-Zone-fields / absent-file / empty-SID / placeholder-SID / comma-separated-list / foreign / opted-in / record-in-watch-list / record-only-in-plans / no-record / missing-surface. Identical results in both shells, every case. 12 bash blocks parse under both.
+
 ### Changes Made
 
 | File | Change |
