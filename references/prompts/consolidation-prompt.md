@@ -125,6 +125,27 @@ FOR EACH RAW SIGNAL:
 
    > **Why this exists (Apr 28, 2026):** During the v3.5 Phase 1 Persona Panel ship wrap-up, conclusion C2 (bootstrap accumulator files not created at ship time) was initially routed to ACTION ITEM only with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'), so no codification needed." User pushback: *"When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."* The dismissal pattern is what makes rule-coverage-without-rule-firing a recurring failure mode — learning-loop must propose enforcement upgrades or the gap stays open. Step 5.5 is the structural fix.
 
+5.5b. **Failure-Class Check (added v4.7, 2026-08-19 — MANDATORY):**
+
+   **Scope: every conclusion that passes gates and significance — exactly the set that carries `Zone:` (step 6.5), and no other.** Do NOT emit this field on a Noted item or on a signal that failed gates: Step 5.0 counts `Failure class:` against `Zone:`, so a stray field HALTs a correct wrap-up.
+
+   **Purpose before procedure:** a finding whose trigger is *"any sentence, anywhere"* cannot be fixed by any sentence anywhere — there is no moment at which a mind goes looking. Answering such a finding with more prose produces text that will not fire. This field forces the question **"what kind of silence was this?"** to be answered *before* a remedy is proposed.
+
+   First answer the precondition: **was there an existing rule that was ELIGIBLE to fire here and didn't?** If no → `n/a`. If yes → exactly one of the other three:
+
+   | Value | The rule was… | What actually fixes it |
+   |---|---|---|
+   | `placement` | right, but living in a surface that isn't loaded at the failing moment, or scoped one key too narrow, or its consuming ritual enumerated the wrong inputs | **Prose works.** Re-home it, widen the scope key, fix the ritual — including rewriting the trigger phrase in place so it reaches this case. Name *where* it goes wrong. What does not work is making the same text louder. |
+   | `shape` | unable to match its own case — e.g. a staleness check that cannot fire on a **deletion** (nothing survives to compare against), or a lexical word-list against a case where nothing was quantified in words | **Prose works.** Re-shape the trigger so it can match. |
+   | `no-moment` | in the right place, correctly worded, context-injected, matching the case — and still silent, because nothing in the workflow pauses to consult it | **Prose is disqualified.** See SKILL.md Step 5.0. |
+   | `n/a` | not applicable — no existing rule was eligible | Normal routing. |
+
+   **You are reading blind.** Where the capture files don't let you verify whether the rule's home is loaded at the failing moment, emit your best class and append `(provisional — destination not read)`. The orchestrator confirms or overrides it at Step 5.0 with the destination file open. **A provisional class is the expected output; a missing field is not** — never omit the field to avoid guessing.
+
+   > **Why (2026-08-19):** In one session **eight rules were eligible to fire and none did**; five had shipped seven days earlier. What caught them instead: the principal's ordinary questions 4 of 8, an independent cold reader 1, a test that actually ran 1, **and the governing rule 0 of 8.** The floor rose from six to eight *during* the review pass, when both reviewers found two more silent rules **inside the consolidation document that was counting them** — a document written with maximum attention to this exact failure. So the cause is not inattention, and more emphasis cannot fix it. Classifying all eight gave **3 placement · 2 shape · 3 no-moment**: five of the eight were prose problems with working prose fixes. That is why this field has four values and not a boolean — the blunt reading ("prose is disqualified whenever a rule was silent") was wrong, and would have thrown away five correct remedies.
+
+   > **What testing did and did not show (2026-08-19) — stated because it BOUNDS the claim.** Before this field was written, the pre-change skill was run against two fixtures: three well-evidenced conclusions, and ten conclusions under explicit end-of-session time pressure — three independent reps each. Across those routing decisions, **not one chose "a new paragraph" for a `no-moment` finding.** Remedy selection was already good. What was missing in **every single run** was any *recorded* classification — and reps silently diverged on remedy class for identical input (a defective-check finding drew "clarified existing prose" from one rep and a fix to the check itself from two others; a near-miss drew a watch-list facet from one and a human-caught record from another). **So this field is justified as AUDITABILITY, not as a correction to observed behaviour.** It makes the class countable and makes divergence visible. In the founding session the eight silent rules were found by the principal and a cold reader, never by the loop — and a class that is never recorded cannot be counted, which means it can never be seen getting worse.
+
 5.6. **Same-Root-Cause Collapse Check (added v3.7 Apr 29 2026):**
 
    Before continuing to significance threshold, for each PAIR of conclusions you've drawn so far, ask:
@@ -253,6 +274,7 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 **If the user says "you decide," can I?** [YES / NO — answer this BEFORE assigning the zone; the zone is derived from it, never asserted independently]  ← v4.6 (Step 6.5)
 **Zone:** [Zone 1 — Decisions Required (answer was NO) / Zone 2 — Notify and Confirm (YES, and they should know) / Zone 3 — Decided (YES)]
 **Zone reason:** [**Zone 1:** name what the USER HOLDS that you don't — publishability under their name / scope crossing onto a shared or external surface / irreversible-or-intolerable-if-wrong / a preference with no defensible default. ⚠️ **A reason that describes the EDIT — "widens an authoritative doc," "proposes a root CLAUDE.md edit," "persona challenged," "Step 5.6 returned 2 of 3" — means the question above was actually YES. Adjudicate it and re-zone.** **Zone 2:** name which expectation of theirs changes, or which facts they can spot-check. **Zone 3:** name the mechanism question and the answer you gave it.]
+**Failure class:** [placement / shape / no-moment / n/a — plus a one-line rationale naming the rule that was eligible and silent, or "no eligible rule". Append `(provisional — destination not read)` where you could not verify from the captures.]  ← v4.7 (Step 5.5b) — MANDATORY, never omit
 **Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
 **Wedge test:** [Pass — <reason> / Fail — <reason> / N/A]  ← v3.9 (Step 6.6) — MANDATORY, never omit
 
