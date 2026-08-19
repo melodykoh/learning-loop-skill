@@ -22,9 +22,13 @@ Your job is to identify RAW LEARNING SIGNALS — unresolved observations, not co
 
 FIRST: Check for scratch file at ~/.claude/learning-captures/[session-id]/scratch.md
 If it exists, read it. Each line is an unverified micro-signal logged in real-time.
-Cross-reference against conversation context:
-- If confirmed → incorporate into your signal list
-- If contradicted or unverifiable → discard
+Cross-reference each line against THE OTHER FILES YOU WERE GIVEN — never against
+"the conversation", which you cannot see:
+- Corroborated by another capture file → incorporate into your signal list
+- Contradicted by another capture file → discard, and say which file contradicted it
+- Neither corroborated nor contradicted → KEEP IT, marked `UNCORROBORATED`. A scratch
+  line you cannot check is still evidence; silently dropping it destroys the only
+  record. Do not treat "I cannot verify this" as "this is false." 
 
 SECOND: Read ~/.claude/learning-captures/watch-list.md in full (v3.9 May 12 2026).
 Note the active clusters (W1.*, W4, W7.*, etc.) and the Fix field for each. You will
@@ -44,7 +48,9 @@ FOR EACH SIGNAL:
 - Capture the raw observation, not a conclusion
 - Mark hypotheses as UNRESOLVED (wrap-up will resolve them with hindsight)
 - Include enough context to be useful even after compaction
-- Quote relevant conversation excerpts where possible
+- Quote verbatim FROM THE CAPTURE FILES YOU WERE GIVEN, with the filename. You have no
+  transcript; there is no conversation for you to quote. If no capture file contains a
+  usable quote, omit the field — never compose one
 
 APPLY THE RECURRENCE TEST (v3.9 May 12 2026, MANDATORY) before deciding where each
 candidate signal lands:
@@ -101,7 +107,7 @@ signals_dropped: [count of single-incident no-precedent signals dropped to foote
 ### 1. [Signal Type]: [Brief Title]
 **Status:** [Observed / UNRESOLVED hypothesis / User-corrected]
 **Recurrence:** [Cluster match: W_N.x | Multi-incident novel | Enforcement-gap on shipped rule]
-**Quote:** "[Relevant quote from conversation]"
+**Quote:** "[Verbatim excerpt from a capture file, with its filename. OMIT this field entirely if no capture file carries one — never reconstruct]"
 **Detail:** [What happened, what was tried, what was observed]
 
 ### 2. [Signal Type]: [Brief Title]
@@ -114,7 +120,7 @@ matching watch-list cluster AND single-incident in this session). If any recur
 in a future session, they'll surface then.
 
 ### 1. [Brief description]
-**Quote:** "[Conversation excerpt]"
+**Quote:** "[Verbatim excerpt from a capture file. OMIT if none — never reconstruct]"
 **Why dropped:** Single incident, no matching watch-list entry.
 
 ### 2. ...

@@ -104,7 +104,9 @@ FOR EACH RAW SIGNAL:
      (If no → reclassify as process-level. Tag ⚠️ if borderline.)
 
    FACT:
-   □ Accuracy - verified against conversation evidence?
+   □ Accuracy - verified against the CAPTURE FILES you were given? (You have no
+     transcript. If a fact rests on something no capture file states, say so and
+     mark it UNVERIFIED rather than asserting it.)
    □ Persistence - worth remembering across sessions?
 
 5. **If FAILS Gates 1-5:** Note which gate failed, include as "REVIEW NEEDED"

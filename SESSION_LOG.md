@@ -6,6 +6,28 @@
 
 ---
 
+## Session: August 19, 2026 — v4.8: prompts stop asking for evidence they cannot have
+
+### Context
+
+Four defects were found during the v4.7 work and deliberately recorded rather than fixed, to keep that PR scoped to issue #4. The owner then asked for all of them. A census while fixing turned "four defects in one file" into **five fabrication sites across two files** — the original count came from a **case-sensitive** grep that missed `"[Conversation excerpt]"` at `scanner-prompt.md:117`, and a later unanchored sweep found a fifth in `consolidation-prompt.md`. The undercount is recorded because it is the same variant-sensitive-search failure the standards name, committed while writing up a finding about instruments lying.
+
+### Problem and fix
+
+**1. The scan prompt ordered fabrication.** Line 9 says *"You have NO access to the conversation this session ran. You inherit no transcript"* — and then lines 25, 47, 104 and 117 tell the same agent to *"cross-reference against conversation context"*, *"quote relevant conversation excerpts"*, and emit a **required** field `**Quote:** "[Relevant quote from conversation]"`. A required field an agent cannot fill honestly is a required field it invents. The blast radius is what makes it urgent rather than merely untidy: scan files are the **only** input to Step 3 consolidation, that sub-agent reads them blind, and it cannot distinguish an invented quote from a real one — so a fabricated quote can pass the quality gates and land in CLAUDE.md or the watch-list as evidence. v4.4 shipped as *"sub-agent briefs stop claiming inherited context"*; it fixed the header and not the body. **An incomplete graduation, not a new finding.** Fixed at all four sites plus the Fact gate in `consolidation-prompt.md:107`. Also: a scratch line that can be neither corroborated nor contradicted is now KEPT and marked `UNCORROBORATED` — the old text said "unverifiable → discard", which destroys the only record of a signal on the grounds that it could not be checked.
+
+**2. Cleanup hardcoded a filename list that no real session matches.** All five session directories on disk contain files the list does not cover. `rmdir` fails, the directory survives, the gate classifies it as a silent skip and re-runs a block that cannot succeed. Now enumerates with `find` and removes each file individually, printing each — the owner's per-file directive is about accountability, and enumeration honors it better than a stale list. A subdirectory makes it warn and report failure rather than escalate to `rm -r`. The unsubstituted `[consolidated-session-id]` was additionally a valid bash **bracket glob** (verified: it expanded to `a/scan-002.md d/scan-001.md`), and `ls | grep "[consolidated-session-id]"` matched almost any name, so the mandatory verification line was broken too.
+
+**3. Push verification could not fail.** `origin/main...main` is two literals. Demonstrated live on this very branch: the old form printed `0 0` — a clean "verified" — for a branch that had never been pushed anywhere. Now resolves `@{u}`; no upstream is the finding.
+
+**4. Mod 9 and Mod 10 were gated by cluster volume.** *"Skip this step entirely if ≤15 active entries AND no fix-cluster ≥3"* sat above Mods 5-10, so the graduation monitoring and the path-existence check stopped running on almost every wrap-up. A correctness check nested inside a volume gate ceases to exist exactly when the list looks small and healthy.
+
+### Verified
+
+- The destructive rm block was extracted verbatim from SKILL.md and run against isolated fixtures under **both bash and zsh**: an 8-file directory (5 of them files the old list missed) fully cleaned; a directory containing a **subdirectory** left intact with a warning and a CLEANUP FAILED verdict; an unsubstituted placeholder HALTs and touches nothing; a nonexistent directory exits cleanly. Identical in both shells.
+- Step 8: old form returns `0 0` on an unpushed feature branch; new form errors, and returns `0 0` on `main` where an upstream exists.
+- Census of `conversation` across all six prompt files is now zero instructions to use one — every remaining mention asserts its absence.
+
 ## Session: August 19, 2026 — v4.7: failure-class gate before prose, and a fourth state for concurrent ownership
 
 ### Context

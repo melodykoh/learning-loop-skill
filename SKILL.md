@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.7.0
+version: 4.8.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.7
+# learning-loop Skill v4.8
 
-> **Version history:** the live table is `README.md` § Version History. (v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
+> **Version history:** the live table is `README.md` § Version History. (v4.8 = sub-agent prompts stop asking for quotes from a conversation they cannot see, cleanup enumerates instead of hardcoding, Mod 9/10 ungated; v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -753,7 +753,9 @@ Before routing, run a cluster check on the active watch-list:
 3. If user opts in, spawn re-consolidation sub-agent with the same root-cause-matching prompt as Mod 2 — applied to existing entries, not new candidates. Output: proposed merges with justification.
 4. User approves merges; update watch-list.md (preserve sub-IDs for incident traceability).
 
-Skip this step entirely if active entry count ≤15 AND no fix-cluster ≥3.
+**Skip ONLY the cluster re-consolidation above (items 1-4)** if active entry count ≤15 AND no fix-cluster ≥3.
+
+⚠️ **The skip stops here. Mods 5-10 below run on EVERY wrap-up.** It previously read "skip this step entirely", which sat above Mods 5-10 and therefore carried away **Mod 9's per-wrap-up graduation monitoring and Mod 10's path-existence check** on any wrap-up under the sprawl threshold — i.e. almost all of them. Path drift has no relationship to cluster volume; a correctness check nested inside a volume gate stops existing precisely when the list looks small and healthy.
 
 **Mod 5 — Threshold-met → child sub-agent auto-drafts plan (v3.4 Apr 28, refined v3.11 May 12 2026):**
 
@@ -1241,17 +1243,38 @@ fi
 > **Scope note:** root CLAUDE.md's `Trace Before Removing` covers this class conceptually, but its trigger is proposal-shaped ("before the words *we should remove X*") — a scripted `rm` inside a mandated skill step never consults it. This is that rule applied at an automated-removal moment; see `~/.claude/reference/trace-before-removing.md`.
 
 ```bash
-# Delete consolidated session files individually (safer than rm -r; transparent;
-# preserves explicit per-file accountability)
-rm ~/.claude/learning-captures/[consolidated-session-id]/scan-*.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/consolidation.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/persona-review.json 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/persona-eval.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/scratch.md 2>/dev/null
-rmdir ~/.claude/learning-captures/[consolidated-session-id]/
+SID="[consolidated-session-id]"
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+DIR="$HOME/.claude/learning-captures/$SID"
+[ -d "$DIR" ] || { echo "✅ nothing to clean — $DIR does not exist"; exit 0; }
 
-# Verification (MANDATORY — confirms cleanup actually fired)
-ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ CLEANUP FAILED — session dir still exists; re-run Step 6" || echo "✅ Session dir cleaned"
+# Delete individually — never `rm -r`. Per-file accountability is the point: each
+# removal is printed, so a skip is visible. (User directive: "the right move is to
+# use rm to delete individual files.")
+#
+# ⚠️ ENUMERATE what is actually present; do NOT hardcode a filename list. A fixed list
+# silently leaves behind whatever a newer step wrote — `auditor-output.json`,
+# `router-output.json`, `consolidation-final.md`, `ROUTED.md`, `HANDOFF-*.md`,
+# `persona-auditor.json` — `rmdir` then fails, the directory survives, and the
+# end-of-wrap-up gate reads it as a SILENT SKIP and re-runs a block that cannot
+# succeed. Verified 2026-08-19: ALL FIVE real session directories on disk contained
+# files the old hardcoded list did not cover.
+#
+# ⚠️ The old form also interpolated the literal `[consolidated-session-id]`, which is a
+# valid bash BRACKET GLOB, not an error — it expanded to any single-character directory
+# named with one of those letters. The guard above makes an unsubstituted placeholder
+# HALT instead.
+find "$DIR" -mindepth 1 -maxdepth 1 -type f | while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  echo "  rm $f"; rm -- "$f"
+done
+rmdir "$DIR" 2>/dev/null || echo "⚠️ $DIR not empty after per-file rm (subdirectory?) — inspect it; do NOT rm -r blindly"
+
+# Verification (MANDATORY — confirms cleanup actually fired).
+# Test the DIRECTORY, not `ls | grep "$SID"`: the old grep took the session id as a
+# regex, and the unsubstituted placeholder matched almost any name.
+if [ -d "$DIR" ]; then echo "❌ CLEANUP FAILED — $DIR still exists; re-run Step 6"; else echo "✅ Session dir cleaned"; fi
 ```
 
 **Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
@@ -1392,7 +1415,7 @@ After all learnings are routed and capture files cleaned up, check if the curren
    └── Stage all relevant files (.gitignore handles exclusions)
    └── Commit with descriptive message summarizing session work
    └── Push to remote if one exists (`git remote -v` to check)
-   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count origin/main...main` → expect `0 0`; if `main` is ahead, `git push origin main`. This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
+   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count @{u}...HEAD` → expect `0 0`; if HEAD is ahead, `git push`. **Resolve the real upstream — do not hardcode `origin/main`.** A literal `origin/main...main` passes without checking anything whenever the work is on a feature branch or the push went to a fork, which is a verification whose negative result cannot occur. If `git rev-parse --abbrev-ref @{u}` fails, there is no upstream and the branch was never pushed anywhere — that is itself the finding, not a pass. This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
    └── Confirm: "Committed and pushed: [short hash] [message]" — only after the `0 0` verify
 
 5. If user skips:
