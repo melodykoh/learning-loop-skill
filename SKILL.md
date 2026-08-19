@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.6.0
+version: 4.7.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.6
+# learning-loop Skill v4.7
 
-> **Version history:** the live table is `README.md` § Version History. (v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
+> **Version history:** the live table is `README.md` § Version History. (v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -295,6 +295,59 @@ ls -la ~/.claude/learning-captures/*/scan-*.md ~/.claude/learning-captures/*/scr
 List all capture files with timestamps, then present a **triage view**.
 
 **Archive-dir convention (added May 18, 2026):** Directories under `~/.claude/learning-captures/` whose names start with `_` (e.g., `_archive/`) are **archive locations for preserved reference fixtures**, NOT active sessions. They MUST be excluded from the "Other Sessions Found" listing — they will not contain scan-*.md or scratch.md files, but a careless `ls -la` of the parent dir will surface them as "unknown session dirs" and trigger recurring "what is this?" confusion at every wrap-up. When constructing the triage view, filter out any directory whose basename starts with `_`. The glob above naturally skips them (no matching scan/scratch files inside) — preserve this property; do not switch to a broader directory listing without the `_*` prefix filter. **Why this exists:** cited fixtures (e.g., the v3.7/v3.8 + Step 5.6 design provenance handoff doc at `_archive/handoff-to-learning-loop-iteration.md`) need to persist so SKILL.md citations remain checkable, but they also need to stay outside the active triage scan so they don't generate recurring noise. The `_archive/` dir + `_*` prefix-skip convention is the structural fix.
+
+**⚠️ Concurrent-ownership check — the FOURTH state (added v4.7, 2026-08-19, MANDATORY, run BEFORE building the table).**
+
+**Purpose before procedure:** *consolidated findings + zero inbound references* is produced identically by a run that was **abandoned** and by a run **currently in flight in a parallel session**. Listing the second as an include / hold / delete decision puts another session's live evidence on the table — and the "safe" branch is not safe either: a `RETAINED:` record is a write onto a **shared** surface asserting a hold the owning session never agreed to. One session unilaterally annotating another's work.
+
+```bash
+THIS_SID="[this-session-id]"
+IN_FLIGHT_MINUTES=120
+
+# Run over every OTHER session dir before any of them becomes a row in the table below.
+# Stat the WHOLE directory, not the triage glob: that glob lists only scan-*.md and
+# scratch.md, and in the founding incident the freshest file was the persona review.
+# Enumerate with `find`, not a glob: under zsh an unmatched `*/` is a FATAL error that
+# aborts the script before any in-loop guard can run, so `[ -d "$d" ] || continue` is a
+# bash-only remedy. This form is inert on an empty directory in both shells.
+find ~/.claude/learning-captures -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while IFS= read -r d; do
+  [ -n "$d" ] || continue
+  b=$(basename "$d")
+  case "$b" in _*) continue ;; esac      # archive / deferred parents, per the convention above
+  [ "$b" = "$THIS_SID" ] && continue     # this session's own dir is never "elsewhere"
+  # NEVER let an error read as "no recent files". An unreadable directory is
+  # UNCLASSIFIABLE, and unclassifiable must fail toward do-not-touch — the same
+  # "the one error you must never hide is the one that makes absence look proven"
+  # rule Step 6a enforces. `find` exits non-zero and prints nothing to stdout on a
+  # permission error, so a swallowed stderr turns it into a confident "triageable".
+  recent=$(find "$d" -type f -mmin -"$IN_FLIGHT_MINUTES" 2>&1); rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "🔵 UNCLASSIFIABLE — TREAT AS IN FLIGHT — $b: $recent"
+  elif [ -n "$recent" ]; then
+    echo "🔵 IN FLIGHT ELSEWHERE — $b (written within ${IN_FLIGHT_MINUTES}m)"
+  else
+    echo "·  triageable — $b"
+  fi
+done
+```
+
+**An in-flight directory is a STATE TO REPORT, not a decision to surface.** It never becomes a row in the table below. Render it separately, and offer nothing:
+
+```
+## In flight elsewhere — no action available, nothing to decide
+- [other-session-id] — last write [N] min ago; another session is working in it.
+  Not included, not held, not deleted, not read. Returns to normal triage once it goes quiet.
+```
+
+**Do NOT, for an in-flight directory:** offer include / hold / delete · write a `RETAINED:` record for it · copy or archive its files · read its `consolidation.md` and fold its conclusions into this wrap-up. Each is a write or a race against a session that never agreed to it, and the last one routes the same conclusions into the same destination files twice.
+
+**Why the threshold is 120 minutes.** It is a heuristic, so it is tuned by which error costs more. A false *in-flight* costs one wrap-up of delay and **self-clears** — an abandoned directory's mtime keeps aging, so it becomes triageable on its own. A false *not-in-flight* opens the delete and annotate branches on live evidence, and that loss is total. Asymmetric miss costs, so the window is generous rather than tight: a live run can sit well over an hour at Step 4, which blocks on the user.
+
+⚠️ **The unsafe direction is reachable, and pretending otherwise would be the failure this skill exists to catch.** Step 4 blocks on the user with **no upper bound** — a wrap-up left open overnight ages every file past the window, and its live directory then reads `triageable`, re-opening the delete and annotate branches on live evidence. `find -type f` also cannot see a live session whose only recent activity was creating a directory or deleting a file. **So this check reduces the window of exposure; it does not close it.** The durable protection is the rule that an in-flight directory is reported and never decided — that rule holds regardless of what the timer says.
+
+**Why not a lock file — considered and rejected, 2026-08-19.** A marker written at Step 1 carries exactly the information the directory's own existence already carries — *a run started here and has not finished* — so it cannot separate live from abandoned. Only **recency of activity** can. A heartbeated lock could, but that is real engineering for a once-observed failure, and this skill has a documented history of new-version bootstrap steps silently not firing (see **Skill Version Ship Verification**). A marker that never gets written fails in the **dangerous** direction — read as "nobody owns this." The mtime check needs no bootstrap and fails safe.
+
+> **Why this exists (2026-08-19).** A wrap-up's Step 2 read a sibling capture directory holding a finished consolidation and a completed persona review — Steps 1 through 3a done — with zero inbound references, and surfaced a three-way fold-in / hold / delete decision. **It was not abandoned. A concurrent session was mid-flight in it, and finished cleanly about an hour later.** The disambiguator was already on screen: the directory's newest file was six minutes old, printed by the very `ls -la` that produced the listing. The data was read for *contents* and not for *recency*. **Confirmed by test before this branch was written:** three independent baseline runs against that exact listing all saw the six-minute timestamp, all three still classified it "abandoned run," and all three proposed at least one write against the live directory — two of them a `RETAINED:` record, one of them folding its conclusions into the reading session's own wrap-up. Seeing the disambiguator is not the fix. Having a state to put it in is.
 
 Triage view shape:
 
@@ -665,13 +718,13 @@ User reaction: "There is no description for these Zone 2 and Zone 3 things.
 I cannot recall or understand what they're about."
 
 ✅ WORKING (concrete-incident-first):
-| C1 | Caveat #3 conflated correctly-excluded execs (EXEC-A, EXEC-B
-       ) with vendor-miscategorized real founder (FOUNDER-A) — adds
+| C1 | Caveat #3 conflated two correctly-excluded execs with one
+       vendor-miscategorized real founder — adds
        methodology-doc surface to W1.p
      | `watch-list.md` W1.p cluster + W4 plan P4 author note | ✅✅ |
 ```
 
-The working version leads with the specific incident (the named people + the specific framing that came up in this session); the destination metadata (`W1.p`, `P4`) comes at the end as routing context, not as the summary itself. The user can recognize "FOUNDER-A" / "EXEC-A" because they came up in this session's exchange; they cannot recognize `W1.p.aa` without re-loading the watch-list.
+The working version leads with the specific incident (the specific people and framing that came up in this session — describe them by role, never by name; this repo is public); the destination metadata (`W1.p`, `P4`) comes at the end as routing context, not as the summary itself. The user can recognize the people involved because they came up in this session's exchange; they cannot recognize `W1.p.aa` without re-loading the watch-list.
 
 > **Why v3.7 (Apr 29 2026):** Compressed format passed 4/4 consolidation errors through Step 4 unchallenged in a parallel content-lab wrap-up. User: *"It needs to actually tell me what the thing is that we're trying to analyze... I shouldn't have to remember anything to verify."* Verification under those conditions is performative. The Detail Floor was the v3.7 fix.
 
@@ -765,6 +818,8 @@ Before adding any signal to the watch-list, apply this decision criterion:
 | **Recurrence of already-codified rule:** matching graduation-log.md entry exists | **INCREMENT `incidents_since_codification`** on the matching graduation entry. If 2+ → re-open trigger (enforcement gap — usually Cluster 1 register-translation pattern). |
 
 **Why (2026-05-20):** Cluster 2 sat at 8 incidents waiting for "more evidence" when the fix was knowable at incident 1 (mechanism = pre-elicit constraints; destination = `pm-partnership.md`). Threshold-based escalation makes sense when the pattern is unknown; it becomes waste when the pattern is already named. The codify-now criterion overrides Mod 5's recurrence threshold (≥5 sub-IDs) when all three conditions are met.
+
+**Mod 6 × failure class (added v4.7).** Mod 6 answers **WHEN** (codify now vs watch); the Step 5.0 failure class answers **WHAT FORM** a codification may take. Run Mod 6 first. **Canonical rule, including what a `no-moment` codification may be: Step 5.0 → "Composition with Mod 6".** Not restated here — the four permitted routings have one home.
 
 **Mod 7 — Granularity Ceiling Rule (added v4.0, 2026-05-20 hygiene pass):**
 
@@ -883,6 +938,75 @@ Otherwise, after user verification completes:
 - Per-challenge records reference conclusion IDs that don't exist in the consolidation output (means JSON is malformed — surface verbatim)
 
 #### Step 5: Route to Destinations
+
+**⚠️ Step 5.0 — FAILURE-CLASS GATE (added v4.7, 2026-08-19, MANDATORY — runs BEFORE any routing below).**
+
+**Purpose before procedure:** this loop answers every finding with prose, because prose is what the loop can write. A finding whose trigger is *"any sentence, anywhere"* cannot be fixed by any sentence anywhere. This gate is what stops the loop producing more of what demonstrably does not fire.
+
+**First, the presence check. Run it — do not eyeball it:**
+
+```bash
+SID="[consolidated-session-id]"
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '"'"'$SID'"'"')"; exit 1 ;; esac
+
+CONS=~/.claude/learning-captures/"$SID"/consolidation.md
+[ -f "$CONS" ] || CONS=~/.claude/learning-captures/"$SID"/consolidation-final.md
+
+# ⚠️ ASSERT THE FILE EXISTS. Without this the gate PASSES when the file is missing:
+# `grep -c` exits 2 and leaves the counts EMPTY, and under bash `[ "" -eq 0 ]` is an
+# error, so BOTH halt branches below are skipped and the success line prints.
+# (zsh evaluates empty as 0 and halts — i.e. the bug is SHELL-DEPENDENT, which is worse
+# than a plain bug.) Absence must never look like a pass — same rule as Step 6a.
+[ -f "$CONS" ] || { echo "❌ HALT — no consolidation file for $SID (tried consolidation.md and consolidation-final.md)."; exit 1; }
+
+# Count conclusions by an EXISTING mandatory per-conclusion field, never by heading shape.
+# `${x:-0}` keeps both operands numeric no matter how grep exits.
+n_concl=$(grep -cE '^\*\*Zone:\*\*' "$CONS"); n_concl=${n_concl:-0}
+n_class=$(grep -cE '^\*\*Failure class:\*\*' "$CONS"); n_class=${n_class:-0}
+
+if [ "$n_concl" -eq 0 ]; then
+  echo "❌ HALT — no '**Zone:**' fields in $CONS. Wrong file, or malformed consolidation output."
+  exit 1
+fi
+if [ "$n_class" -ne "$n_concl" ]; then
+  echo "❌ HALT — $n_concl conclusions (by '**Zone:**' count) but $n_class 'Failure class:' fields."
+  echo "   Do not route. Return to the consolidation output and classify the missing ones."
+  exit 1
+fi
+echo "✅ failure-class field present on all $n_concl conclusions"
+```
+
+⚠️ **The count is over conclusions that carry `**Zone:**`** — i.e. those that passed gates and significance. `Failure class:` is scoped to exactly that set (consolidation-prompt 5.5b), NOT to Noted items or gate failures. A field emitted on a Noted item makes `n_class > n_concl` and HALTs a correct run.
+
+⚠️ **Count on `**Zone:**`, not on the heading — this was tested, not assumed.** Across five real consolidation files the conclusion headings took at least three different shapes (`### 1.`, `### C1.`, `#### C1.`) and hypothesis blocks reused the same shapes: a heading regex read **25** conclusions in a file that had **14**, so it would have HALTed a correct wrap-up. `**Zone:**`, `**Route to:**` and `**Wedge test:**` each appear exactly once per conclusion and agreed with one another in **all five** files. Do not "simplify" this back to counting headings.
+
+> **Consolidation files written before v4.7 carry no `Failure class:` field and will HALT here — that is correct, not a bug.** They are historical artifacts. A session opted in at triage is re-consolidated by a fresh Step 3 sub-agent, which produces a new `consolidation.md` that does carry the field; point this check at that file, never at the archived one.
+
+**Then, per conclusion, CONFIRM OR OVERRIDE the class with the destination file actually open.** The consolidation sub-agent read blind and may have marked a class `(provisional)`; you have the destination it could not see. **State which you did** — *"confirmed `shape`"* or *"overrode `placement` → `no-moment`, because …"*. An unstated confirmation is the same as not having done it.
+
+| Class | The remedy may be | The remedy may NOT be |
+|---|---|---|
+| `placement` | Re-home the rule to a surface loaded at the failing moment · widen the scope key · fix the ritual that enumerated the wrong inputs. **Name where it goes wrong.** | Making the existing text **louder** — bolding it, adding MANDATORY, appending another example — without changing *where it lives* or *what it matches*. Editing the trigger phrase so it reaches this case IS a placement fix; emphasis is not. |
+| `shape` | Re-shape the trigger so it can match its own case. | Adding a second rule beside the one that cannot match. |
+| `no-moment` | Exactly one of the four below. | **Any new or clarified paragraph at the destination.** |
+| `n/a` | Normal routing per the tables below. | — |
+
+**A `no-moment` finding routes to one of exactly four things, and nothing else:**
+
+1. **A mechanism** — a hook, script, pre-gate or installer: something that runs *without being consulted*.
+2. **A separate verification step WHOSE NEGATIVE RESULT CHANGES THE OUTCOME.** A step that can only ever confirm is not one of these.
+3. **A test** that fails when the case recurs.
+4. **An explicit human-caught record** — the honest option when no mechanism is cheap, and a *routing*, not a failure to route. One line on `watch-list.md`:
+   `HUMAN-CAUGHT: <mechanism> — the question that catches it: "<the literal question>" — no mechanism proposed because <reason>.`
+   Recording the **question** is the payload. Recording that the surface is unmechanized is what makes it countable instead of invisible.
+
+**Never another paragraph for a `no-moment` finding.** That is the rule accretion that root `CLAUDE.md` § 7 names as a failure signal, arriving through the routing step. If you catch yourself writing *"the rule should say more clearly that…"*, re-read the class.
+
+**Composition with Mod 6 (Step 4b):** they are different axes and they run in a fixed order. **Mod 6 decides TIMING** — codify now, or watch for more evidence. **The failure class decides FORM** — what a codification is allowed to *be*. Run Mod 6 first; if it returns CODIFY DIRECTLY, the class then constrains what "codify" means. A `no-moment` conclusion that Mod 6 sends to CODIFY DIRECTLY does **not** get a paragraph written into the destination — it gets one of the four above. Mod 6's *"destination identifiable"* condition is satisfied by a mechanism's install point exactly as well as by a file + section.
+
+**Honest limit of this gate.** The presence check is mechanical; the *correctness* of a class, and the choice among the four, are not. This gate makes omission impossible to do silently — it does not make misclassification impossible. **And on current evidence it is not correcting a demonstrated tendency to answer `no-moment` findings with prose**: pre-change testing across two fixtures and six independent runs never once produced that. Its measured value is narrower and real — the class becomes *recorded*, so it can be counted, and silent divergence between runs becomes visible. Full test result and its limits: consolidation-prompt step 5.5b.
+
 
 After user confirms, route each learning to its proper destination:
 
@@ -1046,15 +1170,55 @@ one structurally cannot.** The reference check only finds a referrer if some ear
 nothing was done with the findings. Its protection is strongest when a human already noticed
 and absent when nobody did.
 
+**⚠️ Ownership precondition — run this FIRST (added v4.7, 2026-08-19, MANDATORY).** Everything in Step 6 — this check and every `rm` below — applies **only to directories THIS wrap-up consolidated**: this session, plus any the user explicitly opted in at Step 2. For any other directory, *"abandoned"* is not an available verdict and neither is deletion.
+
+**ONE BLOCK, deliberately.** The ownership test and the abandoned-run HALT were separate fenced blocks in the first draft of v4.7 — which meant `exit 0` in the first could not stop the second, and the ordering rested on a sentence of prose. **Each fence is a separate shell invocation; ordering that matters must be structural.**
+
 ```bash
-# A directory holding consolidated findings whose session id appears on NO durable surface is
-# an ABANDONED run, not a completed one. Do not delete it. Surface it.
+SID="[the directory being judged]"
+# EVERY id this wrap-up consolidated — this session PLUS any the user opted in at Step 2.
+# Ownership is MEMBERSHIP IN THIS SET, never equality with the current session: an
+# opted-in directory is ours to clean, and testing `!= THIS_SID` silently skips it.
+CONSOLIDATED="[space-separated session ids]"
+IN_FLIGHT_MINUTES=120     # keep in step with Step 2; derivation lives there
+
+# ⚠️ Reject an UNSUBSTITUTED placeholder, not merely an empty value: `[ -n "$X" ]`
+# passes the literal string "[the directory being judged]" and then produces a
+# plausible-looking verdict. Every way of getting these wrong fails toward
+# "not ours", i.e. nothing is ever cleaned, silently.
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+case "$CONSOLIDATED" in ""|*"["*|*","*)
+  echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
+case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
+
+# ── 1. NOT OURS ─────────────────────────────────────────────────────────────────
+# "Abandoned" is not an available verdict here, and neither is deletion.
+if [ "$MINE" = no ]; then
+  recent=$(find ~/.claude/learning-captures/"$SID" -type f -mmin -"$IN_FLIGHT_MINUTES" 2>&1); rc=$?
+  if [ "$rc" -ne 0 ] || [ -n "$recent" ]; then
+    echo "🔵 IN FLIGHT ELSEWHERE (or unreadable) — $SID. Not deletable, not annotatable."
+  else
+    echo "⚪ NOT OURS, quiet — $SID. Report it at triage; Step 6 has no verdict for it."
+  fi
+  exit 0
+fi
+
+# ── 2. OURS → the abandoned-run check applies ───────────────────────────────────
+# A directory holding consolidated findings whose session id appears on NO durable surface
+# is an ABANDONED run, not a completed one. Do not delete it. Surface it.
 if [ -f ~/.claude/learning-captures/"$SID"/consolidation.md ] || \
    [ -f ~/.claude/learning-captures/"$SID"/consolidation-final.md ]; then
-  if ! grep -rq "$SID" ~/Documents/claude-projects ~/.claude/plans \
+  # ⚠️ --include MUST precede the operands. `grep` here resolves to ugrep, which parses
+  # a trailing --include as a FILENAME whenever `--` is also present (the `--`, not `-F`,
+  # is the trigger) and then returns rc=2 on BOTH match and no-match, so the test stops
+  # discriminating. Option-before-operands is correct in ugrep 7.5.0 and BSD grep alike.
+  # NOTE: ugrep's recursive mode honours .gitignore, so this sweep cannot see an ignored
+  # referrer. Direction here is fail-safe (a missed referrer HALTs as abandoned).
+  if ! grep -rqF --include="*.md" -- "$SID" ~/Documents/claude-projects ~/.claude/plans \
         ~/.claude/learning-captures/watch-list.md \
-        ~/.claude/learning-captures/graduation-log.md --include="*.md" 2>/dev/null; then
-    echo "❌ HALT — ABANDONED RUN: $SID holds consolidated findings that are referenced NOWHERE."
+        ~/.claude/learning-captures/graduation-log.md 2>/dev/null; then
+    echo "❌ HALT — ABANDONED RUN: $SID holds consolidated findings referenced NOWHERE."
     echo "   This is not a finished session awaiting cleanup. Nothing was routed."
     echo "   Surface the findings to the user and get a routing decision. Do NOT delete."
     exit 1
@@ -1097,21 +1261,63 @@ ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ 
 - Reading sub-agent's "done" report (Step 3 / Step 3a return) and drafting the user-facing summary WITHOUT executing Step 6 cleanup in the main session
 - Treating "eval entry appended to runs log" (Step 4c) as proof that cleanup happened — Step 4c writes the log, Step 6 removes the dir; both are required and they are NOT the same command
 
-**End-of-wrap-up cleanup gate — THREE states, not two (third added 2026-07-30):** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, it is exactly one of:
+**End-of-wrap-up cleanup gate — FOUR states (third added 2026-07-30; fourth added 2026-08-19):** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, it is exactly one of:
 
 1. **Cleaned** — not listed. Proceed.
 2. **Silently skipped** — listed, and NO retention record exists (see below). This is the failure this gate was built for: execute the per-file rm + rmdir block above before proceeding to Step 11.
 3. **DELIBERATELY RETAINED** — listed, AND a retention record exists on a durable surface naming the reason and the unblock condition. **This is a valid terminal state. Do NOT delete, and do NOT treat it as a skip.** Note it in the Step 11 report and proceed.
+4. **NOT THIS WRAP-UP'S** (in flight elsewhere, or simply another session's — the test is ownership; recency is a subcase) — listed, and it is **not a directory this wrap-up consolidated**, i.e. neither this session nor one the user opted in at Step 2. This is not a state of *your* cleanup at all: nothing to clean, nothing to record, nothing to decide. **Do NOT delete it, do NOT write a `RETAINED:` record for it, and do NOT read it as state 2.** Note it in the Step 11 report as one line — "[N] other session dir(s) present, untouched" — and proceed.
 
 ```bash
-# Distinguish state 2 from state 3 — check for a RECORD, not just for the directory.
-grep -rq "RETAINED: $SID" ~/.claude/learning-captures/watch-list.md \
-        ~/.claude/plans --include="*.md" 2>/dev/null \
-  && echo "✅ state 3 — deliberately retained; leave it alone" \
-  || echo "⚠️ state 2 — no retention record found; cleanup was skipped"
+# Distinguish the states — OWNERSHIP first, then a RECORD (not the directory's mere presence).
+SID="[the directory being judged]"
+# Same set as Step 6a-ii: this session PLUS any the user opted in at Step 2.
+CONSOLIDATED="[space-separated session ids]"
+
+# ⚠️ Reject an UNSUBSTITUTED placeholder, not merely an empty value: `[ -n "$X" ]`
+# passes the literal string "[the directory being judged]" and then produces a
+# plausible-looking verdict. Every way of getting these wrong fails toward
+# "not ours", i.e. nothing is ever cleaned, silently.
+case "$SID" in ""|*"["*|*" "*|*","*)
+  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+case "$CONSOLIDATED" in ""|*"["*|*","*)
+  echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
+case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
+
+if [ "$MINE" = no ]; then
+  echo "🔵 state 4 — not a directory this wrap-up consolidated; leave it entirely alone"
+  exit 0
+fi
+
+# ⚠️ ASSERT EVERY NAMED SURFACE. A surface you cannot search must HALT — it must never
+# degrade quietly to "no retention record", because that branch runs the rm block.
+# BOTH are required and neither is optional: as of 2026-08-19 two live records sit in
+# watch-list.md and FOUR MORE exist ONLY under ~/.claude/plans/, so silently dropping
+# either surface loses real protection for real sessions.
+WL="$HOME/.claude/learning-captures/watch-list.md"
+PLANS_DIR="$HOME/.claude/plans"
+[ -f "$WL" ]        || { echo "❌ HALT — retention surface missing: $WL"; exit 1; }
+[ -d "$PLANS_DIR" ] || { echo "❌ HALT — retention surface missing: $PLANS_DIR"; exit 1; }
+[ -n "$(find "$PLANS_DIR" -maxdepth 1 -type f -name '*.md' | head -1)" ] \
+  || { echo "❌ HALT — no .md files under $PLANS_DIR to search"; exit 1; }
+
+# NAME THE FILES; do NOT recurse. `grep` here resolves to ugrep, whose recursive mode
+# honours .gitignore — a gitignored retention record would read as "no record", i.e. the
+# destructive direction. An explicit file list is not filtered. (Verified both ways.)
+if grep -qF -- "RETAINED: $SID" "$WL" "$PLANS_DIR"/*.md; then
+  echo "✅ state 3 — deliberately retained; leave it alone"
+else
+  echo "⚠️ state 2 — no retention record found; cleanup was skipped"
+fi
 ```
 
-A retention record is one line on a durable surface: `RETAINED: <session-id> — <reason> — unblocks when <condition>`. Writing it is what converts "I decided to keep this" from a private judgment into a checkable fact.
+A retention record is one line on a durable surface:
+
+`RETAINED: <session-id> — <reason> — unblocks when <condition> — recorded by <session-id of the wrap-up that consolidated it>`
+
+Writing it is what converts "I decided to keep this" from a private judgment into a checkable fact.
+
+**Only a session that CONSOLIDATED the directory may write its retention record (owner field added v4.7, 2026-08-19).** In the founding incident of state 4 the dangerous branch was not deletion — it was the option that looked safe: writing a `RETAINED:` line onto a shared surface for a directory another session owned, asserting a hold that session never agreed to. The rule makes writing it wrong; the owner field makes a non-owner's record visible as one. Records written before v4.7 carry no owner field and remain valid — the state-2/3 grep matches on the `RETAINED: <session-id>` prefix, which is unchanged.
 
 > **Why the third state (2026-07-30).** With only two states, a reasoned retention — evidence deliberately kept because a routing decision is still open — is **indistinguishable from the failure the gate exists to catch**, so the gate can only be satisfied by deleting the thing you meant to keep, or by routing around the gate. That is the same "the burden of not firing falls on each session's private judgment" defect that the Step 1b.5 program-concluded exit branch was added to remove. A gate with no branch for the legitimate case teaches sessions to ignore it. If cleanup verification still fails (e.g., permission error), surface to user verbatim: "Cleanup of [session-id] failed: [error]. Please run manually." Do NOT proceed to summary report without resolving cleanup state.
 
@@ -1651,6 +1857,9 @@ Moved to `references/CHANGELOG.md` (v4.2 restructure). Newest-first: v4.2 struct
 | **Consolidation over accumulation** | CLAUDE.md edits require reading and merging, not just appending |
 | **Persistence over memory** | Scratch lines and scan files survive compaction; mental notes don't |
 | **Resilience over rigidity** | Complements auto-memory, adapts when system behaviors change |
+| **Every gate enumerates the states it can observe** | A gate with no branch for a legitimate state teaches sessions to route around it — and a routed-around gate is indistinguishable from a working one. Authoring-time checklist: `CLAUDE.md` → *Gate-state enumeration*. |
+
+
 
 ---
 
