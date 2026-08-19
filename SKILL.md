@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.7.0
+version: 4.8.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.7
+# learning-loop Skill v4.8
 
-> **Version history:** the live table is `README.md` § Version History. (v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
+> **Version history:** the live table is `README.md` § Version History. (v4.8 = sub-agent prompts stop asking for quotes from a conversation they cannot see, cleanup enumerates instead of hardcoding, Mod 9/10 ungated; v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -734,9 +734,11 @@ The working version leads with the specific incident (the specific people and fr
 
 #### Step 4b: Watch-List Cluster Audit + Threshold-Met Plan Generation (MANDATORY — Mod 4 + Mod 5, Apr 28 2026)
 
-Before routing, run a cluster check on the active watch-list:
+Before routing, run a cluster check on the active watch-list.
 
-1. Read `~/.claude/learning-captures/watch-list.md`.
+**Step 0 — ALWAYS, never skipped:** read `~/.claude/learning-captures/watch-list.md`. It is the input Mod 9's monitoring and Mod 10's path check both consume, so it sits *outside* the skippable set below.
+
+1. (watch-list already read at Step 0.)
 2. Count active entries. **Sprawl alert thresholds (tighter, Apr 28 2026):**
    - **>15 active top-level entries** → sprawl alert
    - **>3 entries sharing the same `Fix` field value** → cluster collision alert
@@ -753,7 +755,9 @@ Before routing, run a cluster check on the active watch-list:
 3. If user opts in, spawn re-consolidation sub-agent with the same root-cause-matching prompt as Mod 2 — applied to existing entries, not new candidates. Output: proposed merges with justification.
 4. User approves merges; update watch-list.md (preserve sub-IDs for incident traceability).
 
-Skip this step entirely if active entry count ≤15 AND no fix-cluster ≥3.
+**Skip ONLY the cluster re-consolidation above (items 1-4)** if active entry count ≤15 AND no fix-cluster ≥3.
+
+⚠️ **The skip stops here. Mods 5-10 below run on EVERY wrap-up** — in particular Mod 9's graduation monitoring and Mod 10's path-existence check, which cluster volume has no bearing on. (Why this was wrong before: SESSION_LOG v4.8 §4.)
 
 **Mod 5 — Threshold-met → child sub-agent auto-drafts plan (v3.4 Apr 28, refined v3.11 May 12 2026):**
 
@@ -862,7 +866,7 @@ A codification that doesn't write to graduation-log.md is **incomplete**. The co
 
 **Mod 10 — Path-Drift Detection at Cluster Audit (added v4.0, 2026-05-20 hygiene pass):**
 
-During Step 4b's cluster audit, verify referenced paths exist:
+On EVERY wrap-up — not only when the cluster audit runs — verify referenced paths exist:
 
 - For each cluster with a Fix-field path or plan-path reference, run a one-shot existence check (`test -f` or equivalent).
 - If the path doesn't resolve, surface as a STOP item: the reference is broken and the actual file location should be hunted with `find` before the audit proceeds.
@@ -947,8 +951,8 @@ Otherwise, after user verification completes:
 
 ```bash
 SID="[consolidated-session-id]"
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '"'"'$SID'"'"')"; exit 1 ;; esac
+case "$SID" in ""|.|..|*/*|*[!A-Za-z0-9._-]*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '"'"'$SID'"'"')"; exit 1 ;; esac
 
 CONS=~/.claude/learning-captures/"$SID"/consolidation.md
 [ -f "$CONS" ] || CONS=~/.claude/learning-captures/"$SID"/consolidation-final.md
@@ -1186,8 +1190,11 @@ IN_FLIGHT_MINUTES=120     # keep in step with Step 2; derivation lives there
 # passes the literal string "[the directory being judged]" and then produces a
 # plausible-looking verdict. Every way of getting these wrong fails toward
 # "not ours", i.e. nothing is ever cleaned, silently.
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|.|..|*/*|*[!A-Za-z0-9._-]*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
 case "$CONSOLIDATED" in ""|*"["*|*","*)
   echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
@@ -1209,12 +1216,14 @@ fi
 # is an ABANDONED run, not a completed one. Do not delete it. Surface it.
 if [ -f ~/.claude/learning-captures/"$SID"/consolidation.md ] || \
    [ -f ~/.claude/learning-captures/"$SID"/consolidation-final.md ]; then
-  # ⚠️ --include MUST precede the operands. `grep` here resolves to ugrep, which parses
-  # a trailing --include as a FILENAME whenever `--` is also present (the `--`, not `-F`,
-  # is the trigger) and then returns rc=2 on BOTH match and no-match, so the test stops
-  # discriminating. Option-before-operands is correct in ugrep 7.5.0 and BSD grep alike.
-  # NOTE: ugrep's recursive mode honours .gitignore, so this sweep cannot see an ignored
-  # referrer. Direction here is fail-safe (a missed referrer HALTs as abandoned).
+  # ⚠️ --include MUST precede the operands. Whether `grep` is BSD grep or a ugrep wrapper
+  # DEPENDS ON HOW THIS BLOCK IS INVOKED — an interactive shell here loads a function that
+  # wraps ugrep, while `bash script.sh` gets /usr/bin/grep. Under the ugrep path a trailing
+  # --include is parsed as a FILENAME whenever `--` is also present (the `--`, not `-F`, is
+  # the trigger) and returns rc=2 on match AND no-match, so the test stops discriminating.
+  # Option-before-operands is correct under both, which is why it is written this way.
+  # Under the ugrep path recursion also honours .gitignore and can miss an ignored
+  # referrer; direction there is fail-safe (a missed referrer HALTs as abandoned).
   if ! grep -rqF --include="*.md" -- "$SID" ~/Documents/claude-projects ~/.claude/plans \
         ~/.claude/learning-captures/watch-list.md \
         ~/.claude/learning-captures/graduation-log.md 2>/dev/null; then
@@ -1241,17 +1250,65 @@ fi
 > **Scope note:** root CLAUDE.md's `Trace Before Removing` covers this class conceptually, but its trigger is proposal-shaped ("before the words *we should remove X*") — a scripted `rm` inside a mandated skill step never consults it. This is that rule applied at an automated-removal moment; see `~/.claude/reference/trace-before-removing.md`.
 
 ```bash
-# Delete consolidated session files individually (safer than rm -r; transparent;
-# preserves explicit per-file accountability)
-rm ~/.claude/learning-captures/[consolidated-session-id]/scan-*.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/consolidation.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/persona-review.json 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/persona-eval.md 2>/dev/null
-rm ~/.claude/learning-captures/[consolidated-session-id]/scratch.md 2>/dev/null
-rmdir ~/.claude/learning-captures/[consolidated-session-id]/
+SID="[consolidated-session-id]"
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|.|..|*/*|*[!A-Za-z0-9._-]*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
+# ⚠️ OWNERSHIP, restated here on purpose. The ownership and abandoned-run checks live in
+# the Step 6a-ii fence — a DIFFERENT shell invocation, so its `exit` cannot reach this one.
+# This skill's own rule (Step 6a-ii): "ordering that matters must be structural." The most
+# dangerous block in the file must therefore carry the precondition itself.
+CONSOLIDATED="[space-separated session ids this wrap-up consolidated]"
+case "$CONSOLIDATED" in ""|*"["*|*","*)
+  echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated"; exit 1 ;; esac
+case " $CONSOLIDATED " in
+  *" $SID "*) : ;;
+  *) echo "❌ HALT — $SID is not a directory this wrap-up consolidated; refusing to delete"; exit 1 ;;
+esac
 
-# Verification (MANDATORY — confirms cleanup actually fired)
-ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ CLEANUP FAILED — session dir still exists; re-run Step 6" || echo "✅ Session dir cleaned"
+ROOT="$HOME/.claude/learning-captures"
+DIR="$ROOT/$SID"
+[ -d "$DIR" ] || { echo "✅ nothing to clean — $DIR does not exist"; exit 0; }
+[ -L "$DIR" ] && { echo "❌ HALT — $DIR is a symlink; refusing to delete through it"; exit 1; }
+
+# Belt-and-braces: the RESOLVED path must sit STRICTLY INSIDE the captures root.
+# `/?*` requires at least one character after the root, so `SID="."` — which resolves
+# DIR back onto ROOT itself — is rejected here even if a future edit weakens the guard
+# above. (`/*` would NOT reject it: the glob matches empty.)
+DIR_R=$(cd "$DIR" && pwd -P) || { echo "❌ HALT — cannot resolve $DIR"; exit 1; }
+ROOT_R=$(cd "$ROOT" && pwd -P) || { echo "❌ HALT — cannot resolve $ROOT"; exit 1; }
+case "$DIR_R" in
+  "$ROOT_R"/?*) : ;;
+  *) echo "❌ HALT — $DIR_R is not strictly inside $ROOT_R; refusing to delete"; exit 1 ;;
+esac
+
+# Enumerate what is present — never hardcode a filename list, never `rm -r`. Each
+# removal prints, so a skip is visible. Why both rules: SESSION_LOG v4.8 §2.
+# (Evidence: all five session dirs preserved under `_deferred-unprocessed/` hold files
+#  the old hardcoded list did not cover.)
+# `-print0` + `read -d ''`: a filename containing a NEWLINE otherwise splits into two
+# reads, and the bare second half resolves against $PWD — deleting a same-named file in
+# whatever repo the session happens to be in. `! -type d` (not `-type f`) so a symlink
+# inside the directory is removed too; otherwise rmdir fails forever and the gate keeps
+# telling you to re-run a block that cannot succeed.
+find "$DIR" -mindepth 1 -maxdepth 1 ! -type d -print0 | while IFS= read -r -d '' f; do
+  echo "  rm $f"; rm -- "$f"
+done
+rmdir "$DIR" 2>/dev/null || echo "⚠️ $DIR not empty after per-file rm (subdirectory?) — inspect it; do NOT rm -r blindly"
+
+# Verification (MANDATORY — confirms cleanup actually fired).
+# Test the DIRECTORY, not `ls | grep "$SID"`: the old grep took the session id as a
+# regex, and the unsubstituted placeholder matched almost any name.
+if [ -d "$DIR" ]; then
+  echo "❌ CLEANUP FAILED — $DIR still exists. Inspect what remains:"
+  find "$DIR" -mindepth 1 -maxdepth 1 | sed 's/^/    /'
+  exit 1          # exit NON-ZERO — the block previously printed failure and returned 0,
+                  # so nothing downstream could tell a failed cleanup from a clean one.
+else
+  echo "✅ Session dir cleaned"
+fi
 ```
 
 **Do NOT delete sessions the user chose to "skip for now"** — they remain for future wrap-ups.
@@ -1261,7 +1318,7 @@ ls ~/.claude/learning-captures/ | grep "[consolidated-session-id]" && echo "❌ 
 - Reading sub-agent's "done" report (Step 3 / Step 3a return) and drafting the user-facing summary WITHOUT executing Step 6 cleanup in the main session
 - Treating "eval entry appended to runs log" (Step 4c) as proof that cleanup happened — Step 4c writes the log, Step 6 removes the dir; both are required and they are NOT the same command
 
-**End-of-wrap-up cleanup gate — FOUR states (third added 2026-07-30; fourth added 2026-08-19):** Before writing the Step 11 Report message to the user, run a final `ls ~/.claude/learning-captures/ | grep [consolidated-session-id]`. If the session dir is still listed, it is exactly one of:
+**End-of-wrap-up cleanup gate — FOUR states (third added 2026-07-30; fourth added 2026-08-19):** Before writing the Step 11 Report message to the user, run a final `[ -d ~/.claude/learning-captures/"$SID" ] && echo listed`. **Test the directory; do not `ls | grep` the id** — grep takes it as a regex, and an unsubstituted placeholder is a bracket expression that matches almost any name. If the session dir is still listed, it is exactly one of:
 
 1. **Cleaned** — not listed. Proceed.
 2. **Silently skipped** — listed, and NO retention record exists (see below). This is the failure this gate was built for: execute the per-file rm + rmdir block above before proceeding to Step 11.
@@ -1278,8 +1335,11 @@ CONSOLIDATED="[space-separated session ids]"
 # passes the literal string "[the directory being judged]" and then produces a
 # plausible-looking verdict. Every way of getting these wrong fails toward
 # "not ours", i.e. nothing is ever cleaned, silently.
-case "$SID" in ""|*"["*|*" "*|*","*)
-  echo "❌ HALT — SID not substituted (got: '$SID')"; exit 1 ;; esac
+# Reject an unsubstituted placeholder AND anything that could escape the captures
+# directory. `/` and `..` are the traversal vectors: `SID="../../x"` resolves to
+# $HOME/x, and the loop below would delete files there.
+case "$SID" in ""|.|..|*/*|*[!A-Za-z0-9._-]*)
+  echo "❌ HALT — SID missing, unsubstituted, or unsafe (got: '$SID')"; exit 1 ;; esac
 case "$CONSOLIDATED" in ""|*"["*|*","*)
   echo "❌ HALT — CONSOLIDATED not substituted, or not space-separated (got: '$CONSOLIDATED')"; exit 1 ;; esac
 case " $CONSOLIDATED " in *" $SID "*) MINE=yes ;; *) MINE=no ;; esac
@@ -1301,9 +1361,11 @@ PLANS_DIR="$HOME/.claude/plans"
 [ -n "$(find "$PLANS_DIR" -maxdepth 1 -type f -name '*.md' | head -1)" ] \
   || { echo "❌ HALT — no .md files under $PLANS_DIR to search"; exit 1; }
 
-# NAME THE FILES; do NOT recurse. `grep` here resolves to ugrep, whose recursive mode
-# honours .gitignore — a gitignored retention record would read as "no record", i.e. the
-# destructive direction. An explicit file list is not filtered. (Verified both ways.)
+# NAME THE FILES; do NOT recurse. `grep` may be a ugrep wrapper depending on how this
+# block is invoked (interactive shell: yes; `bash script.sh`: no), and under ugrep the
+# RECURSIVE mode honours .gitignore — a gitignored retention record would then read as
+# "no record", the destructive direction. An explicit file list is never filtered, so
+# this form is correct under either. Verified in both.
 if grep -qF -- "RETAINED: $SID" "$WL" "$PLANS_DIR"/*.md; then
   echo "✅ state 3 — deliberately retained; leave it alone"
 else
@@ -1392,7 +1454,20 @@ After all learnings are routed and capture files cleaned up, check if the curren
    └── Stage all relevant files (.gitignore handles exclusions)
    └── Commit with descriptive message summarizing session work
    └── Push to remote if one exists (`git remote -v` to check)
-   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). Run `git rev-list --left-right --count origin/main...main` → expect `0 0`; if `main` is ahead, `git push origin main`. This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
+   └── **VERIFY the push landed — don't assume the global auto-push hook fired** (it has silently no-opped ≥3× across distinct causes, incl. a plain main-checkout commit 2026-06-18). **Resolve the real push target — never hardcode `origin/main`, and count only what is AHEAD:**
+
+```bash
+ahead=$(git rev-list --count @{push}..HEAD 2>/dev/null) \
+  || ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null) || ahead=""
+```
+
+Four states, all of them legitimate:
+- **`ahead` = 0** → landed. Done.
+- **`ahead` > 0** → HEAD is ahead of its target. `git push`, then re-run.
+- **`ahead` empty (neither ref resolves)** → no upstream *and* no push target. Do **not** conclude "never pushed": `git push origin <branch>` without `-u` leaves no upstream. Check `git ls-remote --heads origin <branch>` — present means it landed; absent is the finding.
+- **Detached HEAD** → `@{u}` fails for a different reason. Say so rather than reporting either verdict.
+
+Note the *upstream being ahead* (a `1 0` under the old two-sided form) is routine after a PR merge and is **not** a push failure — which is why this counts one side only. (Why the literal `origin/main` was wrong: SESSION_LOG v4.8 §3.) This is a 1-line self-check, NOT a permission ask. See memory `feedback_git_auto_push_hook`.
    └── Confirm: "Committed and pushed: [short hash] [message]" — only after the `0 0` verify
 
 5. If user skips:

@@ -21,6 +21,11 @@ contaminates the whole consolidation, because a later reader cannot tell which w
 
 READ ALL PROVIDED CAPTURE FILES. These contain raw signals — observations,
 hypotheses, failed attempts — captured mid-session before compaction.
+
+**A signal the scanner marked `UNCORROBORATED` is one no capture file could confirm
+OR contradict.** It is evidence, not noise, and it is not a gate failure. Treat it as
+you would any other signal, but carry the mark: any conclusion resting on one is
+`UNVERIFIED` in the Accuracy gate below, and must say which signal it rests on.
 Only files explicitly approved by the user during triage are included.
 
 YOUR JOB: Resolve raw signals into conclusions with the benefit of hindsight.
@@ -43,7 +48,7 @@ FOR EACH RAW SIGNAL:
    THEN — for each conclusion, check against every active watch-list entry:
    - "Is the cognitive origin the same as entry W_N?"
    - "Is the proposed fix the same as W_N's fix?"
-   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + transcript reference. Do NOT file a new top-level entry.
+   - If BOTH yes → propose **increment W_N + add sub-entry W_N.x** preserving this incident's specific framing + a reference to the capture file and line it came from (you have no transcript to cite). Do NOT file a new top-level entry.
    - If origin matches but fix differs → check whether you've actually thought about the fix carefully, or whether you're inventing a parallel fix where W_N's existing fix would work. Default to W_N's fix unless you can articulate why it wouldn't apply.
    - If neither matches → propose new top-level watch-list entry with `Root cause` and `Fix` populated.
 
@@ -104,7 +109,9 @@ FOR EACH RAW SIGNAL:
      (If no → reclassify as process-level. Tag ⚠️ if borderline.)
 
    FACT:
-   □ Accuracy - verified against conversation evidence?
+   □ Accuracy - verified against the CAPTURE FILES you were given? (You have no
+     transcript. If a fact rests on something no capture file states, say so and
+     mark it UNVERIFIED rather than asserting it.)
    □ Persistence - worth remembering across sessions?
 
 5. **If FAILS Gates 1-5:** Note which gate failed, include as "REVIEW NEEDED"

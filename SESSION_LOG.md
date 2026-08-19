@@ -6,6 +6,54 @@
 
 ---
 
+## Session: August 19, 2026 — v4.8: prompts stop asking for evidence they cannot have
+
+### Context
+
+Four defects were found during the v4.7 work and deliberately recorded rather than fixed, to keep that PR scoped to issue #4. The owner then asked for all of them. A census while fixing turned "four defects in one file" into **five fabrication sites across two files** — the original count came from a **case-sensitive** grep that missed `"[Conversation excerpt]"` at `scanner-prompt.md:117`, and a later unanchored sweep found a fifth in `consolidation-prompt.md`. The undercount is recorded because it is the same variant-sensitive-search failure the standards name, committed while writing up a finding about instruments lying.
+
+### Problem and fix
+
+**1. The scan prompt ordered fabrication.** Line 9 says *"You have NO access to the conversation this session ran. You inherit no transcript"* — and then lines 25, 47, 104 and 117 tell the same agent to *"cross-reference against conversation context"*, *"quote relevant conversation excerpts"*, and emit a **required** field `**Quote:** "[Relevant quote from conversation]"`. A required field an agent cannot fill honestly is a required field it invents. The blast radius is what makes it urgent rather than merely untidy: scan files are the **only** input to Step 3 consolidation, that sub-agent reads them blind, and it cannot distinguish an invented quote from a real one — so a fabricated quote can pass the quality gates and land in CLAUDE.md or the watch-list as evidence. v4.4 shipped as *"sub-agent briefs stop claiming inherited context"*; it fixed the header and not the body. **An incomplete graduation, not a new finding.** Fixed at all four sites plus the Fact gate in `consolidation-prompt.md:107`. Also: a scratch line that can be neither corroborated nor contradicted is now KEPT and marked `UNCORROBORATED` — the old text said "unverifiable → discard", which destroys the only record of a signal on the grounds that it could not be checked.
+
+**2. Cleanup hardcoded a filename list that no real session matches.** All five session directories on disk contain files the list does not cover. `rmdir` fails, the directory survives, the gate classifies it as a silent skip and re-runs a block that cannot succeed. Now enumerates with `find` and removes each file individually, printing each — the owner's per-file directive is about accountability, and enumeration honors it better than a stale list. A subdirectory makes it warn and report failure rather than escalate to `rm -r`. The unsubstituted `[consolidated-session-id]` was additionally a valid bash **bracket glob** (verified: it expanded to `a/scan-002.md d/scan-001.md`), and `ls | grep "[consolidated-session-id]"` matched almost any name, so the mandatory verification line was broken too.
+
+**3. Push verification could not fail.** `origin/main...main` is two literals. Demonstrated live on this very branch: the old form printed `0 0` — a clean "verified" — for a branch that had never been pushed anywhere. Now resolves `@{u}`; no upstream is the finding.
+
+**4. Mod 9 and Mod 10 were gated by cluster volume.** *"Skip this step entirely if ≤15 active entries AND no fix-cluster ≥3"* sat above Mods 5-10, so the graduation monitoring and the path-existence check stopped running on almost every wrap-up. A correctness check nested inside a volume gate ceases to exist exactly when the list looks small and healthy.
+
+### Path traversal in the new rm block — found by self-testing before review returned
+
+The placeholder guard rejected empty / bracketed / spaced / comma'd values but **not `/` or `..`**, so `SID="../../precious"` resolved to `$HOME/precious` and the enumeration loop would have deleted files there. Verified against a fixture: the target file was reachable and would have been removed. Fixed in two independent layers — the guard now rejects `/` and `..`, and the destructive block additionally asserts the **resolved** path (`cd "$DIR" && pwd -P`) sits inside the captures root, so a future edit to the guard cannot silently re-open it. Re-tested under both shells across `good` / `../../precious` / `../precious` / `a/b` / `..`: only the legitimate id proceeds, and the out-of-tree file survives.
+
+Symlinks were checked and are **not** a vector: `find … -type f` does not descend into a symlinked directory.
+
+### Review round 2 — the security and correctness lenses found three live ways to delete the wrong files
+
+Both reviewed the pre-traversal-fix commit, so their first three criticals were already closed. What survived was worse than what I had fixed.
+
+| Found | Status at the time |
+|---|---|
+| `SID="."` resolves `DIR` back onto the captures root and deletes `watch-list.md` + `graduation-log.md` — the skill's own cross-session corpus | **LIVE.** My denylist rejected `..` and `/` but not `.`, and the containment assert used `"$ROOT"/*`, whose glob matches empty |
+| A filename containing a **newline** splits `find \| while read` into two reads; the bare second half resolves against `$PWD` | **LIVE.** Reproduced: it deleted a same-named decoy in the working directory |
+| A symlinked capture directory with a trailing slash deletes the link's target and reports **success** | Blocked once `/` was rejected; `[ -L "$DIR" ]` added anyway |
+
+**Denylist → allowlist.** The guard now permits only `[A-Za-z0-9._-]` and rejects `.`, `..` and anything containing `/`. A denylist enumerates the shapes you thought of; `.` was the one I didn't. Containment tightened to `"$ROOT_R"/?*`, which requires at least one character after the root, so `SID="."` is rejected there too even if a future edit weakens the guard.
+
+**Ownership made structural in the destructive fence.** The ownership and abandoned-run checks live in the Step 6a-ii fence — a *different shell invocation*, so its `exit` cannot reach the `rm`. This skill states that rule verbatim one step earlier and had not applied it to its most dangerous block. The rm fence now carries the membership test itself.
+
+**Other real findings, all fixed:** the scanner output template still said "discard… or unverifiable", reinstating the behavior the same file had just removed, and `UNCORROBORATED` had no bucket to land in — the gate-state defect, in a PR that adds a gate state. Step 8's `@{u}` fix was itself wrong for triangular remotes (reports a failed push that succeeded), for `git push origin <branch>` without `-u`, for detached HEAD, and had no branch for "upstream is ahead", which is routine after a PR merge; it now counts one side and enumerates four states. Step 4b's rescoping had left item 1 — *read the watch-list* — inside the skippable set, which is the input Mods 9 and 10 both consume. The `rm` block printed `❌ CLEANUP FAILED` and exited **0**.
+
+**Where the two reviewers contradicted each other, and why both were right.** One reported ugrep honours `.gitignore`; the other reported ugrep is not installed at all. Both reproduced. `grep` is a *shell function* wrapping ugrep, loaded from the session snapshot: it applies in an interactive shell and **not** to `bash script.sh`, which gets `/usr/bin/grep`. The comments in SKILL.md asserted one context's behavior as a machine fact and now name the dependency. The code was already written to be correct under either — option-before-operands, explicit file list — which is the reason the disagreement changed nothing operationally.
+
+### Verified
+
+- The destructive rm block was extracted verbatim from SKILL.md and run against isolated fixtures under **both bash and zsh**: an 8-file directory (5 of them files the old list missed) fully cleaned; a directory containing a **subdirectory** left intact with a warning and a CLEANUP FAILED verdict; an unsubstituted placeholder HALTs and touches nothing; a nonexistent directory exits cleanly. Identical in both shells.
+- Step 8: old form returns `0 0` on an unpushed feature branch; new form errors, and returns `0 0` on `main` where an upstream exists.
+- Census across all six prompt files: zero remaining instructions to use a session the agent cannot see.
+
+**This claim was wrong when first written, and the correction is the fourth instance of one failure.** The original census was keyed on the word `conversation` and reported clean. Review then found `consolidation-prompt.md:46` — *"preserving this incident's specific framing + **transcript** reference"* — a live instruction, missed because it used a different word. The broadened sweep (`transcript|conversation|what was said|we discussed|the exchange|…`) is what now backs the claim. Same session, same failure, four times: the `[Conversation excerpt]` undercount (case), the PII sweep that reported 1 hit because `cut -c1-200` cropped the second (truncation), a SID-guard replace that matched 3 of 4 sites and never asked why the count was 3 (exact-string), and this one (vocabulary). **An instrument narrower than the claim made with it produces a clean result every time.**
+
 ## Session: August 19, 2026 — v4.7: failure-class gate before prose, and a fourth state for concurrent ownership
 
 ### Context
