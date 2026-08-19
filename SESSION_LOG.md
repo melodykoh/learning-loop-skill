@@ -67,6 +67,25 @@ Where runs still differ they now differ **visibly and at a nameable level**: on 
 
 **Change 1 ships on a narrowed claim.** Because the premise did not reproduce, the field is justified as **auditability**, not as a correction to observed behaviour, and both SKILL.md and the consolidation prompt say so in their own provenance. A class that is never recorded cannot be counted, and what cannot be counted cannot be seen getting worse — which is exactly how eight silent rules reached a human before they reached the loop.
 
+### Review round — `/simple-pr-review` on PR #5 blocked it, and every critical was mine
+
+Three role-resolved reviewers (code+correctness and security → `general-purpose`, remapped because `feature-dev:code-reviewer` is Read-only and ineligible in remote scope; simplicity → `code-simplifier:code-simplifier`). **Verdict: BLOCK, 6 criticals.** All were reproduced mechanically by the orchestrator rather than adjudicated by validator agents — every one was deterministic, so reproduction is the stronger evidence.
+
+| # | Defect | Direction it failed |
+|---|---|---|
+| CR1 | Step 5.0 gate printed ✅ when the consolidation file was **absent** — `grep -c` exits 2, counts come back empty, and under **bash** `[ "" -eq 0 ]` errors so both HALT branches are skipped. zsh halted. **Shell-dependent**, which is worse than a plain bug in a public skill | fail-open |
+| CR2 | Ownership tested `SID != THIS_SID`, so every directory the user **opted in at triage** was classified state 4 and never cleaned — a regression against v4.6, and it turns the silent-skip failure the gate exists for into a "valid terminal state" | silent skip |
+| CR3 | `$SID` was undefined in both new fenced blocks (assigned only in *other* fences; shell state does not persist). With it empty the path collapses to the captures root and the guard fires on the session's own directory | guards inert |
+| CR4 | The ownership precondition could not mechanically precede the HALT it must precede — two fences, so `exit 0` couldn't stop the second. Ordering rested on a sentence of prose | HALT on live evidence |
+| CR5 | A missing `watch-list.md` made the retention grep exit non-zero → "no record" → state 2, whose documented next action is `rm` | **destructive** |
+| CR6 | README claimed the cleanup gate tests a 120-minute window. It contains zero `mmin` — it is pure ownership | false doc |
+
+**Fixes:** file-existence assert + numeric-defaulted counts; ownership by **membership in the consolidated set** (`case " $CONSOLIDATED " in *" $SID "*`) at both sites; the ownership test and the abandoned-run HALT merged into **one fence** so ordering is structural; surface-existence assert before the retention grep; README corrected; field scoped to the `Zone:` set; unmatched-glob guard; state 4 renamed to match what it tests; Mod 6 composition de-duplicated to a pointer; the authoring-time *Gate-state enumeration* section moved out of the per-invocation `SKILL.md` into the repo's `CLAUDE.md`.
+
+**A defect I introduced while fixing, caught by re-testing rather than by reading.** Adding `-F --` to the two greps (a hardening the security reviewer suggested, and correct in itself) broke them when combined with a **trailing** `--include`: `grep` on this machine resolves to **ugrep 7.5.0**, which parses a trailing `--include` as a filename and then returns **rc=2 on a match as well as on no-match** — so the retention test stopped discriminating and landed in the destructive branch. Verified across four command forms and both grep implementations; `--include` **before** the operands is correct in each. The pre-existing v4.5 greps were never affected, and my first diagnosis that they were is recorded here as wrong.
+
+**Honest limits still standing.** The unsafe direction of the in-flight test is reachable — Step 4 blocks on the user with no upper bound, so a wrap-up left open overnight ages past the window; `find -type f` also cannot see directory-only activity. Documented in the skill rather than papered over. The Step 5.0 check is still run by prose invitation; nothing forces it.
+
 ### Changes Made
 
 | File | Change |
@@ -78,8 +97,8 @@ Where runs still differ they now differ **visibly and at a nameable level**: on 
 ### Verified
 
 - Change 2 bash executed against a fixture reproducing the incident: live foreign dir → in-flight; genuinely abandoned foreign dir → still triageable (v4.5 protection intact); own dir freshly written → still proceeds (**without the ownership guard a bare mtime check would halt every wrap-up**); `_`-prefixed dirs skipped (archive convention intact); unreadable dir → in-flight.
-- Cleanup gate: all four states resolve correctly; both **live** `RETAINED:` records in the real watch-list still resolve to state 3.
-- Step 5.0 presence check: passes a fully-classified file across mixed heading shapes, HALTs on a missing field, HALTs on a wrong file, HALTs on a pre-v4.7 historical file (documented as correct).
+- Cleanup gate: all four states resolve correctly; both **live** `RETAINED:` records in the real watch-list still resolve to state 3. **Not covered at first pass: a directory the user OPTED IN at triage** — review found it was misclassified as state 4 and never cleaned, a regression against v4.6. Fixed and re-tested.
+- Step 5.0 presence check: passes a fully-classified file across mixed heading shapes, HALTs on a missing field, HALTs on a wrong file, HALTs on a pre-v4.7 historical file (documented as correct). **Not covered at first pass: the file being ABSENT entirely** — review found the gate printed ✅ there under bash. Fixed and re-tested.
 - PII scan of the diff (public repo): clean — no names, emails, company or portfolio tokens, no real session ids.
 
 ### Found but NOT fixed — out of the issue's scope

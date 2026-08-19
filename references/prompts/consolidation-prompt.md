@@ -125,7 +125,9 @@ FOR EACH RAW SIGNAL:
 
    > **Why this exists (Apr 28, 2026):** During the v3.5 Phase 1 Persona Panel ship wrap-up, conclusion C2 (bootstrap accumulator files not created at ship time) was initially routed to ACTION ITEM only with reasoning "Section 1d Verification rule already covers the trigger ('infrastructure done after writing files but before running them'), so no codification needed." User pushback: *"When there's something that we already have documentation, it's just about enforcement. Then the task for learning loop is to examine, propose enforcement, as opposed to say, oh, that's just enforced better because that won't happen."* The dismissal pattern is what makes rule-coverage-without-rule-firing a recurring failure mode — learning-loop must propose enforcement upgrades or the gap stays open. Step 5.5 is the structural fix.
 
-5.5b. **Failure-Class Check (added v4.7, 2026-08-19 — MANDATORY, every conclusion carries the field):**
+5.5b. **Failure-Class Check (added v4.7, 2026-08-19 — MANDATORY):**
+
+   **Scope: every conclusion that passes gates and significance — exactly the set that carries `Zone:` (step 6.5), and no other.** Do NOT emit this field on a Noted item or on a signal that failed gates: Step 5.0 counts `Failure class:` against `Zone:`, so a stray field HALTs a correct wrap-up.
 
    **Purpose before procedure:** a finding whose trigger is *"any sentence, anywhere"* cannot be fixed by any sentence anywhere — there is no moment at which a mind goes looking. Answering such a finding with more prose produces text that will not fire. This field forces the question **"what kind of silence was this?"** to be answered *before* a remedy is proposed.
 
