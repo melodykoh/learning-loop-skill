@@ -125,7 +125,13 @@ in a future session, they'll surface then.
 ### 2. ...
 
 ## Scratch Lines Incorporated
-[List which scratch lines were confirmed and included]
+[Corroborated by another capture file — list them]
+
+## Scratch Lines Kept as UNCORROBORATED
+[Neither corroborated nor contradicted by any file you were given. KEEP THESE.
+ List each with what would corroborate it. They are still evidence; `scratch.md`
+ is deleted at Step 6, so a line dropped here is gone permanently.]
 
 ## Scratch Lines Discarded
-[List which were contradicted or unverifiable, with reasons]
+[ONLY lines a capture file actively CONTRADICTS. Name the file that contradicts each.
+ "I could not verify it" is NOT a reason to discard — that is the bucket above.]

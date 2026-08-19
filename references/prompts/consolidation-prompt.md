@@ -21,6 +21,11 @@ contaminates the whole consolidation, because a later reader cannot tell which w
 
 READ ALL PROVIDED CAPTURE FILES. These contain raw signals — observations,
 hypotheses, failed attempts — captured mid-session before compaction.
+
+**A signal the scanner marked `UNCORROBORATED` is one no capture file could confirm
+OR contradict.** It is evidence, not noise, and it is not a gate failure. Treat it as
+you would any other signal, but carry the mark: any conclusion resting on one is
+`UNVERIFIED` in the Accuracy gate below, and must say which signal it rests on.
 Only files explicitly approved by the user during triage are included.
 
 YOUR JOB: Resolve raw signals into conclusions with the benefit of hindsight.
