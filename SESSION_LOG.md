@@ -6,6 +6,74 @@
 
 ---
 
+## Session: August 28, 2026 — the router's line-budget rule was manufacturing stale root rules
+
+### Problem
+
+Three rules were found stale in root `CLAUDE.md` on one day, **all three authored by this loop**, all
+the same shape: canonical gained a clause, root's inline summary did not, and the always-loaded layer
+went on teaching the older, narrower version. Because root is the copy that reaches every session and
+every sub-agent, each rule was **live, correct in canonical, and unable to fire.**
+
+| Rule | Canonical was ahead of root by |
+|---|---|
+| A cost-asymmetry exception to "figure it out without asking" | 9 days |
+| Magnitude claims — trigger widened from a word list to a test; scope widened from ship-time to any message | 9 and 4 days |
+| The frame-and-type sub-check before offering a "pick one" | **33 days** |
+
+### Cause — not drift, a rule
+
+`WORKFLOW_STEP_ROUTER_PROMPT` step 3 read:
+
+> *"Root CLAUDE.md target: <250 lines. Force extraction at ≥230. At/over budget → force extraction to
+> reference doc, keep 2-3 line trigger only."*
+
+Root has been over 230 for months. So the router **force-extracted essentially every decision-changer
+into a reference doc** and left root holding a trigger that was accurate the day it was written and
+never revisited. The staleness was not an accident of maintenance; it was the documented behaviour.
+
+Two facts the rule did not have:
+- **The 250 had no source.** The documented figure is 200 lines, which root already exceeded when the
+  250 was written. Root now carries no line target at all.
+- **A sub-agent inherits root `CLAUDE.md` and does NOT inherit `~/.claude/reference/*`.** "Extract and
+  keep a trigger" therefore converts a rule into a pointer the sub-agent cannot open — and it acts on
+  the pointer. The failure mode is index-without-substance, not zero inheritance.
+
+### Fix
+
+Step 3 now tests **reach, not size**: a rule that must reach a sub-agent is stated self-contained in
+root, in as few lines as it takes to be usable *without* the target; long protocols, enumerated
+edge-cases and provenance go to reference docs. Destination may never be justified by root's size.
+
+Three checks added, all with required output fields so silence is not an answer:
+- **3b `root_reconciliation`** — mandatory whenever the destination is a reference doc for a rule root
+  also summarises. Read root's inline text and say whether the new clause makes it understate,
+  narrow, or contradict canonical. Watch the two observed shapes: a word-list trigger where canonical
+  widened to a test, and a scope clause where canonical now fires earlier. **A clause that lands only
+  in the reference layer has been filed, not landed.**
+- **3c `enforcer` / `abc_class`** — what mechanically enforces this (6 of ~150 rules have an answer;
+  "none" is valid but must be said), and A/B/C class so baseline-corrections carry "recheck on model
+  swap."
+- **3d `adapted_copy_check`** — when the destination is root, ask whether the adapted standards copy
+  in a shared work repo needs the domain-translated version. Those rules were translated rather than
+  pasted, so there is no shared string to diff and drift there is mechanically undetectable. Never a
+  pointer to `~/.claude/reference/*` (that reader has no such files) and never auto-generated from
+  root (it would leak personal context into a shared repo; the adaptation is the value).
+
+### Not changed, deliberately
+
+**Capture-side behaviour is untouched.** An observation window opened 2026-08-28 measures the class
+mix of recorded failures; changing what the loop records would corrupt its own baseline. Only routing
+changed.
+
+### Note on scope
+
+This file is public. The adapted-copy check describes the mechanism without naming the repo, the firm,
+or the collaborator — the dispatching session knows which repo it means. Verified before commit that
+the diff introduces no repo names, personal names, emails, tokens, or UUIDs.
+
+---
+
 ## Session: August 19, 2026 — v4.8.1: dotdir filter (regression from the zsh-safety fix)
 
 ### Problem
