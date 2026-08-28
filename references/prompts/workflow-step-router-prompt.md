@@ -27,9 +27,72 @@ FOR EACH CONCLUSION:
    - If yes → route there. The rule fires automatically when the workflow step is read.
    - If no → root or project CLAUDE.md as a new section.
 
-3. If routing to root CLAUDE.md: check the size budget.
-   - Root CLAUDE.md target: <250 lines. Force extraction at ≥230.
-   - At/over budget → force extraction to reference doc, keep 2-3 line trigger only.
+3. If routing to root CLAUDE.md: apply the REACH test. ⚠️ **REWRITTEN 2026-08-28 — the previous
+   version of this step was the machine that manufactured a specific, repeating defect. Read why
+   before you route anything.**
+
+   It used to say: *"Root CLAUDE.md target: <250 lines. Force extraction at ≥230. At/over budget →
+   force extraction to reference doc, keep 2-3 line trigger only."* Root has been over 230 for
+   months, so this step FORCE-EXTRACTED essentially every decision-changer into a reference doc and
+   left root holding a short trigger that was correct on the day it was written and never updated
+   again. **On 2026-08-28 three rules were found stale in root by exactly this mechanism, all three
+   authored by this loop: a cost-asymmetry exception (canonical ahead by 9 days), a magnitude-claim
+   trigger (ahead by 9 and 4 days), and a frame-and-type sub-check (ahead by 33 days). Each existed,
+   was well-worded, and could not fire, because the only copy that reached the moment was the stale
+   one.**
+
+   Two facts the old rule did not have:
+   - **The 250 had no source.** Anthropic documents 200 lines, which root already exceeded when the
+     250 was written. Root now carries no line target at all.
+   - **A sub-agent inherits root CLAUDE.md and does NOT inherit `~/.claude/reference/*`.** So
+     "extract to a reference doc, keep a trigger" converts a rule into a pointer the sub-agent
+     cannot open — and it acts on the pointer.
+
+   **The test is now REACH, not size:**
+   - **Must this rule reach a SUB-AGENT to work?** → state it self-contained in root, in as few lines
+     as it takes to be usable **without** the target. Length is not the constraint; a line that a
+     sub-agent cannot act on is the constraint.
+   - **Is it a long protocol, an enumerated edge-case list, or provenance?** → reference doc. The
+     main session can open those; a sub-agent rarely needs them mid-task.
+   - Never justify a destination by root's size. Root § Section 7 says so explicitly, and this file
+     already warns against reasoning from secondary constraints.
+
+3b. **ROOT-RECONCILIATION CHECK — mandatory whenever you route to a reference doc (added 2026-08-28).**
+   If the rule you are filing ALSO has an inline summary in root CLAUDE.md, adding a clause to the
+   reference doc **silently makes root's summary wrong**, and root is the copy that reaches every
+   session and every sub-agent. **You must check, and say what you found:**
+   - Read root's inline text for that rule.
+   - Ask: **after this clause lands, does root's version understate, narrow, or contradict canonical?**
+     Watch for the two shapes seen so far — a **word-list trigger** where canonical has widened to a
+     test, and a **scope clause** ("at ship," "before publishing") where canonical now fires earlier.
+   - If yes → emit a **`root_reconciliation`** item naming root's exact stale sentence and the
+     replacement. **This is not optional and it is not a follow-up.** A clause that lands only in the
+     reference layer has been *filed*, not *landed* — the landing happened in the wrong layer.
+   - If no → say so explicitly. Silence here reads as "not checked."
+
+3c. **Also ask the two questions this step never asked (added 2026-08-28):**
+   - **What mechanically enforces this?** 6 of ~150 rules have any enforcer. "Nothing" is a valid and
+     common answer — but say it, because a rule with no enforcer is a rule whose only failure signal
+     is someone noticing.
+   - **Is this A, B, or C?** A = work-condition judgment, survives model releases. B = architecture
+     fact, rots on harness releases. C = baseline-correction for a model weakness — mark those
+     "recheck on model swap" and never delete one without tracing its provenance first.
+
+3d. **ADAPTED-COPY CHECK — when the destination is root CLAUDE.md (added 2026-08-28).**
+   Root is not the only always-loaded rule bundle. At least one shared work repo carries a
+   deliberately **adapted** copy of the key standards, for a collaborator who has **no global
+   config** — and because those rules were domain-translated rather than pasted, **there is no shared
+   string to diff, so drift is mechanically undetectable.** A coverage audit on 2026-08-27 found 13
+   of 20 rule families present there and five genuinely missing.
+   **So: when a rule is ADDED to root or MATERIALLY changed, ask whether the adapted copy needs the
+   domain-translated version**, and emit an `adapted_copy_check` line either way. *(The dispatching
+   session knows which repo; it is deliberately not named in this file, which is public.)*
+   - **Do NOT propose a pointer to `~/.claude/reference/*`** — that reader cannot open those files.
+     If it goes there, it goes inline, in that file's own voice.
+   - **Do NOT propose auto-generating it from root.** Root's rules reference personal context that
+     would leak into a shared repo, and the adaptation IS the value.
+   - Some omissions there are CORRECT (git/filesystem debugging, frontend work, the learning ritual
+     itself). "Not needed" is a real answer — say which and why, rather than staying silent.
 
 4. Compare to consolidation's proposed destination:
    - aligned → verdict: pass
@@ -50,7 +113,11 @@ OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
   "consolidation_destination_assessment": "aligned" | "misaligned",
   "verdict": "pass" | "challenge",
   "challenge_reasoning": "<one sentence if challenge, else null>",
-  "re_route_proposal": "<destination + section if challenge, else null>"
+  "re_route_proposal": "<destination + section if challenge, else null>",
+  "root_reconciliation": "<REQUIRED when recommending a reference doc for a rule root also summarises: root's stale sentence + the replacement. Use \"checked — root's summary still accurate\" when it is. null only when root has no inline summary of this rule.>",
+  "enforcer": "<what mechanically enforces this, or \"none\">",
+  "abc_class": "A" | "B" | "C",
+  "adapted_copy_check": "<REQUIRED when destination is root CLAUDE.md: does the adapted copy (see 3d) need the domain-translated version? Answer with the adaptation, or \"not needed — <reason>\". null when destination is not root.>"
 }
 ```
 
