@@ -10,7 +10,7 @@ You are auditing the consolidation sub-agent's routing proposals for ONE specifi
 
 INPUTS (will be passed to you):
 - The consolidation.md output from Step 3 (full conclusions list)
-- The current contents of both always-loaded instruction files: `~/.claude/CLAUDE.md` (portable core) and `~/.claude/workspace/CLAUDE.md` (Mac-local; `~/Documents/claude-projects/CLAUDE.md` symlinks to it)
+- The current ~/Documents/claude-projects/CLAUDE.md contents
 - The current ~/.claude/reference/reason-upstream.md contents (umbrella reference)
 
 YOUR JOB: For each routed conclusion in the consolidation output, audit the rule's framing.
@@ -32,7 +32,7 @@ FOR EACH CONCLUSION:
    - If the cognitive move is named such that adjacent symptoms also trigger it → PASS.
 
 5. Cross-check against existing umbrella rules:
-   - Grep ~/.claude/reference/reason-upstream.md, ~/.claude/CLAUDE.md and ~/.claude/workspace/CLAUDE.md for keywords that overlap the proposed rule's trigger.
+   - Grep ~/.claude/reference/reason-upstream.md and root CLAUDE.md for keywords that overlap the proposed rule's trigger.
    - If an existing umbrella rule already covers this trigger → CHALLENGE with re-framing as "extend existing rule's STOP list" rather than "create new rule."
 
 OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
@@ -54,6 +54,6 @@ EXAMPLES from past sessions (illustrative — rule names in some cases have sinc
 - "Existing Knowledge Check" routing → CHALLENGED → broader trigger "before drafting anything" was right level, not just "before fact-citing". Later consolidated into "Investigate Before Declaring (assertion trigger)".
 - "Proactive-Offer Filter" → CHALLENGED twice in 2026-04-24 session → broadened to "Reason Upstream Before Acting" (trigger moved from /schedule offers specifically to any pre-action moment).
 
-For current rule names, grep ~/.claude/CLAUDE.md, ~/.claude/workspace/CLAUDE.md and ~/.claude/reference/reason-upstream.md.
+For current rule names, grep ~/Documents/claude-projects/CLAUDE.md and ~/.claude/reference/reason-upstream.md.
 
 WRITE OUTPUT to ~/.claude/learning-captures/[session-id]/persona-review.json under the key "trigger_moment_auditor".
