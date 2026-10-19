@@ -10,7 +10,7 @@ You are auditing the consolidation sub-agent's destination choices. ONE specific
 
 INPUTS (will be passed to you):
 - The consolidation.md output from Step 3 (full conclusions list)
-- The current ~/Documents/claude-projects/CLAUDE.md contents
+- The current contents of BOTH always-loaded instruction files: `~/.claude/CLAUDE.md` (the portable core — any repo, any machine, cloud) and `~/.claude/workspace/CLAUDE.md` (Mac-local; `~/Documents/claude-projects/CLAUDE.md` is a symlink to it)
 - The Trigger-Moment Auditor's JSON output (you receive its named_trigger_moment values to align destination selection with the named trigger)
 
 YOUR JOB: For each routed conclusion, classify decision-changer vs. recall-fact and recommend destination.
@@ -18,16 +18,32 @@ YOUR JOB: For each routed conclusion, classify decision-changer vs. recall-fact 
 FOR EACH CONCLUSION:
 
 1. Classify: does this rule CHANGE A DECISION Claude makes, or is it a FACT Claude needs to recall, or is it EXECUTION-TIME BEHAVIOR?
-   - decision-changer → CLAUDE.md (root or project) OR a workflow-step list at the trigger point
+   - decision-changer → a CLAUDE.md (portable core, Mac-local workspace, or project) OR a workflow-step list at the trigger point
    - recall-fact → memory MEMORY.md
    - execution-time-behavior → reference doc + 2-3 line trigger pointer in CLAUDE.md
 
 2. If decision-changer: is there an EXISTING workflow-step list at the named trigger point (use the Trigger-Moment Auditor's named_trigger_moment value)?
    - Examples of workflow-step lists: skills' STOP checklists, project CLAUDE.md "Error Handling" sections, "Pre-publish checklist" sections, "When debugging, check these" lists.
    - If yes → route there. The rule fires automatically when the workflow step is read.
-   - If no → root or project CLAUDE.md as a new section.
+   - If no → a CLAUDE.md as a new section. Pick which with step 2b.
 
-3. If routing to root CLAUDE.md: apply the REACH test. ⚠️ **REWRITTEN 2026-08-28 — the previous
+2b. **SCOPE TEST — which CLAUDE.md (added 2026-10-19, when the single root file was split).**
+   - Project-specific? → that project's CLAUDE.md.
+   - Otherwise ask: **would this rule be correct, and usable exactly as written, in a cloud session on
+     a fresh machine — any repo, no `~/.claude/reference/*`, no local hooks, no `claude-projects/`
+     workspace files, no local tools?**
+     - Yes → **portable** → `~/.claude/CLAUDE.md`.
+     - No, it only works because of something on the Mac → **mac-local** → `~/.claude/workspace/CLAUDE.md`,
+       under its matching section.
+     - A portable principle with Mac-only mechanics → **split**: the principle in the core, the
+       mechanics in the workspace file (pattern: core § Sub-agents + workspace § "Sub-agents, locally").
+   - The core must stand alone: a `~/.claude/reference/*` pointer in a core rule is a supplement only,
+     and Mac-only names never go in core rule text. A new reference doc behind a core rule gets a row
+     in the workspace file's "Reference library" table.
+   - Record the answer in `instruction_file_scope`. A Mac-only rule filed in the core reaches cloud
+     sessions as a broken pointer; a portable rule filed in the workspace file never reaches them.
+
+3. If routing to the core or workspace CLAUDE.md: apply the REACH test. ⚠️ **REWRITTEN 2026-08-28 — the previous
    version of this step was the machine that manufactured a specific, repeating defect. Read why
    before you route anything.**
 
@@ -43,29 +59,35 @@ FOR EACH CONCLUSION:
 
    Two facts the old rule did not have:
    - **The 250 had no source.** Anthropic documents 200 lines, which root already exceeded when the
-     250 was written. Root now carries no line target at all.
-   - **A sub-agent inherits root CLAUDE.md and does NOT inherit `~/.claude/reference/*`.** So
+     250 was written. Neither instruction file carries a line target now.
+   - **A sub-agent inherits the CLAUDE.md files and does NOT inherit `~/.claude/reference/*`.** So
      "extract to a reference doc, keep a trigger" converts a rule into a pointer the sub-agent
      cannot open — and it acts on the pointer.
 
    **The test is now REACH, not size:**
-   - **Must this rule reach a SUB-AGENT to work?** → state it self-contained in root, in as few lines
+   - **Must this rule reach a SUB-AGENT to work?** → state it self-contained in the file step 2b chose, in as few lines
      as it takes to be usable **without** the target. Length is not the constraint; a line that a
      sub-agent cannot act on is the constraint.
    - **Is it a long protocol, an enumerated edge-case list, or provenance?** → reference doc. The
      main session can open those; a sub-agent rarely needs them mid-task.
-   - Never justify a destination by root's size. Root § Section 7 says so explicitly, and this file
-     already warns against reasoning from secondary constraints.
+   - Never justify a destination by a file's size. `~/.claude/CLAUDE.md` § "Editing these instruction
+     files" says so explicitly, and this file already warns against reasoning from secondary constraints.
+   - **Provenance goes in an HTML comment beside the rule** (`<!-- what happened, date, who decided -->`),
+     not in the rule text; a one-clause reason may stay inline. Comments are stripped before Claude
+     reads the file, so this costs no context. Never propose a `> Why` block inside a CLAUDE.md.
+   - **Removal bar:** never recommend cutting a rule from either file on length grounds. A rule leaves
+     the always-loaded set only when a model with no instructions passes the test built from the
+     failure that produced it; until then, move, de-duplicate or de-narrate.
 
 3b. **ROOT-RECONCILIATION CHECK — mandatory whenever you route to a reference doc (added 2026-08-28).**
-   If the rule you are filing ALSO has an inline summary in root CLAUDE.md, adding a clause to the
-   reference doc **silently makes root's summary wrong**, and root is the copy that reaches every
+   If the rule you are filing ALSO has an inline summary in the core or workspace CLAUDE.md, adding a
+   clause to the reference doc **silently makes that summary wrong**, and it is the copy that reaches every
    session and every sub-agent. **You must check, and say what you found:**
-   - Read root's inline text for that rule.
-   - Ask: **after this clause lands, does root's version understate, narrow, or contradict canonical?**
+   - Read the always-loaded inline text for that rule (core or workspace — whichever holds it).
+   - Ask: **after this clause lands, does the always-loaded version understate, narrow, or contradict canonical?**
      Watch for the two shapes seen so far — a **word-list trigger** where canonical has widened to a
      test, and a **scope clause** ("at ship," "before publishing") where canonical now fires earlier.
-   - If yes → emit a **`root_reconciliation`** item naming root's exact stale sentence and the
+   - If yes → emit a **`root_reconciliation`** item (field name kept from before the split) naming the exact stale sentence, its file, and the
      replacement. **This is not optional and it is not a follow-up.** A clause that lands only in the
      reference layer has been *filed*, not *landed* — the landing happened in the wrong layer.
    - If no → say so explicitly. Silence here reads as "not checked."
@@ -78,18 +100,18 @@ FOR EACH CONCLUSION:
      fact, rots on harness releases. C = baseline-correction for a model weakness — mark those
      "recheck on model swap" and never delete one without tracing its provenance first.
 
-3d. **ADAPTED-COPY CHECK — when the destination is root CLAUDE.md (added 2026-08-28).**
-   Root is not the only always-loaded rule bundle. At least one shared work repo carries a
+3d. **ADAPTED-COPY CHECK — when the destination is the core or workspace CLAUDE.md (added 2026-08-28).**
+   These are not the only always-loaded rule bundle. At least one shared work repo carries a
    deliberately **adapted** copy of the key standards, for a collaborator who has **no global
    config** — and because those rules were domain-translated rather than pasted, **there is no shared
    string to diff, so drift is mechanically undetectable.** A coverage audit on 2026-08-27 found 13
    of 20 rule families present there and five genuinely missing.
-   **So: when a rule is ADDED to root or MATERIALLY changed, ask whether the adapted copy needs the
+   **So: when a rule is ADDED to the core or workspace file or MATERIALLY changed, ask whether the adapted copy needs the
    domain-translated version**, and emit an `adapted_copy_check` line either way. *(The dispatching
    session knows which repo; it is deliberately not named in this file, which is public.)*
    - **Do NOT propose a pointer to `~/.claude/reference/*`** — that reader cannot open those files.
      If it goes there, it goes inline, in that file's own voice.
-   - **Do NOT propose auto-generating it from root.** Root's rules reference personal context that
+   - **Do NOT propose auto-generating it from these files.** Their rules reference personal context that
      would leak into a shared repo, and the adaptation IS the value.
    - Some omissions there are CORRECT (git/filesystem debugging, frontend work, the learning ritual
      itself). "Not needed" is a real answer — say which and why, rather than staying silent.
@@ -110,14 +132,15 @@ OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
   "classification": "decision-changer" | "recall-fact" | "execution-time-behavior",
   "existing_workflow_step_list_at_trigger": "<path or null>",
   "recommended_destination_ranked": ["<first choice>", "<fallback>"],
+  "instruction_file_scope": "portable" | "mac-local" | "split" | "project" | null,
   "consolidation_destination_assessment": "aligned" | "misaligned",
   "verdict": "pass" | "challenge",
   "challenge_reasoning": "<one sentence if challenge, else null>",
   "re_route_proposal": "<destination + section if challenge, else null>",
-  "root_reconciliation": "<REQUIRED when recommending a reference doc for a rule root also summarises: root's stale sentence + the replacement. Use \"checked — root's summary still accurate\" when it is. null only when root has no inline summary of this rule.>",
+  "root_reconciliation": "<REQUIRED when recommending a reference doc for a rule the core or workspace file also summarises: the file, its stale sentence + the replacement. Use \"checked — summary still accurate\" when it is. null only when neither file has an inline summary of this rule.>",
   "enforcer": "<what mechanically enforces this, or \"none\">",
   "abc_class": "A" | "B" | "C",
-  "adapted_copy_check": "<REQUIRED when destination is root CLAUDE.md: does the adapted copy (see 3d) need the domain-translated version? Answer with the adaptation, or \"not needed — <reason>\". null when destination is not root.>"
+  "adapted_copy_check": "<REQUIRED when destination is the core or workspace CLAUDE.md: does the adapted copy (see 3d) need the domain-translated version? Answer with the adaptation, or \"not needed — <reason>\". null otherwise.>"
 }
 ```
 

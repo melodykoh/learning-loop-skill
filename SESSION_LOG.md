@@ -6,6 +6,85 @@
 
 ---
 
+## Session: October 19, 2026 — v4.9: routing after the root CLAUDE.md split
+
+### Problem
+
+On 2026-10-19 the single root
+`CLAUDE.md` was split losslessly into a **portable core** (`~/.claude/CLAUDE.md`: any repo, any
+machine, and cloud sessions via a setup script) and a **Mac-local workspace file**
+(`~/.claude/workspace/CLAUDE.md`, which `claude-projects/CLAUDE.md` symlinks to). This loop is what
+writes new rules into those files, and it only knew about "root":
+
+- SKILL.md Step 5 still carried the size gate *"Root CLAUDE.md target: <250 lines (force extraction
+  at ≥230)"*. That gate was retired on 2026-08-28 (entry below). The router prompt was fixed that
+  day, but SKILL.md wasn't, so the two contradicted each other for seven weeks.
+- The router prompt cited "Root § Section 7", which doesn't exist after the split. The editing rules
+  now live in the core's § "Editing these instruction files".
+- Nothing told the loop to choose between the two files. A Mac-only rule filed in the core reaches a
+  cloud session as a pointer it can't follow. A portable rule filed in the workspace file never
+  reaches a cloud session at all.
+
+### Test (writing-skills Iron Law: watch it fail first)
+
+Fixture: three behavioral learnings. L1 is portable (*a number in a PR body claims the committed
+state*). L2 is Mac-only (*the `## Required Reading` heading a local hook enforces*). L3 is split (*read
+the file on disk*, plus a Mac-only timestamp mechanism). Each run got the Step 5 routing text plus the
+core's editing section, as it would sit in context. 3 runs per arm, Sonnet.
+
+| | Old text (RED) | New text (GREEN) |
+|---|---|---|
+| L1 → core, L2 → workspace | 3/3 | 3/3 |
+| Flagged the skill as contradicting the core | **3/3** | 0/3 |
+| L3's Mac-only half | workspace / reference doc / "either" | workspace 3/3 |
+| Provenance as HTML comment | 2/3 (one said "or the provenance file") | 3/3 |
+
+**The honest reading.** The old text did not misroute the clear cases, because the core's own editing
+rules rescued every run. What it produced was a contradiction that each run had to settle itself, and
+the runs settled the ambiguous case three different ways. One run cited the old rule *"extensions go to
+the reference file, not CLAUDE.md"* to send a Mac-only mechanism out of the always-loaded set entirely.
+The change removes that variance; it does not fix observed misroutes. Caveat: the test sub-agents
+inherit this machine's pre-split root file, and both arms were exposed to it equally.
+
+### Fix
+
+- **Step 5 "Process-Level Routing"** now runs two tests. Test 1 is global vs. project, as before.
+  Test 2 asks: *would this rule be correct and usable as written in a cloud session on a fresh
+  machine?* Yes → core. No → workspace file. A portable principle with Mac-only mechanics → split. The
+  section's model is the core § Sub-agents / workspace § "Sub-agents, locally" pair.
+- **Writing rules:**
+  - The core must stand alone. A `~/.claude/reference/*` pointer in a core rule is a supplement only.
+  - A new reference doc behind a core rule gets a row in the workspace file's Reference library table.
+  - REACH, not size.
+  - Provenance goes in an HTML comment beside the rule (stripped before Claude reads the file).
+  - Extending a rule means reconciling its always-loaded summary.
+  - No line-count gate.
+  - Removal bar: a rule leaves only when a model with no instructions passes the test built from its
+    originating failure.
+  - The core's § "Editing these instruction files" is canonical, and wins on any disagreement.
+- **Liveness check (Class B — the file paths rot on a layout change):** before routing, confirm both
+  files exist. A missing core means the machine predates the split, so stop rather than guess a path.
+- **Router prompt:**
+  - Inputs are now both files.
+  - New step 2b (scope test) and a new `instruction_file_scope` output field.
+  - Step 3 no longer cites "Root § Section 7".
+  - Provenance goes in HTML comments, and nothing is cut on length grounds.
+  - 3b/3d name "the core or workspace file". The `root_reconciliation` field keeps its name so
+    existing JSON consumers don't break.
+- **Auditor and consolidation prompts:** they read and grep both files; their route lists name all
+  three layers.
+- **Other live pointers** in SKILL.md (model tiering, procedural-rules principle, trace-before-removing,
+  rule-accretion failure signal) now name the core's sections.
+
+**Left as is, deliberately:** historical mentions of "root" in provenance and dated *Why* blocks (they
+describe the file as it was), and the Zone-1 "describes the EDIT" examples (*"proposes a root CLAUDE.md
+edit"*), which still illustrate the anti-pattern.
+
+**Merge order:** this depends on the config repo's split PR. Until it merges, `~/.claude/CLAUDE.md`
+does not exist, and the new liveness check makes Step 5 stop rather than write to it.
+
+---
+
 ## Session: August 28, 2026 — the router's line-budget rule was manufacturing stale root rules
 
 ### Problem

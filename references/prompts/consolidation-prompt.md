@@ -123,7 +123,7 @@ FOR EACH RAW SIGNAL:
    Instead, propose a specific ENFORCEMENT MECHANISM upgrade:
 
    - **Mechanical:** Stop hook / pre-commit hook / pre-push hook / SessionStart hook that fires on the symptom phrase or state
-   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural Rules + Canonical Truth" in root CLAUDE.md)
+   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural rules and canonical truth" in `~/.claude/CLAUDE.md`)
    - **Evidence:** add `Evidence:` requirement so the rule produces an artifact that proves it fired
    - **Trigger:** tighten the trigger phrase to match the failure-mode framing (per Trigger-Moment Auditor)
    - **Workflow-step ship gate:** add a STOP item to the relevant skill's ship/closeout checklist that mechanically requires the rule's protocol be run before declaring done
@@ -175,7 +175,8 @@ FOR EACH RAW SIGNAL:
    □ NO — this is an interesting observation but forgettable → Route to "Noted"
 
    For process-level conclusions that pass significance, apply the behavioral/operational split:
-   □ Behavioral (changes what Claude decides) → CLAUDE.md (root or project)
+   □ Behavioral (changes what Claude decides) → CLAUDE.md: portable core `~/.claude/CLAUDE.md`, Mac-local
+     `~/.claude/workspace/CLAUDE.md`, or project (SKILL.md Step 5 "Process-Level Routing" picks which)
    □ Operational (changes how Claude executes a procedure) → Check: does project have
      dedicated operational docs (playbooks/, etc.)? If yes → route there. If no → CLAUDE.md
      if significant, Memory if marginal.
@@ -282,7 +283,7 @@ hypotheses_resolved: [confirmed/disproven/still_unresolved counts]
 **Zone:** [Zone 1 — Decisions Required (answer was NO) / Zone 2 — Notify and Confirm (YES, and they should know) / Zone 3 — Decided (YES)]
 **Zone reason:** [**Zone 1:** name what the USER HOLDS that you don't — publishability under their name / scope crossing onto a shared or external surface / irreversible-or-intolerable-if-wrong / a preference with no defensible default. ⚠️ **A reason that describes the EDIT — "widens an authoritative doc," "proposes a root CLAUDE.md edit," "persona challenged," "Step 5.6 returned 2 of 3" — means the question above was actually YES. Adjudicate it and re-zone.** **Zone 2:** name which expectation of theirs changes, or which facts they can spot-check. **Zone 3:** name the mechanism question and the answer you gave it.]
 **Failure class:** [placement / shape / no-moment / n/a — plus a one-line rationale naming the rule that was eligible and silent, or "no eligible rule". Append `(provisional — destination not read)` where you could not verify from the captures.]  ← v4.7 (Step 5.5b) — MANDATORY, never omit
-**Route to:** [docs/solutions/ / CLAUDE.md (root or project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
+**Route to:** [docs/solutions/ / CLAUDE.md (portable core / Mac-local workspace / project) / Project operational docs / Memory MEMORY.md / Judgment Ledger / Noted]
 **Wedge test:** [Pass — <reason> / Fail — <reason> / N/A]  ← v3.9 (Step 6.6) — MANDATORY, never omit
 
 **Trigger Conditions:** (for process-level)
