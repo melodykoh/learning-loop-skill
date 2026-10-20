@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.8.1
+version: 4.9.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -13,9 +13,9 @@ allowed-tools:
   - Skill
 ---
 
-# learning-loop Skill v4.8.1
+# learning-loop Skill v4.9
 
-> **Version history:** the live table is `README.md` § Version History. (v4.8 = sub-agent prompts stop asking for quotes from a conversation they cannot see, cleanup enumerates instead of hardcoding, Mod 9/10 ungated; v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
+> **Version history:** the live table is `README.md` § Version History. (v4.9 = routing places rules that hold anywhere above root's Mac-local section and Mac-only rules inside it, line-count gate removed, provenance in HTML comments; v4.8 = sub-agent prompts stop asking for quotes from a conversation they cannot see, cleanup enumerates instead of hardcoding, Mod 9/10 ungated; v4.7 = failure-class gate before prose + a fourth state for concurrent ownership; v4.6 = zone criteria re-keyed onto WHO CAN ANSWER; v4.5 = Step 6a cleanup guard hardened; v4.4 = sub-agent briefs stop claiming inherited context; v4.3 = Step 1b.5 program-concluded exit branch; v4.2 = progressive-disclosure restructure, no behavior change.) **`references/CHANGELOG.md` is superseded — it stopped at v4.3 while releases continued in README.**
 >
 > **Sub-agent prompt library:** the six dispatch prompts live in `references/prompts/` and are read AT DISPATCH TIME — see "Sub-Agent Prompt Library" section below. **STOP if a prompt file is missing: never improvise a replacement prompt from memory** — surface the missing file to the user instead.
 
@@ -27,7 +27,7 @@ allowed-tools:
 
 > **Model choice per dispatch:** choose each sub-agent's model from what *that* sub-agent
 > is being asked to do, and **print each choice + a one-line why in the visible reply**.
-> Criterion and rationale: root `CLAUDE.md` → **Model-tiering**. Never pin a model in an
+> Criterion and rationale: root `CLAUDE.md` § Sub-agents → **Model tiering**. Never pin a model in an
 > agent file — it is decided at dispatch, where the task is visible.
 
 ## Mode Detection
@@ -470,7 +470,7 @@ From [N] scans, consolidation produced [X] conclusions ([Z1] Zone 1, [Z2] Zone 2
 - **What happened in this session:** [1-3 sentences with specific incident or pattern. Quote the user or quote yourself if a direct exchange triggered the signal. Concrete event, not abstracted rule.]
 - **What's wrong / what's missing:** [explicit gap or failure mode]
 - **What the fix does:** [concrete before/after. If destination is a watch-list cluster or sub-entry, NAME what's already in that cluster and how this addition interacts.]
-- **Why this destination:** [why this cluster/file/section vs alternatives. Don't reason from secondary constraints (e.g., "root CLAUDE.md is at line budget") when the rule's logic dictates a destination.]
+- **Why this destination:** [why this cluster/file/section vs alternatives. Don't reason from secondary constraints (e.g., "the core CLAUDE.md is already long") when the rule's logic dictates a destination.]
 - **Persona challenges (if any):**
   - **[Trigger-Moment Auditor]** ⚠️ challenge: [one-sentence reasoning]
     - Original framing: "[from consolidation]"
@@ -672,8 +672,8 @@ The Verification Detail Floor scales rigor with zone (classification criteria: `
   cluster or sub-entry, NAME what's already in that cluster and how this
   addition interacts (sub-entry W_N.x increment vs new cluster).]
 - **Why this destination:** [why this cluster/file/section vs alternatives.
-  Don't reason from secondary constraints (e.g., "root CLAUDE.md is at line
-  budget") when the rule's logic dictates a destination.]
+  Don't reason from secondary constraints (e.g., "the core CLAUDE.md is already
+  long") when the rule's logic dictates a destination.]
 - **Persona challenges (if any):** [what the persona objected to, your
   concrete adjudication, and your reason — challenges are resolved before
   rendering, never forwarded as the reason this is Zone 1]
@@ -1011,7 +1011,7 @@ echo "✅ failure-class field present on all $n_concl conclusions"
    `HUMAN-CAUGHT: <mechanism> — the question that catches it: "<the literal question>" — no mechanism proposed because <reason>.`
    Recording the **question** is the payload. Recording that the surface is unmechanized is what makes it countable instead of invisible.
 
-**Never another paragraph for a `no-moment` finding.** That is the rule accretion that root `CLAUDE.md` § 7 names as a failure signal, arriving through the routing step. If you catch yourself writing *"the rule should say more clearly that…"*, re-read the class.
+**Never another paragraph for a `no-moment` finding.** That is the rule accretion that root `CLAUDE.md` § "Editing these instruction files" names as a failure signal, arriving through the routing step. If you catch yourself writing *"the rule should say more clearly that…"*, re-read the class.
 
 **Composition with Mod 6 (Step 4b):** they are different axes and they run in a fixed order. **Mod 6 decides TIMING** — codify now, or watch for more evidence. **The failure class decides FORM** — what a codification is allowed to *be*. Run Mod 6 first; if it returns CODIFY DIRECTLY, the class then constrains what "codify" means. A `no-moment` conclusion that Mod 6 sends to CODIFY DIRECTLY does **not** get a paragraph written into the destination — it gets one of the four above. Mod 6's *"destination identifiable"* condition is satisfied by a mechanism's install point exactly as well as by a file + section.
 
@@ -1042,7 +1042,7 @@ After user confirms, route each learning to its proper destination:
 
 | Answer | Destination | Example |
 |--------|-------------|---------|
-| **Yes — changes decisions globally** | Root CLAUDE.md | "Always read the full file before editing" |
+| **Yes — changes decisions globally** | Root CLAUDE.md (placement test below) | "Always read the full file before editing" |
 | **Yes — changes decisions in this project** | Project CLAUDE.md | "Develop when you have lived material" |
 | **Yes — changes procedure execution** | Project operational docs* | "Reactive before evergreen scheduling" |
 | **Yes — changes how skills are built/maintained** | claude-skills CLAUDE.md or playbook | "Always include Gotchas section" |
@@ -1086,36 +1086,36 @@ Before routing to the Judgment Ledger, apply the content wedge test from `positi
 
 This prevents the Judgment Ledger from accumulating entries that are genuinely useful learnings but would never become published content under the Ground Truth positioning.
 
-**Process-Level Routing (Behavioral — Global vs. Project):**
+**Process-Level Routing (Behavioral — Global vs. Project, then Where in Root):**
 
 For behavioral learnings, apply a second test: *"Would this apply if I was working in a completely different project?"*
 
-| YES → root CLAUDE.md (with size gate below) | NO → project CLAUDE.md |
+| YES → root CLAUDE.md (placement test below) | NO → project CLAUDE.md |
 |---|---|
 | "When building APIs, ask about naming convention first" | "This repo's API uses camelCase for all endpoints" |
 | "Before modifying functions, read entire implementation" | "Supabase RPCs in this project use `verb_noun` naming" |
 
-**⚠️ CLAUDE.md Size Gate (MANDATORY — applies to ALL CLAUDE.md files):**
+Root `CLAUDE.md` is one file: `~/.claude/workspace/CLAUDE.md`, which `claude-projects/CLAUDE.md` symlinks to. Rules that hold anywhere come first; a marked **Mac-local** section at the end (`## Mac-local (this workspace)`) holds the rest. **When the destination is root, first confirm the file exists and has a `## Mac-local` heading.** If the file is missing, this session has no root to write to; if the heading is missing, the layout changed. Either way, report it and stop that route; never guess a placement. Project-CLAUDE.md routes skip this check.
 
-Before writing ANY behavioral learning to a CLAUDE.md file (root or project), apply the **trigger-vs-protocol split**:
+**Placement test:** *"Would this rule be correct, and usable exactly as written, in a cloud session on a fresh machine — any repo, no `~/.claude/reference/*`, no local hooks, no `claude-projects/` workspace files, no local tools?"*
 
-> "Is this a trigger/routing keyword (2-5 lines) or a detailed protocol (>5 lines, STOP lists, checklists)?"
+| Answer | Placement | Example |
+|---|---|---|
+| **Yes — holds anywhere** | Above the Mac-local section, in its matching section | "Before modifying a function, read its entire implementation" |
+| **No — it only works because of something on the Mac** (a workspace path, `~/.claude/reference/*`, a local hook, a local pipeline or tool) | Inside the Mac-local section | "Every sub-agent prompt needs a literal `## Required Reading` heading — a local hook blocks the dispatch otherwise" |
+| **Both — a principle that holds anywhere, with Mac-only mechanics** | Split: the principle above, the mechanics in the Mac-local section | The delegation rule above; the hook and local doc pointers in the Mac-local section |
 
-| Answer | Action |
-|--------|--------|
-| **Trigger** (2-5 lines, tells Claude *when* to act) | Write to the target CLAUDE.md |
-| **Protocol** (>5 lines, tells Claude *how* to act in detail) | Write to a reference/companion file, add 2-3 line trigger + pointer in CLAUDE.md |
-| **Extends existing rule** (new STOP item or provenance for an existing section) | Add to the existing rule's reference/companion file, NOT to CLAUDE.md |
+**Writing rules:**
 
-**Reference file locations by target:**
-- Root CLAUDE.md → `~/.claude/reference/<topic>.md`
-- Project CLAUDE.md → project's own docs folder, or `_meta/<topic>.md`, or inline in SESSION_LOG.md if it's a one-off
+- **A rule above the Mac-local section must stand alone.** It may carry a `~/.claude/reference/*` pointer only as a supplement — the rule as stated must be complete where that pointer does not resolve — and Mac-only names never go in its text.
+- **REACH, not size.** State the principle self-contained, in as few lines as it takes to be usable without its reference doc — sub-agents inherit CLAUDE.md files but not `~/.claude/reference/*`. Test: if a sub-agent acting on the line alone would do the wrong thing, the line isn't finished. Long protocols and enumerated edge cases go to a reference doc: `~/.claude/reference/<topic>.md` for root rules; the project's docs folder, `_meta/<topic>.md`, or its SESSION_LOG.md (one-offs) for project rules.
+- **Provenance goes in a block-level HTML comment directly under its rule** — `<!-- what happened, date, who decided -->` on its own line(s), never on the same line as rule text — and not in the rule text itself; a one-clause reason may stay inline. Claude Code (v2.1.72+) strips block-level comments before injecting a CLAUDE.md, so the lesson stays next to its rule at zero context cost; a comment sharing a line with rule text may not be stripped. On a harness older than v2.1.72 the comment would load as context: put provenance in the rule's reference doc instead. Never write a `> Why this exists` block into a CLAUDE.md.
+- **Extending an existing rule** (a new STOP item, edge case or provenance): detail goes to that rule's reference doc and provenance to its HTML comment — then **reconcile root's summary**: re-read the rule's text in root and fix it if the new clause makes it understate, narrow or contradict. A clause that lands only in the reference layer has been *filed*, not *landed* (the router emits this as `root_reconciliation`).
+- **No line-count gate.** Root has no line target, and a destination is never justified by a file's size. The test is whether a line earns its competition with the others — longer files reduce adherence. Control growth by de-narrating (provenance into comments), de-duplicating (one canonical home, the rest point to it), and — when a rule keeps failing — changing where or how it triggers rather than adding text.
+- **Removal bar.** A rule leaves root only when a model with no instructions passes the test built from the failure that produced it. Until then: move, de-duplicate or de-narrate — never delete, and never propose a cut on length grounds.
+- **Canonical source:** root `CLAUDE.md` § "Editing these instruction files". If it and this section disagree, it wins — update this section.
 
-**Line count check before writing:** Read the target CLAUDE.md and count lines. If at or near its budget, force extraction regardless of learning size.
-- Root CLAUDE.md target: <250 lines (force extraction at ≥230)
-- Project CLAUDE.md: no fixed number, but apply judgment — if the file requires scrolling to scan, it's too long. Extract.
-
-> Why this exists (Apr 3, 2026): Root CLAUDE.md grew from 173 to 351 lines over 6 weeks. Every learning routed without a size gate. The same mechanism applies to project CLAUDE.md files — any destination that receives learnings without a size check will bloat.
+> Why this changed (2026-10-19): (1) The size gate this replaced — *"Root CLAUDE.md target: <250 lines (force extraction at ≥230)"*, added Apr 3 2026 after root grew 173 → 351 lines in six weeks — was retired 2026-08-28: the 250 had no source, and force-extraction turned rules into pointers sub-agents could not open (three loop-authored rules were found correct in canonical but stale in root by 9, 4 and 33 days). The router prompt was fixed that day; this section was not, so the two disagreed for seven weeks. (2) On 2026-10-19 root was reordered: rules that hold anywhere first, Mac-only rules in a marked section at the end. A split into two files was tried and rejected the same day as sprawl. A router that ignores the order files Mac-only rules where a reader without this machine meets broken pointers, and buries portable rules where they look machine-specific. The Apr 3 bloat concern is real; it is now handled by the earns-its-line test and de-narration rather than by a number.
 
 #### Step 5b: Reverse-Check Consumers (Added Apr 17, 2026)
 
@@ -1125,7 +1125,7 @@ If Step 5 routed any learning that **restructures an authoritative doc** (create
 2. Verify each reference still resolves correctly after the restructure
 3. Update routing logic in every affected consumer
 
-See `~/.claude/reference/procedural-rule-routing.md` "Reverse-Check: Consumers After Doc Restructure" for the full protocol. Global principle lives in root CLAUDE.md ("Procedural Rules Belong at the Workflow Step").
+See `~/.claude/reference/procedural-rule-routing.md` "Reverse-Check: Consumers After Doc Restructure" for the full protocol. Global principle lives in root CLAUDE.md § "Procedural rules and canonical truth".
 
 **STOP and correct if:**
 - A learning restructured a rule's home but the skills/agents that invoke that rule still route to the old home
@@ -1253,7 +1253,7 @@ fi
 
 > **Why (2026-07-28):** the watch-list header carried a note deferring four persona-reviewed source-fidelity guardrails, with the instruction "route or explicitly discard at a future wrap-up; do NOT re-derive." The wrap-up that finally read the note found the capture directory **already deleted by this step**, and the guardrails' content unrecoverable — verified against a full recursive listing including `_archive/`, a case-insensitive grep, and a home-wide find. The deferral surface worked exactly as designed: the note was where the future decision would read it. What failed is that the note held a *pointer*, and this step deletes pointees. Disposition had to be recorded as CLOSED-UNRECOVERABLE — scope unknown.
 >
-> **Scope note:** root CLAUDE.md's `Trace Before Removing` covers this class conceptually, but its trigger is proposal-shaped ("before the words *we should remove X*") — a scripted `rm` inside a mandated skill step never consults it. This is that rule applied at an automated-removal moment; see `~/.claude/reference/trace-before-removing.md`.
+> **Scope note:** root CLAUDE.md's "Trace before removing" covers this class conceptually, but its trigger is proposal-shaped ("before the words *we should remove X*") — a scripted `rm` inside a mandated skill step never consults it. This is that rule applied at an automated-removal moment; see `~/.claude/reference/trace-before-removing.md`.
 
 ```bash
 SID="[consolidated-session-id]"

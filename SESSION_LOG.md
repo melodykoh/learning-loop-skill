@@ -6,6 +6,110 @@
 
 ---
 
+## Session: October 19, 2026 — v4.9: placement inside root, and the dead size gate
+
+### Problem
+
+On 2026-10-19 root `CLAUDE.md` (`~/.claude/workspace/CLAUDE.md`, which `claude-projects/CLAUDE.md`
+symlinks to) was restructured. It is still one file. Rules that hold anywhere come first, and a marked
+`## Mac-local (this workspace)` section at the end holds what exists only on this Mac. A split into a
+portable file plus a Mac-local file was built the same day and rejected as sprawl. This loop writes the
+new rules into root, and it was out of date in three ways:
+
+- SKILL.md Step 5 still carried *"Root CLAUDE.md target: <250 lines (force extraction at ≥230)"*.
+  That gate was retired on 2026-08-28 (entry below). The router prompt was fixed that day; SKILL.md
+  was not, so the two contradicted each other for seven weeks.
+- The router prompt cited "Root § Section 7", which no longer exists. The editing rules are now root §
+  "Editing these instruction files".
+- Nothing told the loop where in root to put a rule. A Mac-only rule placed among the anywhere-rules
+  gives a reader on another machine a pointer it can't follow. A portable rule placed in the Mac-local
+  section looks machine-specific.
+
+### Test (writing-skills Iron Law: watch it fail first)
+
+The fixture was three behavioral learnings:
+- L1 holds anywhere: *a number in a PR body claims the committed state*.
+- L2 is Mac-only: *the `## Required Reading` heading a local hook enforces*.
+- L3 is a split: *read the file on disk*, plus a Mac-only timestamp mechanism.
+
+Each run got the Step 5 routing text and root's editing rules, as they would sit in context. There were
+3 Sonnet runs per arm.
+
+**RED** ran on the old text, against the two-file layout that existed at the time. All 3 runs flagged
+the skill as contradicting the always-loaded rules and overrode it. The clear cases routed correctly,
+because the always-loaded editing rules rescued every run. The Mac-only half of L3 got three different
+answers: the workspace file, a reference doc, and "either". One run cited the old rule *"extensions go
+to the reference file, not CLAUDE.md"* to send a Mac-only mechanism out of the always-loaded set.
+
+**GREEN** ran twice. First on the two-file text, then — after the layout changed — on the one-file text
+in this commit:
+- All 3 runs confirmed the Mac-local heading before writing.
+- L1 went above the Mac-local section, into Verification.
+- L2 went inside it, into Sub-agents, locally.
+- L3 was split, with the principle in Compaction.
+- All 3 put provenance in HTML comments.
+- None flagged a contradiction.
+- The only variation was which Mac-local subsection receives L3's mechanics.
+
+**The honest reading:** the change removes a contradiction, and the variance it caused on the
+ambiguous case. It does not fix observed misroutes of clear cases, because none were seen. Caveat: the
+test sub-agents inherit this machine's root file, and both arms were exposed to it equally.
+
+### Fix
+
+- **Step 5.** Global vs. project stays as Test 1. Global rules then get a **placement test**: *would
+  this rule be correct, and usable as written, in a cloud session on a fresh machine?*
+  - Yes → above the Mac-local section.
+  - No → inside it.
+  - A principle that holds anywhere with Mac-only mechanics → split across the two.
+- **Writing rules:**
+  - A rule above the Mac-local section must stand alone. A `~/.claude/reference/*` pointer there is a
+    supplement only.
+  - REACH, not size.
+  - Provenance goes in an HTML comment beside the rule.
+  - Extending a rule means reconciling root's summary of it.
+  - No line-count gate.
+  - Removal bar: a rule leaves root only when a model with no instructions passes the test built from
+    its originating failure.
+  - Root § "Editing these instruction files" is canonical.
+- **Liveness check.** This is Class B: the section name rots on a layout change. Before writing,
+  confirm root still has a `## Mac-local` heading. If it doesn't, stop and report rather than guess.
+- **Router prompt.**
+  - New step 2b runs the placement test, with a `root_placement` output field.
+  - The "Root § Section 7" citation now points at "Editing these instruction files".
+  - Provenance goes in HTML comments.
+  - No cuts on length grounds.
+- **Consolidation prompt.** The section name is now "Procedural rules and canonical truth".
+- **Other SKILL.md pointers** (model tiering, procedural rules, trace-before-removing, the rule-accretion
+  failure signal) now name root's current section titles.
+
+### Review (Codex, on the first commit) — both findings valid in narrower form
+
+- **P1 — the file check blocked routes that never touch the file.** Codex flagged the two-file `ls`
+  check, which ran before every route. The rework had already replaced it. But the replacement
+  (*"confirm root has a `## Mac-local` heading"*) had the same scope gap, and no branch for root
+  being absent. It now runs only when the destination is root. A missing file or missing heading
+  stops that route with a report, and project routes skip the check.
+- **P2 — HTML-comment provenance is not free on every harness.** Verified against the cited
+  Anthropic issue and the memory docs it quotes. Claude Code started stripping comments when it
+  injects a CLAUDE.md in **v2.1.72** (this machine runs 2.1.303). It strips only **block-level**
+  comments. That is sharper than Codex's framing: *"a comment beside its rule"* invites a
+  same-line comment, which the docs don't promise to strip. The rule now says block-level, on its
+  own line(s), directly under the rule. On a harness older than v2.1.72, provenance goes to the
+  rule's reference doc instead.
+
+**Reverted within this PR:** the first version routed between two files, and it is gone. "Root
+CLAUDE.md" keeps meaning the one file.
+
+**Left as is, deliberately:**
+- Historical mentions of "root" in dated provenance.
+- The Zone-1 "describes the EDIT" examples, which still illustrate the anti-pattern.
+
+**Merge order:** after the config repo's restructure PR. Until then, root has no `## Mac-local`
+heading, and the liveness check makes Step 5 stop rather than guess where a rule goes.
+
+---
+
 ## Session: August 28, 2026 — the router's line-budget rule was manufacturing stale root rules
 
 ### Problem

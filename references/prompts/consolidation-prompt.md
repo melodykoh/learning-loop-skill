@@ -123,7 +123,7 @@ FOR EACH RAW SIGNAL:
    Instead, propose a specific ENFORCEMENT MECHANISM upgrade:
 
    - **Mechanical:** Stop hook / pre-commit hook / pre-push hook / SessionStart hook that fires on the symptom phrase or state
-   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural Rules + Canonical Truth" in root CLAUDE.md)
+   - **Structural:** relocate the rule to a workflow step that fires automatically (per "Procedural rules and canonical truth" in root CLAUDE.md)
    - **Evidence:** add `Evidence:` requirement so the rule produces an artifact that proves it fired
    - **Trigger:** tighten the trigger phrase to match the failure-mode framing (per Trigger-Moment Auditor)
    - **Workflow-step ship gate:** add a STOP item to the relevant skill's ship/closeout checklist that mechanically requires the rule's protocol be run before declaring done

@@ -25,7 +25,18 @@ FOR EACH CONCLUSION:
 2. If decision-changer: is there an EXISTING workflow-step list at the named trigger point (use the Trigger-Moment Auditor's named_trigger_moment value)?
    - Examples of workflow-step lists: skills' STOP checklists, project CLAUDE.md "Error Handling" sections, "Pre-publish checklist" sections, "When debugging, check these" lists.
    - If yes → route there. The rule fires automatically when the workflow step is read.
-   - If no → root or project CLAUDE.md as a new section.
+   - If no → root or project CLAUDE.md as a new section. For root, pick the placement with step 2b.
+
+2b. **PLACEMENT IN ROOT (added 2026-10-19).** Root is one file: rules that hold anywhere first, a marked
+   Mac-local section at the end (`## Mac-local (this workspace)`). Ask: **would this rule be correct, and usable exactly as written, in a
+   cloud session on a fresh machine — any repo, no `~/.claude/reference/*`, no local hooks, no
+   `claude-projects/` workspace files, no local tools?**
+   - Yes → **anywhere** → above the Mac-local section, in its matching section.
+   - No, it only works because of something on the Mac → **mac-local** → inside the Mac-local section.
+   - A principle that holds anywhere, with Mac-only mechanics → **split**: principle above, mechanics in
+     the Mac-local section.
+   A rule above the Mac-local section must stand alone: a `~/.claude/reference/*` pointer there is a
+   supplement only, and Mac-only names never go in its text. Record the answer in `root_placement`.
 
 3. If routing to root CLAUDE.md: apply the REACH test. ⚠️ **REWRITTEN 2026-08-28 — the previous
    version of this step was the machine that manufactured a specific, repeating defect. Read why
@@ -54,8 +65,15 @@ FOR EACH CONCLUSION:
      sub-agent cannot act on is the constraint.
    - **Is it a long protocol, an enumerated edge-case list, or provenance?** → reference doc. The
      main session can open those; a sub-agent rarely needs them mid-task.
-   - Never justify a destination by root's size. Root § Section 7 says so explicitly, and this file
-     already warns against reasoning from secondary constraints.
+   - Never justify a destination by root's size. Root § "Editing these instruction files" says so
+     explicitly, and this file already warns against reasoning from secondary constraints.
+   - Never recommend cutting a rule from root on length grounds. A rule leaves only when a model with
+     no instructions passes the test built from the failure that produced it.
+   - **Provenance goes in a block-level HTML comment directly under the rule**
+     (`<!-- what happened, date, who decided -->` on its own line(s), never sharing a line with rule
+     text), not in the rule text; a one-clause reason may stay inline. Claude Code v2.1.72+ strips
+     block-level comments before injecting a CLAUDE.md, so this costs no context; on an older harness,
+     recommend the rule's reference doc instead. Never propose a `> Why` block inside a CLAUDE.md.
 
 3b. **ROOT-RECONCILIATION CHECK — mandatory whenever you route to a reference doc (added 2026-08-28).**
    If the rule you are filing ALSO has an inline summary in root CLAUDE.md, adding a clause to the
@@ -110,6 +128,7 @@ OUTPUT FORMAT (one JSON object per conclusion, in a JSON array):
   "classification": "decision-changer" | "recall-fact" | "execution-time-behavior",
   "existing_workflow_step_list_at_trigger": "<path or null>",
   "recommended_destination_ranked": ["<first choice>", "<fallback>"],
+  "root_placement": "anywhere" | "mac-local" | "split" | null,
   "consolidation_destination_assessment": "aligned" | "misaligned",
   "verdict": "pass" | "challenge",
   "challenge_reasoning": "<one sentence if challenge, else null>",
