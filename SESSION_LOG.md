@@ -83,6 +83,21 @@ test sub-agents inherit this machine's root file, and both arms were exposed to 
 - **Other SKILL.md pointers** (model tiering, procedural rules, trace-before-removing, the rule-accretion
   failure signal) now name root's current section titles.
 
+### Review (Codex, on the first commit) — both findings valid in narrower form
+
+- **P1 — the file check blocked routes that never touch the file.** Codex flagged the two-file `ls`
+  check, which ran before every route. The rework had already replaced it. But the replacement
+  (*"confirm root has a `## Mac-local` heading"*) had the same scope gap, and no branch for root
+  being absent. It now runs only when the destination is root. A missing file or missing heading
+  stops that route with a report, and project routes skip the check.
+- **P2 — HTML-comment provenance is not free on every harness.** Verified against the cited
+  Anthropic issue and the memory docs it quotes. Claude Code started stripping comments when it
+  injects a CLAUDE.md in **v2.1.72** (this machine runs 2.1.303). It strips only **block-level**
+  comments. That is sharper than Codex's framing: *"a comment beside its rule"* invites a
+  same-line comment, which the docs don't promise to strip. The rule now says block-level, on its
+  own line(s), directly under the rule. On a harness older than v2.1.72, provenance goes to the
+  rule's reference doc instead.
+
 **Reverted within this PR:** the first version routed between two files, and it is gone. "Root
 CLAUDE.md" keeps meaning the one file.
 

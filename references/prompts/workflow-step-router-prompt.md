@@ -69,9 +69,11 @@ FOR EACH CONCLUSION:
      explicitly, and this file already warns against reasoning from secondary constraints.
    - Never recommend cutting a rule from root on length grounds. A rule leaves only when a model with
      no instructions passes the test built from the failure that produced it.
-   - **Provenance goes in an HTML comment beside the rule** (`<!-- what happened, date, who decided -->`),
-     not in the rule text; a one-clause reason may stay inline. Comments are stripped before Claude
-     reads the file, so this costs no context. Never propose a `> Why` block inside a CLAUDE.md.
+   - **Provenance goes in a block-level HTML comment directly under the rule**
+     (`<!-- what happened, date, who decided -->` on its own line(s), never sharing a line with rule
+     text), not in the rule text; a one-clause reason may stay inline. Claude Code v2.1.72+ strips
+     block-level comments before injecting a CLAUDE.md, so this costs no context; on an older harness,
+     recommend the rule's reference doc instead. Never propose a `> Why` block inside a CLAUDE.md.
 
 3b. **ROOT-RECONCILIATION CHECK — mandatory whenever you route to a reference doc (added 2026-08-28).**
    If the rule you are filing ALSO has an inline summary in root CLAUDE.md, adding a clause to the
