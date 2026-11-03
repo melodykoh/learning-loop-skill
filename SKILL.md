@@ -1,7 +1,7 @@
 ---
 name: learning-loop
 description: Two-mode learning system — raw signal scanning before compaction, quality-gated consolidation at session end. Invoke with /learning-loop.
-version: 4.9.0
+version: 4.10.0
 allowed-tools:
   - Agent  # sub-agent dispatch (formerly Task, renamed in harness v2.1.63)
   - Read
@@ -526,7 +526,7 @@ Two kinds share this tier: things that **change what you should expect** from th
 ✓ Auto-drafted plans (matured clusters, v3.11 Mod 5):
   - <Cluster ID> → <plan path> (N Open Qs)
   - <Cluster ID> → <plan path> (N Open Qs)
-Review when ready; promote to `ready-for-autonomous` after answering any Open Questions.
+Review when ready; answer any Open Questions before anyone acts on the plan.
 ```
 
 [/IF]
@@ -765,16 +765,16 @@ Before routing, run a cluster check on the active watch-list.
 
 **Mod 5 — Threshold-met → child sub-agent auto-drafts plan (v3.4 Apr 28, refined v3.11 May 12 2026):**
 
-When a watch-list cluster meets BOTH gates, spawn a child sub-agent to draft a plan in PEP schema:
+When a watch-list cluster meets BOTH gates, spawn a child sub-agent to draft a plain remediation plan — a markdown doc in the target repo's `plans/` folder, no pipeline frontmatter (v4.10: the Plan Execution Pipeline whose schema this used to follow was retired 2026-11-03):
 
 1. **Maturation gate (v3.11):** ≥5 sub-IDs in the cluster. Tightened from the original v3.4 thresholds (2 or 3) per the May 12 2026 user directive — recurrence evidence is the threshold, not first-pattern speculation.
 2. **No-active-plan gate (v3.11):** no plan currently exists for this cluster. Verify both:
-   - Grep cluster ID (e.g., `W7.c`) across known plan directories: `~/Documents/claude-projects/claude-skills/plans/`, `~/.claude/plans/`, `~/Documents/claude-projects/Personal/*/plans/`, `~/Documents/claude-projects/Personal/plan-execution-pipeline/plans/`
+   - Grep cluster ID (e.g., `W7.c`) across known plan directories: `~/Documents/claude-projects/claude-skills/plans/`, `~/.claude/plans/`, `~/Documents/claude-projects/Personal/*/plans/`
    - Check the cluster's Fix field for an explicit plan-path reference (e.g., "see plan at /path/to/X.md")
 
 When BOTH gates pass, spawn a **child sub-agent** with `PLAN_DRAFTER_PROMPT` (Read `references/prompts/plan-drafter-prompt.md` at dispatch). The main wrap-up sub-agent does NOT do the drafting work — child sub-agent extraction keeps the main wrap-up context clean (matches the v3.5 persona-panel architecture).
 
-The child sub-agent receives: cluster ID + cluster header + Fix field + all sub-entries + PEP plan schema. It parses Fix for plan location, drafts the plan with each historical incident as a Success Criteria checkbox, handles ambiguous Fix-field areas via `## Open Questions (blocking)` section, writes the file, and reports back.
+The child sub-agent receives: cluster ID + cluster header + Fix field + all sub-entries. It parses Fix for plan location, drafts the plan with each historical incident as a Success Criteria checkbox, handles ambiguous Fix-field areas via `## Open Questions (blocking)` section, writes the file, and reports back.
 
 Plan content schema:
 
@@ -783,13 +783,8 @@ Plan content schema:
 | `## Objective` | Cluster's root cause + fix in one paragraph |
 | `## Success Criteria` | **Every historical incident reframed as a test case checkbox**: "Would this fix have prevented incident W_N.x ([date], [transcript ref])?" Each W_N sub-entry becomes a criterion. The fix must trace through all test cases and demonstrate robustness against all of them. |
 | `## Context` | Aggregated incident notes + transcript references + dates + N-failure count + cognitive/process origins |
-| `## Open Questions (blocking)` (v3.11) | Every plan section that the drafter couldn't fill with high confidence from the Fix field. Blocks transition to `ready-for-autonomous` until user fills them. The drafter must never fabricate file paths or technical specifics not present in the Fix field. |
-| YAML `status` | `draft` |
-| YAML `plan_kind` | `executable` (queues into autonomous pipeline) or `pr-spec` if scoped narrowly |
-| YAML `priority` | Based on cluster size: ≥10 sub-IDs → high; 5-9 → medium |
-| YAML `priority_rationale` | "Watch-list cluster `<ID>` matured to N sub-IDs; fix unimplemented as of `<date>`" |
-| YAML `created` | Today's date |
-| YAML `project_bucket` | Inferred from chosen plan directory |
+| `## Open Questions (blocking)` (v3.11) | Every plan section that the drafter couldn't fill with high confidence from the Fix field. They must be answered before the plan is acted on. The drafter must never fabricate file paths or technical specifics not present in the Fix field. |
+| Header lines (plain text under the title, no YAML) | `**Status:** draft` · `**Created:** <today>` · `**Priority:** high` (≥10 sub-IDs) or `medium` (5-9) — "watch-list cluster `<ID>` matured to N sub-IDs; fix unimplemented as of `<date>`" |
 
 Plan file location (Fix-field auto-routing, v3.11):
 - Fix field mentions `~/.claude/` paths → `~/.claude/plans/`
@@ -805,7 +800,7 @@ The main wrap-up sub-agent surfaces drafted plans in Step 4's **Cluster + Watch-
 ✓ Auto-drafted plans (matured clusters, v3.11):
   - W7.c → ~/.claude/plans/2026-05-15-w7c-auto-mode-classifier.md (3 Open Qs)
   - W37 → ~/Documents/claude-projects/claude-skills/plans/2026-05-15-w37-hook-false-positive.md (0 Open Qs)
-Review when ready; promote to `ready-for-autonomous` after answering any Open Questions.
+Review when ready; answer any Open Questions before anyone acts on the plan.
 ```
 
 **Why v3.4 → v3.11 refinement (May 12 2026):** Original v3.4 thresholds (count ≥2 or 3) were tuned aggressively to catch sprawl early. In practice, drafting plans on thin evidence created speculative debt. User directive (May 12): *"we want recurrence evidence before adding to the watch-list."* Tightening to ≥5 sub-IDs + no-active-plan aligns Mod 5 with the Workstream A recurrence-test philosophy. Fix-field auto-routing + Open Questions handling were also missing — plans landed in inconsistent locations and over-fabricated specifics from vague Fix fields. Child sub-agent extraction matches the v3.5 persona-panel architecture and keeps wrap-up context lean.
