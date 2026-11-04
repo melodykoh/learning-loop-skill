@@ -6,6 +6,30 @@
 
 ---
 
+## Session: November 3, 2026 — v4.10: Mod 5 drafts plain plans
+
+### Problem
+
+Mod 5 (wrap-up Step 4b) drafted remediation plans in the Plan Execution Pipeline's schema: YAML
+frontmatter (`plan_kind`, `robustness_grade`, `execution_surface`, ...) and a "promote to
+`ready-for-autonomous`" step. The pipeline was retired on 2026-11-03 and its repo archived, so the
+schema now describes a queue that no longer exists, and the no-active-plan grep pointed at the
+archived repo's `plans/` folder.
+
+### Change
+
+- The drafter writes a plain markdown plan: title, three header lines (status, created, priority with
+  its cluster-size rationale), then Objective / Success Criteria / Context / Decision Tree / Open
+  Questions. The Escalation Protocol section and every pipeline-only field are gone.
+- Open Questions still block: they must be answered "before anyone acts on the plan" instead of
+  "before transition to ready-for-autonomous".
+- The archived pipeline repo is dropped from the no-active-plan grep.
+
+Gates (≥5 sub-IDs, no active plan), routing by Fix-field paths, and the child-sub-agent architecture
+are unchanged. Not behavior-tested: this removes a dependency and adds no new instruction.
+
+---
+
 ## Session: October 19, 2026 — v4.9: placement inside root, and the dead size gate
 
 ### Problem
